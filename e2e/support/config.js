@@ -25,6 +25,7 @@ const targetVersion = process.env["CROSS_VERSION_TARGET"];
 
 const runWithReplay = process.env["CYPRESS_REPLAYIO_ENABLED"];
 const runWithDeploySentinel = process.env["DEPLOYSENTINEL_ENABLED"];
+const videoEnabled = process.env["CYPRESS_VIDEO_ENABLED"];
 
 // This function is called when a project is opened or re-opened (e.g. due to
 // the project's config changing)
@@ -139,6 +140,7 @@ const mainConfig = {
     runMode: 4,
     openMode: 0,
   },
+  video: videoEnabled ? true : false,
 };
 
 const snapshotsConfig = {
