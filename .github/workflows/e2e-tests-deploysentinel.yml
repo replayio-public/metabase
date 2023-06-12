@@ -1,4 +1,4 @@
-name: E2E Tests (baseline)
+name: E2E Tests (deploysentinel)
 
 on:
   # We'll record runs using Replay.io and their browser on a schedule as an experiment
@@ -170,6 +170,7 @@ jobs:
           --folder ${{ matrix.folder }}
         env:
           TERM: xterm
+          DEPLOYSENTINEL_ENABLED: 1
 
       - name: Upload Cypress Artifacts upon failure
         uses: actions/upload-artifact@v3
