@@ -61,6 +61,12 @@ jobs:
       always() &&
       needs.build.result == 'success'
     runs-on: ubuntu-22.04
+    outputs:
+      baselineDuration: ${{steps.end.outputs.baselineDuration}}
+      videoDuration: ${{steps.end.outputs.videoDuration}}
+      replayV1Duration: ${{steps.end.outputs.replayV1Duration}}
+      replayV2Duration: ${{steps.end.outputs.replayV2Duration}}
+      deploySentinelDuration: ${{steps.end.outputs.deploySentinelDuration}}
     timeout-minutes: 120
     name: e2e-tests-${{ matrix.folder }}${{ matrix.context }}-${{ matrix.edition }}
     env:
@@ -166,7 +172,7 @@ jobs:
       - name: Install Replay.io browser
         run: npx @replayio/cypress install
 
-      - name: 1) Run EE Cypress tests on ${{ matrix.folder }}
+      - name: 1) Run tests on ${{ matrix.folder }}
         if: matrix.edition == 'ee'
         run: |
           yarn run test-cypress-run \
@@ -175,7 +181,14 @@ jobs:
         env:
           TERM: xterm
 
-      - name: 2) Run EE Cypress tests on ${{ matrix.folder }} with Video
+      - name: Parse setup 1 duration
+        id: set_var_1
+        if: always()
+        run: |
+          content=`cat duration.json`
+          echo "::set-output name=duration::$content"
+
+      - name: 2) Run tests on ${{ matrix.folder }} with Video
         if: matrix.edition == 'ee'
         run: |
           yarn run test-cypress-run \
@@ -185,21 +198,14 @@ jobs:
           TERM: xterm
           CYPRESS_VIDEO_ENABLED: 1
 
-      - name: 3.1) Run EE Cypress tests on ${{ matrix.folder }} using Replay.io browser (no asserts)
-        if: matrix.edition == 'ee'
+      - name: Parse setup 2 duration
+        id: set_var_2
+        if: always()
         run: |
-          yarn run test-cypress-run \
-          --env grepTags="-@OSS" \
-          --folder ${{ matrix.folder }} \
-          --browser "replay-chromium"
-        env:
-          TERM: xterm
-          CYPRESS_REPLAYIO_ENABLED: 1
-          RECORD_REPLAY_DISABLE_ASSERTS: 1
-          RECORD_REPLAY_METADATA_FILE: /tmp/replay-metadata.json
-          RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ needs.test-run-id.outputs.testRunId }}
+          content=`cat duration.json`
+          echo "::set-output name=duration::$content"
 
-      - name: 3.2) Run EE Cypress tests on ${{ matrix.folder }} using Replay.io browser (no asserts/sourcemap collection)
+      - name: 3.1) Run tests on ${{ matrix.folder }} using Replay.io browser (no asserts/sourcemap collection)
         if: matrix.edition == 'ee'
         run: |
           yarn run test-cypress-run \
@@ -214,12 +220,40 @@ jobs:
           RECORD_REPLAY_METADATA_FILE: /tmp/replay-metadata.json
           RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ needs.test-run-id.outputs.testRunId }}
 
+      - name: Parse setup 3.1 duration
+        id: set_var_3_1
+        if: always()
+        run: |
+          content=`cat duration.json`
+          echo "::set-output name=duration::$content"
+
+      - name: 3.2) Run tests on ${{ matrix.folder }} using Replay.io browser (no asserts)
+        if: matrix.edition == 'ee'
+        run: |
+          yarn run test-cypress-run \
+          --env grepTags="-@OSS" \
+          --folder ${{ matrix.folder }} \
+          --browser "replay-chromium"
+        env:
+          TERM: xterm
+          CYPRESS_REPLAYIO_ENABLED: 1
+          RECORD_REPLAY_DISABLE_ASSERTS: 1
+          RECORD_REPLAY_METADATA_FILE: /tmp/replay-metadata.json
+          RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ needs.test-run-id.outputs.testRunId }}
+
+      - name: Parse setup 3.2 duration
+        id: set_var_3_2
+        if: always()
+        run: |
+          content=`cat duration.json`
+          echo "::set-output name=duration::$content"
+
       - name: Record runs using Deploysentinel except for the release branch
         if: ${{ github.ref == 'refs/heads/master' || !(startsWith(github.event.pull_request.base.ref, 'release')) }}
         run: |
           echo "CYPRESS_DEPLOYSENTINEL_KEY=c554175b-4bda-4378-8bb3-b1fe62ccb868" >> $GITHUB_ENV
 
-      - name: 4) Run EE Cypress tests on ${{ matrix.folder }} with DeploySentinel
+      - name: 4) Run tests on ${{ matrix.folder }} with DeploySentinel
         if: matrix.edition == 'ee'
         run: |
           yarn run test-cypress-run \
@@ -229,3 +263,39 @@ jobs:
           TERM: xterm
           DEPLOYSENTINEL_ENABLED: 1
           CYPRESS_DEPLOYSENTINEL_ENABLED: 1
+
+      - name: Parse setup 4 duration
+        id: set_var_4
+        if: always()
+        run: |
+          content=`cat duration.json`
+          echo "::set-output name=duration::$content"
+
+      - name: Set duration in output
+        id: end
+        if: always()
+        run: |
+          echo "baselineDuration=${{fromJson(steps.set_var_1.outputs.duration)}}" >> $GITHUB_OUTPUT
+          echo "videoDuration=${{fromJson(steps.set_var_2.outputs.duration)}}" >> $GITHUB_OUTPUT
+          echo "replayV1Duration=${{fromJson(steps.set_var_3_1.outputs.duration)}}" >> $GITHUB_OUTPUT
+          echo "replayV2Duration=${{fromJson(steps.set_var_3_2.outputs.duration)}}" >> $GITHUB_OUTPUT
+          echo "deploySentinelDuration=${{fromJson(steps.set_var_4.outputs.duration)}}" >> $GITHUB_OUTPUT
+  upload-benchmarks:
+    name: Upload benchmarks
+    runs-on: ubuntu-latest
+    needs: [e2e-tests]
+    if: always()
+    steps:
+      - run: |
+          echo "baselineDuration=${{fromJson(needs.e2e-tests.outputs.baselineDuration)}}" >> $GITHUB_OUTPUT
+          echo "videoDuration=${{fromJson(needs.e2e-tests.outputs.videoDuration)}}" >> $GITHUB_OUTPUT
+          echo "replayV1Duration=${{fromJson(needs.e2e-tests.outputs.replayV1Duration)}}" >> $GITHUB_OUTPUT
+          echo "replayV2Duration=${{fromJson(needs.e2e-tests.outputs.replayV2Duration)}}" >> $GITHUB_OUTPUT
+          echo "deploySentinelDuration=${{fromJson(needs.e2e-tests.outputs.deploySentinelDuration)}}" >> $GITHUB_OUTPUT
+      - name: Fetch API Data 📦
+        uses: JamesIves/fetch-api-data-action@v2
+        # Don't upload metrics for pull requests, so our stats are clean
+        if: ${{ github.ref_name == 'main' }}
+        with:
+          endpoint: "https://telemetry.replay.io"
+          configuration: '{ "method": "POST", "body": {"event": "Webhook", "source": "metrics", "name": "action-finished-3-beta", "project": "metabase", "baselineDuration": "${{ needs.e2e-tests.outputs.baselineDuration }}", "videoDuration": "${{ needs.e2e-tests.outputs.videoDuration }}", "replayV1Duration": "${{ needs.e2e-tests.outputs.replayV1Duration }}", "replayV2Duration": "${{ needs.e2e-tests.outputs.replayV2Duration }}", "deploySentinelDuration": "${{ needs.e2e-tests.deploySentinelDuration }}" } }'

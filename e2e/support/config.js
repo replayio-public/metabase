@@ -1,4 +1,5 @@
 import * as dbTasks from "./db_tasks";
+const fs = require("fs");
 const replay = require("@replayio/cypress");
 const { verifyDownloadTasks } = require("cy-verify-downloads");
 const {
@@ -55,6 +56,13 @@ const defaultConfig = {
       "file:preprocessor",
       createBundler({ plugins: [NodeModulesPolyfillPlugin()] }),
     );
+
+    on("after:run", afterRun => {
+      const data = JSON.stringify(afterRun.totalDuration);
+      const filename = "duration.json";
+      fs.writeFileSync(filename, data);
+      console.log("cypress-json-results: wrote results to %s", filename);
+    });
 
     /********************************************************************
      **                         BROWSERS                               **
