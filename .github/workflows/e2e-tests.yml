@@ -228,3 +228,4 @@ jobs:
         env:
           TERM: xterm
           DEPLOYSENTINEL_ENABLED: 1
+          CYPRESS_DEPLOYSENTINEL_ENABLED: 1
