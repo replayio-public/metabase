@@ -1,4 +1,4 @@
-name: E2E Tests (baseline)
+name: E2E Tests (aggregate)
 
 on:
   # We'll record runs using Replay.io and their browser on a schedule as an experiment
@@ -61,7 +61,7 @@ jobs:
       always() &&
       needs.build.result == 'success'
     runs-on: ubuntu-22.04
-    timeout-minutes: 60
+    timeout-minutes: 120
     name: e2e-tests-${{ matrix.folder }}${{ matrix.context }}-${{ matrix.edition }}
     env:
       MB_EDITION: ${{ matrix.edition }}
