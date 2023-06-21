@@ -59,9 +59,11 @@ const defaultConfig = {
 
     on("after:run", afterRun => {
       const data = JSON.stringify(afterRun.totalDuration);
-      const filename = "duration.json";
+      const filename = "../../duration.json";
       fs.writeFileSync(filename, data);
-      console.log("cypress-json-results: wrote results to %s", filename);
+
+      console.log(`cypress-json-results: wrote results to ${filename} ${data}`);
+      console.log(`cypress-json-results: directory ${process.cwd()}`);
     });
 
     /********************************************************************

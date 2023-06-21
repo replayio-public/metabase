@@ -181,10 +181,13 @@ jobs:
         env:
           TERM: xterm
 
+      - run: ls
+
       - name: Parse setup 1 duration
         id: set_var_1
         if: always()
         run: |
+          pwd
           content=`cat duration.json`
           echo "::set-output name=duration::$content"
 
@@ -204,6 +207,7 @@ jobs:
         run: |
           content=`cat duration.json`
           echo "::set-output name=duration::$content"
+          pwd
 
       - name: 3.1) Run tests on ${{ matrix.folder }} using Replay.io browser (no asserts/sourcemap collection)
         if: matrix.edition == 'ee'
@@ -226,6 +230,7 @@ jobs:
         run: |
           content=`cat duration.json`
           echo "::set-output name=duration::$content"
+          pwd
 
       - name: 3.2) Run tests on ${{ matrix.folder }} using Replay.io browser (no asserts)
         if: matrix.edition == 'ee'
@@ -247,6 +252,7 @@ jobs:
         run: |
           content=`cat duration.json`
           echo "::set-output name=duration::$content"
+          pwd
 
       - name: Record runs using Deploysentinel except for the release branch
         if: ${{ github.ref == 'refs/heads/master' || !(startsWith(github.event.pull_request.base.ref, 'release')) }}
@@ -270,6 +276,7 @@ jobs:
         run: |
           content=`cat duration.json`
           echo "::set-output name=duration::$content"
+          pwd
 
       - name: Set duration in output
         id: end
