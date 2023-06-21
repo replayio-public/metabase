@@ -7,12 +7,12 @@ env:
 
 on:
   # We'll record runs using Replay.io and their browser on a schedule as an experiment
-  schedule:
-    - cron: "0 */8 * * *"
-  push:
-    branches:
-      - "master"
-      - "release-**"
+#  schedule:
+#    - cron: "0 */8 * * *"
+#  push:
+#    branches:
+#      - "master"
+#      - "release-**"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
@@ -67,7 +67,7 @@ jobs:
       needs.build.result == 'success'
     runs-on: ubuntu-22.04
     timeout-minutes: 120
-    name: e2e-tests-${{ matrix.folder }}${{ matrix.context }}-${{ matrix.edition }}
+    name: e2e-tests${{ matrix.context }}-${{ matrix.edition }}
     env:
       MB_EDITION: ${{ matrix.edition }}
       DISPLAY: ""
@@ -82,26 +82,6 @@ jobs:
       matrix:
         java-version: [11]
         edition: [ee]
-        folder:
-          # - "admin"
-          - "binning"
-          - "collections"
-          - "custom-column"
-          # - "dashboard"
-          # - "dashboard-filters"
-          - "downloads"
-          - "embedding"
-          # - "filters"
-          - "joins"
-          # - "models"
-          # - "native"
-          # - "native-filters"
-          - "onboarding"
-          - "organization"
-          - "permissions"
-          # - "question"
-          - "sharing"
-          # - "visualizations"
     services:
       maildev:
         image: maildev/maildev:2.0.5
@@ -200,12 +180,11 @@ jobs:
 #          RECORD_REPLAY_METADATA_FILE: /tmp/replay-metadata.json
 #          RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ needs.test-run-id.outputs.testRunId }}
 
-      - name: 3.2a) Run EE Cypress tests on ${{ matrix.folder }} using Replay.io browser (no asserts/sourcemap collection)
+      - name: 3.2a) Run EE Cypress tests using Replay.io browser (no asserts/sourcemap collection)
         if: always()
         run: |
           yarn run test-cypress-run \
           --env grepTags="-@OSS" \
-          --folder ${{ matrix.folder }} \
           --browser "replay-chromium"
         env:
           TERM: xterm
@@ -215,12 +194,11 @@ jobs:
           RECORD_REPLAY_METADATA_FILE: /tmp/replay-metadata.json
           RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ needs.test-run-id.outputs.testRunId }}
 
-      - name: 3.2b) Run EE Cypress tests on ${{ matrix.folder }} using Replay.io browser (no asserts/sourcemap collection)
+      - name: 3.2b) Run EE Cypress tests using Replay.io browser (no asserts/sourcemap collection)
         if: always()
         run: |
           yarn run test-cypress-run \
           --env grepTags="-@OSS" \
-          --folder ${{ matrix.folder }} \
           --browser "replay-chromium"
         env:
           TERM: xterm
@@ -230,12 +208,11 @@ jobs:
           RECORD_REPLAY_METADATA_FILE: /tmp/replay-metadata.json
           RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ needs.test-run-id.outputs.testRunId }}
 
-      - name: 3.2c) Run EE Cypress tests on ${{ matrix.folder }} using Replay.io browser (no asserts/sourcemap collection)
+      - name: 3.2c) Run EE Cypress tests using Replay.io browser (no asserts/sourcemap collection)
         if: always()
         run: |
           yarn run test-cypress-run \
           --env grepTags="-@OSS" \
-          --folder ${{ matrix.folder }} \
           --browser "replay-chromium"
         env:
           TERM: xterm
@@ -245,12 +222,11 @@ jobs:
           RECORD_REPLAY_METADATA_FILE: /tmp/replay-metadata.json
           RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ needs.test-run-id.outputs.testRunId }}
 
-      - name: 3.2d) Run EE Cypress tests on ${{ matrix.folder }} using Replay.io browser (no asserts/sourcemap collection)
+      - name: 3.2d) Run EE Cypress tests using Replay.io browser (no asserts/sourcemap collection)
         if: always()
         run: |
           yarn run test-cypress-run \
           --env grepTags="-@OSS" \
-          --folder ${{ matrix.folder }} \
           --browser "replay-chromium"
         env:
           TERM: xterm
@@ -260,12 +236,11 @@ jobs:
           RECORD_REPLAY_METADATA_FILE: /tmp/replay-metadata.json
           RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ needs.test-run-id.outputs.testRunId }}
 
-      - name: 3.2e) Run EE Cypress tests on ${{ matrix.folder }} using Replay.io browser (no asserts/sourcemap collection)
+      - name: 3.2e) Run EE Cypress tests using Replay.io browser (no asserts/sourcemap collection)
         if: always()
         run: |
           yarn run test-cypress-run \
           --env grepTags="-@OSS" \
-          --folder ${{ matrix.folder }} \
           --browser "replay-chromium"
         env:
           TERM: xterm

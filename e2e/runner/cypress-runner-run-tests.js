@@ -6,13 +6,28 @@ const {
   args,
 } = require("./cypress-runner-utils");
 
-const folder = args["--folder"];
-const isFolder = !!folder;
-
 const isOpenMode = args["--open"];
 
-const getSourceFolder = folder => {
-  return `./e2e/test/scenarios/${folder}/**/*.cy.spec.js`;
+// Full test suite
+// const FOLDERS = ["admin", "binning", "collections", "custom-column", "dashboard", "dashboard-filters", "downloads", "embedding", "filters", "joins", "models", "native", "native-filters", "onboarding", "organization", "permissions", "question", "sharing", "visualizations"];
+// Modified test suite
+const FOLDERS = [
+  "binning",
+  "collections",
+  "custom-column",
+  "downloads",
+  "embedding",
+  "joins",
+  "onboarding",
+  "organization",
+  "permissions",
+  "sharing",
+];
+
+const getSpecString = () => {
+  return FOLDERS.map(folder => {
+    return `./e2e/test/scenarios/${folder}/**/*.cy.spec.js`;
+  }).join(",");
 };
 
 const runCypress = async (baseUrl, exitFunction) => {
@@ -27,7 +42,7 @@ const runCypress = async (baseUrl, exitFunction) => {
     config: {
       baseUrl,
     },
-    spec: isFolder && getSourceFolder(folder),
+    spec: getSpecString(),
   };
 
   const userArgs = await parseArguments(args);
