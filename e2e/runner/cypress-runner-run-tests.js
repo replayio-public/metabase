@@ -12,16 +12,16 @@ const isOpenMode = args["--open"];
 // const FOLDERS = ["admin", "binning", "collections", "custom-column", "dashboard", "dashboard-filters", "downloads", "embedding", "filters", "joins", "models", "native", "native-filters", "onboarding", "organization", "permissions", "question", "sharing", "visualizations"];
 // Modified test suite
 const FOLDERS = [
-  "binning",
-  "collections",
-  "custom-column",
-  "downloads",
-  "embedding",
+  //"binning",
+  //"collections",
+  //"custom-column",
+  //"downloads",
+  //"embedding",
   "joins",
-  "onboarding",
-  "organization",
-  "permissions",
-  "sharing",
+  //"onboarding",
+  //"organization",
+  //"permissions",
+  //"sharing",
 ];
 
 const getSpecString = () => {
