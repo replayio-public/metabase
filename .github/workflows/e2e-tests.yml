@@ -294,15 +294,15 @@ jobs:
     if: always()
     steps:
       - run: |
-          echo "baselineDuration=${{fromJson(needs.e2e-tests.outputs.baselineDuration)}}" >> $GITHUB_OUTPUT
-          echo "videoDuration=${{fromJson(needs.e2e-tests.outputs.videoDuration)}}" >> $GITHUB_OUTPUT
-          echo "replayV1Duration=${{fromJson(needs.e2e-tests.outputs.replayV1Duration)}}" >> $GITHUB_OUTPUT
-          echo "replayV2Duration=${{fromJson(needs.e2e-tests.outputs.replayV2Duration)}}" >> $GITHUB_OUTPUT
-          echo "deploySentinelDuration=${{fromJson(needs.e2e-tests.outputs.deploySentinelDuration)}}" >> $GITHUB_OUTPUT
+          echo "baselineDuration=${{fromJson(needs.e2e-tests.outputs.baselineDuration)}}"
+          echo "videoDuration=${{fromJson(needs.e2e-tests.outputs.videoDuration)}}"
+          echo "replayV1Duration=${{fromJson(needs.e2e-tests.outputs.replayV1Duration)}}"
+          echo "replayV2Duration=${{fromJson(needs.e2e-tests.outputs.replayV2Duration)}}"
+          echo "deploySentinelDuration=${{fromJson(needs.e2e-tests.outputs.deploySentinelDuration)}}"
       - name: Fetch API Data 📦
         uses: JamesIves/fetch-api-data-action@v2
         # Don't upload metrics for pull requests, so our stats are clean
         if: ${{ github.ref_name == 'main' }}
         with:
           endpoint: "https://telemetry.replay.io"
-          configuration: '{ "method": "POST", "body": {"event": "Webhook", "source": "metrics", "name": "action-finished-3-beta", "project": "metabase", "baselineDuration": "${{ needs.e2e-tests.outputs.baselineDuration }}", "videoDuration": "${{ needs.e2e-tests.outputs.videoDuration }}", "replayV1Duration": "${{ needs.e2e-tests.outputs.replayV1Duration }}", "replayV2Duration": "${{ needs.e2e-tests.outputs.replayV2Duration }}", "deploySentinelDuration": "${{ needs.e2e-tests.deploySentinelDuration }}" } }'
+          configuration: '{ "method": "POST", "body": {"event": "Webhook", "source": "metrics", "name": "action-finished-3-beta", "project": "metabase", "baselineDuration": "${{ needs.e2e-tests.outputs.baselineDuration }}", "videoDuration": "${{ needs.e2e-tests.outputs.videoDuration }}", "replayV1Duration": "${{ needs.e2e-tests.outputs.replayV1Duration }}", "replayV2Duration": "${{ needs.e2e-tests.outputs.replayV2Duration }}", "deploySentinelDuration": "${{ needs.e2e-tests.outputs.deploySentinelDuration }}" } }'
