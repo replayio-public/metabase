@@ -7,12 +7,12 @@ env:
 
 on:
   # We'll record runs using Replay.io and their browser on a schedule as an experiment
-#  schedule:
-#    - cron: "0 */8 * * *"
-#  push:
-#    branches:
-#      - "master"
-#      - "release-**"
+  schedule:
+    - cron: "0 */2 * * *"
+  push:
+    branches:
+      - "master"
+      - "release-**"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
@@ -331,3 +331,9 @@ jobs:
 #          DEPLOYSENTINEL_ENABLED: 1
 #          CYPRESS_DEPLOYSENTINEL_ENABLED: 1
 #          CYPRESS_DEPLOYSENTINEL_KEY: c554175b-4bda-4378-8bb3-b1fe62ccb868
+
+      - name: Upload Replay.io recordings
+        uses: replayio/action-upload@v0.5.0
+        with:
+          api-key: rwk_dkppU3VCy4A0aQibab4l3KUccBCRBa1uLVLMTgUxpMB
+          public: true
