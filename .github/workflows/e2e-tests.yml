@@ -473,6 +473,13 @@ jobs:
           RECORD_REPLAY_METADATA_FILE: /tmp/replay-metadata.json
           RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ needs.test-run-id.outputs.testRunId }}
 
+      - name: Upload Replay.io recordings
+        uses: replayio/action-upload@v0.5.0
+        if: always()
+        with:
+          api-key: rwk_dkppU3VCy4A0aQibab4l3KUccBCRBa1uLVLMTgUxpMB
+          public: true
+
   e2e-tests-5:
     needs: [build, test-run-id]
     runs-on: ubuntu-22.04
