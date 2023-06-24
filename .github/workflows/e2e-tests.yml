@@ -3,7 +3,7 @@ name: E2E Tests (aggregate)
 env:
   RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE: linux-chromium-20230624-e1fd64e5f5f3-676cb77d3613.tar.xz
 # RECORD_REPLAY_DISABLE_FEATURES: "[\"record-replay\"]"
-# RECORD_REPLAY_DRIVER: /tmp/not-here
+  RECORD_REPLAY_DRIVER: /tmp/not-here
 
 on:
   # We'll record runs using Replay.io and their browser on a schedule as an experiment
@@ -62,9 +62,6 @@ jobs:
 
   e2e-tests-1:
     needs: [build, test-run-id]
-    if: |
-      always() &&
-      needs.build.result == 'success'
     runs-on: ubuntu-22.04
     timeout-minutes: 120
     name: e2e-tests${{ matrix.context }}-${{ matrix.edition }}
@@ -170,9 +167,6 @@ jobs:
 
   e2e-tests-2:
     needs: [build, test-run-id]
-    if: |
-      always() &&
-      needs.build.result == 'success'
     runs-on: ubuntu-22.04
     timeout-minutes: 120
     name: e2e-tests${{ matrix.context }}-${{ matrix.edition }}
@@ -278,9 +272,6 @@ jobs:
 
   e2e-tests-3:
     needs: [build, test-run-id]
-    if: |
-      always() &&
-      needs.build.result == 'success'
     runs-on: ubuntu-22.04
     timeout-minutes: 120
     name: e2e-tests${{ matrix.context }}-${{ matrix.edition }}
@@ -386,9 +377,6 @@ jobs:
 
   e2e-tests-4:
     needs: [build, test-run-id]
-    if: |
-      always() &&
-      needs.build.result == 'success'
     runs-on: ubuntu-22.04
     timeout-minutes: 120
     name: e2e-tests${{ matrix.context }}-${{ matrix.edition }}
@@ -494,9 +482,6 @@ jobs:
 
   e2e-tests-5:
     needs: [build, test-run-id]
-    if: |
-      always() &&
-      needs.build.result == 'success'
     runs-on: ubuntu-22.04
     timeout-minutes: 120
     name: e2e-tests${{ matrix.context }}-${{ matrix.edition }}
@@ -602,9 +587,6 @@ jobs:
 
   e2e-tests-6:
     needs: [build, test-run-id]
-    if: |
-      always() &&
-      needs.build.result == 'success'
     runs-on: ubuntu-22.04
     timeout-minutes: 120
     name: e2e-tests${{ matrix.context }}-${{ matrix.edition }}
@@ -710,9 +692,6 @@ jobs:
 
   e2e-tests-7:
     needs: [build, test-run-id]
-    if: |
-      always() &&
-      needs.build.result == 'success'
     runs-on: ubuntu-22.04
     timeout-minutes: 120
     name: e2e-tests${{ matrix.context }}-${{ matrix.edition }}
@@ -818,9 +797,6 @@ jobs:
 
   e2e-tests-8:
     needs: [build, test-run-id]
-    if: |
-      always() &&
-      needs.build.result == 'success'
     runs-on: ubuntu-22.04
     timeout-minutes: 120
     name: e2e-tests${{ matrix.context }}-${{ matrix.edition }}
@@ -926,9 +902,6 @@ jobs:
 
   e2e-tests-9:
     needs: [build, test-run-id]
-    if: |
-      always() &&
-      needs.build.result == 'success'
     runs-on: ubuntu-22.04
     timeout-minutes: 120
     name: e2e-tests${{ matrix.context }}-${{ matrix.edition }}
@@ -1034,9 +1007,6 @@ jobs:
 
   e2e-tests-10:
     needs: [build, test-run-id]
-    if: |
-      always() &&
-      needs.build.result == 'success'
     runs-on: ubuntu-22.04
     timeout-minutes: 120
     name: e2e-tests${{ matrix.context }}-${{ matrix.edition }}
