@@ -1104,8 +1104,8 @@ jobs:
           RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ needs.test-run-id.outputs.testRunId }}
 
       - name: Upload Replay.io recordings
-        if: always()
         uses: replayio/action-upload@v0.5.0
+        if: always()
         with:
           api-key: rwk_dkppU3VCy4A0aQibab4l3KUccBCRBa1uLVLMTgUxpMB
           public: true
