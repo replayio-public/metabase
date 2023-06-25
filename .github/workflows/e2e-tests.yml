@@ -145,7 +145,7 @@ jobs:
       - name: Install Replay.io browser
         run: npx @replayio/cypress install
 
-      - name: Run EE Cypress tests using Replay.io browser (no asserts/sourcemap collection)
+      - name: Run EE Cypress tests using Replay.io browser (no-asserts + no-maps)
         if: always()
         run: |
           yarn run test-cypress-run \
@@ -165,3 +165,4 @@ jobs:
         with:
           api-key: rwk_dkppU3VCy4A0aQibab4l3KUccBCRBa1uLVLMTgUxpMB
           public: true
+          filter: ${{ 'function() { true }' }}
