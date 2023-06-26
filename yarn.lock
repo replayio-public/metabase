@@ -5060,10 +5060,10 @@
     redux-thunk "^2.4.2"
     reselect "^4.1.7"
 
-"@replayio/cypress@^1.0.3":
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/@replayio/cypress/-/cypress-1.0.3.tgz#52850d9f9b1a82e8a77eb8042c27c62d690e0157"
-  integrity sha512-E7RDIhua3eIBqbi0n3PivzAONBJhK8Cfyzm09xNxn+8fsd5zmZ5uEMijBJ0VvDqz8FSfZC0+q+gpaufGYAKpRA==
+"@replayio/cypress@1.0.4-alpha.0":
+  version "1.0.4-alpha.0"
+  resolved "https://registry.yarnpkg.com/@replayio/cypress/-/cypress-1.0.4-alpha.0.tgz#91c52ffbad6f4e3291aaf2205aa5133bc6ca20a9"
+  integrity sha512-YLKDmgISSNysL4peDR+ymwkMTq6q7P4Hg3MDlc08yU5Nw2KvPYS0oNxHXPkZmpuIEPSM/Cs6rBdr8l6kp24yqQ==
   dependencies:
     "@replayio/replay" "^0.12.13"
     "@replayio/test-utils" "^1.0.1"
