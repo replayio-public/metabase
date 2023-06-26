@@ -10,9 +10,6 @@ on:
   schedule:
     - cron: "0 */2 * * *"
   push:
-    branches:
-      - "master"
-      - "release-**"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
@@ -184,6 +181,6 @@ jobs:
         uses: replayio/action-upload@v0.5.0
         if: always()
         with:
-          api-key: rwk_dkppU3VCy4A0aQibab4l3KUccBCRBa1uLVLMTgUxpMB
+          api-key: rwk_7frgQcd87zppwAc0kq16rIG1rDG2ymaT9paTpQP3z5F
           public: true
           filter: ${{ 'function() { true }' }}
