@@ -2,8 +2,9 @@ name: E2E Tests (aggregate)
 
 env:
   RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE: linux-chromium-20230624-e1fd64e5f5f3-676cb77d3613.tar.xz
-  RECORD_REPLAY_DISABLE_FEATURES: "[\"record-replay\"]"
 #  RECORD_REPLAY_DRIVER: /tmp/not-here
+#  RECORD_REPLAY_DISABLE_FEATURES: "[\"record-replay\"]"
+  RECORD_REPLAY_DISABLE_FEATURES: "[\"no-asm-wasm\",\"no-call-stats\",\"no-compile-cache\",\"no-count-usage\",\"no-eval-cache\",\"no-field-trials\",\"no-interactive-detector\",\"no-language-detection\",\"no-media\",\"no-page-timing-metrics\",\"no-park-strings\",\"no-render-workers\",\"no-stack-sampling\",\"no-streamed-script-cache\"]"
 
 on:
   # We'll record runs using Replay.io and their browser on a schedule as an experiment
