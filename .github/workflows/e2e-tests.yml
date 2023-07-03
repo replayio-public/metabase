@@ -170,7 +170,17 @@ jobs:
       - name: Install Replay.io browser
         run: npx @replayio/cypress install
 
-      - name: Run EE Cypress tests using Replay.io browser (no-asserts + no-maps)
+
+      - name: [Video] Run EE Cypress tests on ${{ matrix.folder }}
+        if: always()
+        run: |
+          yarn run test-cypress-run \
+          --env grepTags="-@OSS" \
+          --folder ${{ matrix.folder }}
+        env:
+          TERM: xterm
+
+      - name: [Replay] Run EE Cypress tests
         if: always()
         run: |
           yarn run test-cypress-run \
