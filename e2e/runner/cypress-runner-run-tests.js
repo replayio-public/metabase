@@ -12,12 +12,12 @@ const isOpenMode = args["--open"];
 // const FOLDERS = ["admin", "binning", "collections", "custom-column", "dashboard", "dashboard-filters", "downloads", "embedding", "filters", "joins", "models", "native", "native-filters", "onboarding", "organization", "permissions", "question", "sharing", "visualizations"];
 // Modified test suite
 const FOLDERS = [
-  "binning",
+  //"binning",
   //"collections",
   //"custom-column",
   //"downloads",
   //"embedding",
-  //"joins",
+  "joins",
   //"onboarding",
   //"organization",
   //"permissions",
