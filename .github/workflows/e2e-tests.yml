@@ -160,7 +160,7 @@ jobs:
       - name: Install Replay.io browser
         run: npx @replayio/cypress install
 
-      - name: Run EE Cypress tests using Replay.io browser (no-asserts + no-maps)
+      - name: Run EE Cypress tests using Replay.io browser (no-asserts)
         if: always()
         run: |
           yarn run test-cypress-run \
@@ -171,7 +171,6 @@ jobs:
           TERM: xterm
           CYPRESS_REPLAYIO_ENABLED: 1
           RECORD_REPLAY_DISABLE_ASSERTS: 1
-          RECORD_REPLAY_DISABLE_SOURCEMAP_COLLECTION: 1
           RECORD_REPLAY_METADATA_FILE: /tmp/replay-metadata.json
           RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ needs.test-run-id.outputs.testRunId }}
 
