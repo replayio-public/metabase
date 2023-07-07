@@ -1,0 +1,3 @@
+steps:
+  - label: "Get Crash Reports from Session IDs"
+    command: "./scripts/buildkite_get_crash_reports.sh"
