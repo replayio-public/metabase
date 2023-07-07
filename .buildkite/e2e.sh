@@ -10,11 +10,20 @@ export RECORD_REPLAY_METADATA_TEST_RUN_ID=$(npx uuid)
 echo "Yarn install"
 npx -y yarn install --frozen-lockfile --prefer-offline
 
-echo "Install Java"
-which java > /dev/null || (curl -O https://download.java.net/java/GA/jdk20.0.1/b4887098932d415489976708ad6d1a4b/9/GPL/openjdk-20.0.1_linux-x64_bin.tar.gz && tar xf openjdk-20.0.1_linux-x64_bin.tar.gz)
+if which -s java > /dev/null; then
+    echo "Install Java"
+    
+    curl -O https://download.java.net/java/GA/jdk20.0.1/b4887098932d415489976708ad6d1a4b/9/GPL/openjdk-20.0.1_linux-x64_bin.tar.gz
+    tar xf openjdk-20.0.1_linux-x64_bin.tar.gz
+    export JAVA_HOME=$(pwd)/jdk-20.01/bin
+fi
 
-echo "Install Clojure"
-which bash > /dev/null || (curl -O https://download.clojure.org/install/linux-install-1.11.1.1262.sh && sudo bash ./linux-install-1.11.1.1262.sh)
+if which -s clojure > /dev/null; then
+    echo "Install Clojure"
+
+    curl -O https://download.clojure.org/install/linux-install-1.11.1.1262.sh
+    bash ./linux-install-1.11.1.1262.sh
+fi
 
 echo "Build uberjar with ./bin/build.sh"
 $SCRIPT_DIR/../bin/build.sh
