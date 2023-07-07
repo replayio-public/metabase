@@ -18,7 +18,7 @@ else
     
     curl -O https://download.java.net/java/GA/jdk20.0.1/b4887098932d415489976708ad6d1a4b/9/GPL/openjdk-20.0.1_linux-x64_bin.tar.gz
     tar xf openjdk-20.0.1_linux-x64_bin.tar.gz
-    export JAVA_HOME=$(pwd)/jdk-20.01/bin
+    JAVA_HOME="$(pwd)/jdk-20.01/bin"
 fi
 
 if which clojure > /dev/null; then
@@ -32,7 +32,7 @@ fi
 popd
 
 echo "Build uberjar with ./bin/build.sh"
-$SCRIPT_DIR/../bin/build.sh
+JAVA_HOME=$JAVA_HOME $SCRIPT_DIR/../bin/build.sh
 
 # echo "Running cypress tests"
 CYPRESS_REPLAYIO_ENABLED=1 yarn test-cypress-run --browser replay-chromium
