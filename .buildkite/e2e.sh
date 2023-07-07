@@ -10,7 +10,9 @@ export RECORD_REPLAY_METADATA_TEST_RUN_ID=$(npx uuid)
 echo "Yarn install"
 npx -y yarn install --frozen-lockfile --prefer-offline
 
-if which -s java > /dev/null; then
+if which java > /dev/null; then
+    echo "Java already installed"
+else
     echo "Install Java"
     
     curl -O https://download.java.net/java/GA/jdk20.0.1/b4887098932d415489976708ad6d1a4b/9/GPL/openjdk-20.0.1_linux-x64_bin.tar.gz
@@ -18,7 +20,9 @@ if which -s java > /dev/null; then
     export JAVA_HOME=$(pwd)/jdk-20.01/bin
 fi
 
-if which -s clojure > /dev/null; then
+if which clojure > /dev/null; then
+    echo "Clojure already installed"
+else
     echo "Install Clojure"
 
     curl -O https://download.clojure.org/install/linux-install-1.11.1.1262.sh
