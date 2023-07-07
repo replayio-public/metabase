@@ -7,11 +7,8 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 echo "Init test run id"
 export RECORD_REPLAY_METADATA_TEST_RUN_ID=$(npx uuid)
 
-echo "Install yarn"
-sudo npm i -g yarn
-
 echo "Yarn install"
-yarn install --frozen-lockfile --prefer-offline
+npx -y yarn install --frozen-lockfile --prefer-offline
 
 echo "Install Java"
 which java > /dev/null || (curl -O https://download.java.net/java/GA/jdk20.0.1/b4887098932d415489976708ad6d1a4b/9/GPL/openjdk-20.0.1_linux-x64_bin.tar.gz && tar xf openjdk-20.0.1_linux-x64_bin.tar.gz)
