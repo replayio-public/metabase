@@ -33,7 +33,7 @@ fi
 popd
 
 echo "Build uberjar with ./bin/build.sh"
-JAVA_HOME=$JAVA_HOME $SCRIPT_DIR/../bin/build.sh
+JAVA_HOME=$JAVA_HOME PATH=$PATH:$JAVA_HOME/bin $SCRIPT_DIR/../bin/build.sh
 
 # echo "Running cypress tests"
 CYPRESS_REPLAYIO_ENABLED=1 yarn test-cypress-run --browser replay-chromium
