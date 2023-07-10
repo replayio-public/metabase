@@ -32,6 +32,8 @@ else
 fi
 popd
 
+$JAVA_HOME/bin/java --version
+
 echo "Build uberjar with ./bin/build.sh"
 JAVA_HOME=$JAVA_HOME PATH=$PATH:$JAVA_HOME/bin $SCRIPT_DIR/../bin/build.sh
 
