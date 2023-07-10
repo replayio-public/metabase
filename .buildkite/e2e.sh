@@ -18,7 +18,7 @@ else
     
     curl -O https://download.java.net/java/GA/jdk20.0.1/b4887098932d415489976708ad6d1a4b/9/GPL/openjdk-20.0.1_linux-x64_bin.tar.gz
     tar xf openjdk-20.0.1_linux-x64_bin.tar.gz
-    JAVA_HOME="$(pwd)/jdk-20.01/bin"
+    JAVA_HOME="$(pwd)/jdk-20.01"
 fi
 
 if which clojure > /dev/null; then
