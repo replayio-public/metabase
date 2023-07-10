@@ -32,6 +32,8 @@ else
 fi
 popd
 
+ls -R $JAVA_HOME
+
 $JAVA_HOME/bin/java --version
 
 echo "Build uberjar with ./bin/build.sh"
