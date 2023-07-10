@@ -18,8 +18,7 @@ else
     
     curl -O https://download.java.net/java/GA/jdk20.0.1/b4887098932d415489976708ad6d1a4b/9/GPL/openjdk-20.0.1_linux-x64_bin.tar.gz
     tar xf openjdk-20.0.1_linux-x64_bin.tar.gz
-    ls -alR
-    JAVA_HOME="$(pwd)/jdk-20.01"
+    JAVA_HOME="$(pwd)/jdk-20.0.1"
 fi
 
 if which clojure > /dev/null; then
@@ -31,8 +30,6 @@ else
     bash ./linux-install-1.11.1.1262.sh
 fi
 popd
-
-ls -R $JAVA_HOME
 
 $JAVA_HOME/bin/java --version
 
