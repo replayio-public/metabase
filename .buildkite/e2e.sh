@@ -30,7 +30,7 @@ else
 fi
 
 echo "Build uberjar with ./bin/build.sh"
-$SCRIPT_DIR/../bin/build.sh
+JAVA_HOME=$JAVA_HOME $SCRIPT_DIR/../bin/build.sh
 
 # echo "Running cypress tests"
 JAVA_HOME=$JAVA_HOME CYPRESS_REPLAYIO_ENABLED=1 yarn test-cypress-run --browser replay-chromium
