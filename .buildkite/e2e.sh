@@ -10,7 +10,6 @@ export RECORD_REPLAY_METADATA_TEST_RUN_ID=$(npx uuid)
 echo "Yarn install"
 npx -y yarn install --frozen-lockfile --prefer-offline
 
-pushd /mnt/data
 if which java > /dev/null; then
     echo "Java already installed"
 else
@@ -29,7 +28,6 @@ else
     curl -O https://download.clojure.org/install/linux-install-1.11.1.1262.sh
     bash ./linux-install-1.11.1.1262.sh
 fi
-popd
 
 $JAVA_HOME/bin/java --version
 
