@@ -5087,6 +5087,22 @@
     text-table "^0.2.0"
     ws "^7.5.0"
 
+"@replayio/replay@^0.13.0":
+  version "0.13.0"
+  resolved "https://registry.yarnpkg.com/@replayio/replay/-/replay-0.13.0.tgz#9c3ae6b81a618408bd98bb99241c1a996a40f467"
+  integrity sha512-5uaXZg67raXhfLILVpqTZGY+I0TAIU1fQrm6ozjASTWowEdwdj963btUOVTFWiA/4fH1l1g58LoeKx3Yfpoo6w==
+  dependencies:
+    "@replayio/sourcemap-upload" "^1.0.7"
+    commander "^7.2.0"
+    debug "^4.3.4"
+    is-uuid "^1.0.2"
+    jsonata "^1.8.6"
+    node-fetch "^2.6.8"
+    p-map "^4.0.0"
+    superstruct "^0.15.4"
+    text-table "^0.2.0"
+    ws "^7.5.0"
+
 "@replayio/sourcemap-upload@^1.0.7":
   version "1.0.7"
   resolved "https://registry.yarnpkg.com/@replayio/sourcemap-upload/-/sourcemap-upload-1.0.7.tgz#e1aa0e910d7b8bfe8828ea4f27495e3ed9ab2476"
@@ -5099,11 +5115,11 @@
     string.prototype.matchall "^4.0.5"
 
 "@replayio/test-utils@^1.0.1":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@replayio/test-utils/-/test-utils-1.0.1.tgz#a491bd9a453566b09b55c8207e287708a69f242d"
-  integrity sha512-nkE+fiuIYHZ1FsZNYvYrlgJzOgjvOhcaD4vw22JvD0GrWc4RvdexkBKngkRSWkOgEcBs2X/K0B6XoqPTBf99Zg==
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/@replayio/test-utils/-/test-utils-1.0.4.tgz#dc0c2aff5085a827817e46bc9e0ed9787d1ebe50"
+  integrity sha512-Zyn4H0qD94V7PQq0KVf8WxBYH2cVQwm1Zc3spMYprjKee5kjbz6vTcd58/MwgMX4vJKl9Mjn8NFanMA+6x95WA==
   dependencies:
-    "@replayio/replay" "^0.12.13"
+    "@replayio/replay" "^0.13.0"
     "@types/node-fetch" "^2.6.2"
     debug "^4.3.4"
     node-fetch "^2.6.7"
