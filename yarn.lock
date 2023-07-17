@@ -5060,23 +5060,23 @@
     redux-thunk "^2.4.2"
     reselect "^4.1.7"
 
-"@replayio/cypress@^1.0.6":
-  version "1.0.6"
-  resolved "https://registry.yarnpkg.com/@replayio/cypress/-/cypress-1.0.6.tgz#058f20646049b892c5ac6d93eacb2e0c9e6d03d9"
-  integrity sha512-2Uolzz/sbmCCtKFhUqzJRi+r9vWHbHjlUs62O3nCqpYKoMBSHGK6GtUBYz9wa4nWwrGhF+UVO/JB9yS6uWiu+A==
+"@replayio/cypress@^1.0.7":
+  version "1.0.7"
+  resolved "https://registry.yarnpkg.com/@replayio/cypress/-/cypress-1.0.7.tgz#bf255d4af9421a8613fdcfeda3490b8998570b5c"
+  integrity sha512-D4RF7L8s4KEaUB6bspYMRJCh8QzpW8kkYyZS6cVlc4t6oAl8QUK2SqERbDIUdFO6efUWz5+RzmDzHMd0OfBcFQ==
   dependencies:
-    "@replayio/replay" "^0.13.0"
-    "@replayio/test-utils" "^1.0.4"
+    "@replayio/replay" "^0.13.1"
+    "@replayio/test-utils" "^1.0.5"
     chalk "^4.1.2"
     debug "^4.3.4"
     semver "^7.5.2"
     terminate "^2.6.1"
     uuid "^8.3.2"
 
-"@replayio/replay@^0.13.0":
-  version "0.13.0"
-  resolved "https://registry.yarnpkg.com/@replayio/replay/-/replay-0.13.0.tgz#9c3ae6b81a618408bd98bb99241c1a996a40f467"
-  integrity sha512-5uaXZg67raXhfLILVpqTZGY+I0TAIU1fQrm6ozjASTWowEdwdj963btUOVTFWiA/4fH1l1g58LoeKx3Yfpoo6w==
+"@replayio/replay@^0.13.1":
+  version "0.13.1"
+  resolved "https://registry.yarnpkg.com/@replayio/replay/-/replay-0.13.1.tgz#7ad20e1c136b72fcccac79d3c23a4b6c65c5e5c2"
+  integrity sha512-tvBu0AMXxsioqN3y+oU8OsH8elHhtXSi2QSp7PhM6r11yj805l2ygfAzhs3yYuU+YfzLo/GvYNM8H1ySQ+3/cA==
   dependencies:
     "@replayio/sourcemap-upload" "^1.0.7"
     commander "^7.2.0"
@@ -5100,12 +5100,12 @@
     node-fetch "^2.6.1"
     string.prototype.matchall "^4.0.5"
 
-"@replayio/test-utils@^1.0.4":
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/@replayio/test-utils/-/test-utils-1.0.4.tgz#dc0c2aff5085a827817e46bc9e0ed9787d1ebe50"
-  integrity sha512-Zyn4H0qD94V7PQq0KVf8WxBYH2cVQwm1Zc3spMYprjKee5kjbz6vTcd58/MwgMX4vJKl9Mjn8NFanMA+6x95WA==
+"@replayio/test-utils@^1.0.5":
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/@replayio/test-utils/-/test-utils-1.0.5.tgz#092efbd46b86df0ad9b27d76d196e720dcf9699a"
+  integrity sha512-8Zjxb72kqRszdpdchxnWr22bxNAvG5S859jMFr1oQSWaG83fTwKRTHrMFbB4AJ09Xejb9C0/iqNf7jDdkexmSw==
   dependencies:
-    "@replayio/replay" "^0.13.0"
+    "@replayio/replay" "^0.13.1"
     "@types/node-fetch" "^2.6.2"
     debug "^4.3.4"
     node-fetch "^2.6.7"
