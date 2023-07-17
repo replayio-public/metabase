@@ -32,6 +32,8 @@ fi
 echo "Build uberjar with ./bin/build.sh"
 JAVA_HOME=$JAVA_HOME PATH=$PATH:$JAVA_HOME/bin $SCRIPT_DIR/../bin/build.sh || (sleep 300 && exit 1)
 
+Xvfb :1 &
+
 # echo "Running cypress tests"
 JAVA_HOME=$JAVA_HOME PATH=$PATH:$JAVA_HOME/bin CYPRESS_REPLAYIO_ENABLED=1 yarn test-cypress-run --browser replay-chromium
 
