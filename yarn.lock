@@ -5074,9 +5074,9 @@
     uuid "^8.3.2"
 
 "@replayio/replay@^0.13.0":
-  version "0.13.0"
-  resolved "https://registry.yarnpkg.com/@replayio/replay/-/replay-0.13.0.tgz#9c3ae6b81a618408bd98bb99241c1a996a40f467"
-  integrity sha512-5uaXZg67raXhfLILVpqTZGY+I0TAIU1fQrm6ozjASTWowEdwdj963btUOVTFWiA/4fH1l1g58LoeKx3Yfpoo6w==
+  version "0.13.1"
+  resolved "https://registry.yarnpkg.com/@replayio/replay/-/replay-0.13.1.tgz#7ad20e1c136b72fcccac79d3c23a4b6c65c5e5c2"
+  integrity sha512-tvBu0AMXxsioqN3y+oU8OsH8elHhtXSi2QSp7PhM6r11yj805l2ygfAzhs3yYuU+YfzLo/GvYNM8H1ySQ+3/cA==
   dependencies:
     "@replayio/sourcemap-upload" "^1.0.7"
     commander "^7.2.0"
