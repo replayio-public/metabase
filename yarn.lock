@@ -5090,9 +5090,9 @@
     ws "^7.5.0"
 
 "@replayio/sourcemap-upload@^1.0.7":
-  version "1.0.7"
-  resolved "https://registry.yarnpkg.com/@replayio/sourcemap-upload/-/sourcemap-upload-1.0.7.tgz#e1aa0e910d7b8bfe8828ea4f27495e3ed9ab2476"
-  integrity sha512-osmLqhOnaqAihY+xD56zu9LECXK1iw3d4oViIGJuZbtVkB8X5EoDTJEBPmj4xL6SG6XxeuKpaqmK2OKFi9YiuQ==
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@replayio/sourcemap-upload/-/sourcemap-upload-1.1.0.tgz#98c395552a066ed5b274f3253144dd395ee8152c"
+  integrity sha512-u/bjGHQurk8+tXIHNQBLoS+f3mER7dqz0SW5OAKnsPWfZ0kFPUvrGRbob0UkU/Thl1C4U/8FnIWIawzwd3WQ1g==
   dependencies:
     commander "^7.2.0"
     debug "^4.3.1"
