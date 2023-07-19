@@ -5089,6 +5089,22 @@
     text-table "^0.2.0"
     ws "^7.5.0"
 
+"@replayio/replay@^0.14.0":
+  version "0.14.0"
+  resolved "https://registry.yarnpkg.com/@replayio/replay/-/replay-0.14.0.tgz#2426ba2d994c8cff4209f3076cd5f8ab3fec217a"
+  integrity sha512-cy732dEFwm0jZhgD9g2C3wNDww/t3A+BJS/j1AtmtZDXs+m9ncziE81qsuuCv1egL4tVm8tEIzBtXphBhwoBqg==
+  dependencies:
+    "@replayio/sourcemap-upload" "^1.1.0"
+    commander "^7.2.0"
+    debug "^4.3.4"
+    is-uuid "^1.0.2"
+    jsonata "^1.8.6"
+    node-fetch "^2.6.8"
+    p-map "^4.0.0"
+    superstruct "^0.15.4"
+    text-table "^0.2.0"
+    ws "^7.5.0"
+
 "@replayio/sourcemap-upload@^1.0.7":
   version "1.0.7"
   resolved "https://registry.yarnpkg.com/@replayio/sourcemap-upload/-/sourcemap-upload-1.0.7.tgz#e1aa0e910d7b8bfe8828ea4f27495e3ed9ab2476"
@@ -5100,12 +5116,23 @@
     node-fetch "^2.6.1"
     string.prototype.matchall "^4.0.5"
 
-"@replayio/test-utils@^1.0.4":
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/@replayio/test-utils/-/test-utils-1.0.4.tgz#dc0c2aff5085a827817e46bc9e0ed9787d1ebe50"
-  integrity sha512-Zyn4H0qD94V7PQq0KVf8WxBYH2cVQwm1Zc3spMYprjKee5kjbz6vTcd58/MwgMX4vJKl9Mjn8NFanMA+6x95WA==
+"@replayio/sourcemap-upload@^1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@replayio/sourcemap-upload/-/sourcemap-upload-1.1.0.tgz#98c395552a066ed5b274f3253144dd395ee8152c"
+  integrity sha512-u/bjGHQurk8+tXIHNQBLoS+f3mER7dqz0SW5OAKnsPWfZ0kFPUvrGRbob0UkU/Thl1C4U/8FnIWIawzwd3WQ1g==
   dependencies:
-    "@replayio/replay" "^0.13.0"
+    commander "^7.2.0"
+    debug "^4.3.1"
+    glob "^7.1.6"
+    node-fetch "^2.6.1"
+    string.prototype.matchall "^4.0.5"
+
+"@replayio/test-utils@^1.0.4":
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/@replayio/test-utils/-/test-utils-1.0.6.tgz#fbd6cd2b933adcd9e265dd4cd25a0cdf23899630"
+  integrity sha512-3t5qN0OGcXSV0NfUhXUCf+hzL79kE7p2d2HdGWDZBzLyX/KAgXvudpZDsidmmfC7UH9gJ7mGQNRrwPrsJ1NHZg==
+  dependencies:
+    "@replayio/replay" "^0.14.0"
     "@types/node-fetch" "^2.6.2"
     debug "^4.3.4"
     node-fetch "^2.6.7"
