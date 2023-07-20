@@ -1,7 +1,7 @@
 name: E2E Tests (aggregate)
 
-env:
-  # RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE: linux-chromium-20230704-9d0c94da8309-0dd39349954f.tar.xz
+# env:
+# RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE: linux-chromium-20230704-9d0c94da8309-0dd39349954f.tar.xz
 # RECORD_REPLAY_DISABLE_FEATURES: "[\"record-replay\"]"
 # RECORD_REPLAY_DRIVER: /tmp/not-here
 
