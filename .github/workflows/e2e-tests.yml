@@ -1,14 +1,14 @@
 name: E2E Tests (aggregate)
 
 env:
-  RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE: linux-chromium-20230704-9d0c94da8309-0dd39349954f.tar.xz
+  # RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE: linux-chromium-20230704-9d0c94da8309-0dd39349954f.tar.xz
 # RECORD_REPLAY_DISABLE_FEATURES: "[\"record-replay\"]"
 # RECORD_REPLAY_DRIVER: /tmp/not-here
 
 on:
   # We'll record runs using Replay.io and their browser on a schedule as an experiment
   schedule:
-    - cron: "0 */2 * * *"
+    - cron: "0 2 * * *"
   push:
 
 concurrency:
@@ -60,9 +60,9 @@ jobs:
     if: |
       always() &&
       needs.build.result == 'success'
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.platform }}
     timeout-minutes: 120
-    name: e2e-tests-${{ matrix.folder }}${{ matrix.context }}-${{ matrix.edition }}
+    name: e2e-tests-${{matrix-platform}}-${{ matrix.folder }}${{ matrix.context }}-${{ matrix.edition }}
     env:
       MB_EDITION: ${{ matrix.edition }}
       DISPLAY: ""
@@ -75,6 +75,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
         java-version: [11]
         edition: [ee]
         folder:
@@ -162,40 +163,7 @@ jobs:
       - name: Install Replay.io browser
         run: npx @replayio/cypress install
 
-      - name: 1) Run EE Cypress tests on ${{ matrix.folder }}
-        if: always()
-        run: |
-          yarn run test-cypress-run \
-          --env grepTags="-@OSS" \
-          --folder ${{ matrix.folder }}
-        env:
-          TERM: xterm
-
-      - name: 2) Run EE Cypress tests on ${{ matrix.folder }} with Video
-        if: always()
-        run: |
-          yarn run test-cypress-run \
-          --env grepTags="-@OSS" \
-          --folder ${{ matrix.folder }}
-        env:
-          TERM: xterm
-          CYPRESS_VIDEO_ENABLED: 1
-
-      - name: 3.1) Run EE Cypress tests on ${{ matrix.folder }} using Replay.io browser (no asserts + maps)
-        if: always()
-        run: |
-          yarn run test-cypress-run \
-          --env grepTags="-@OSS" \
-          --folder ${{ matrix.folder }} \
-          --browser "replay-chromium"
-        env:
-          TERM: xterm
-          CYPRESS_REPLAYIO_ENABLED: 1
-          RECORD_REPLAY_DISABLE_ASSERTS: 1
-          RECORD_REPLAY_METADATA_FILE: /tmp/replay-metadata.json
-          RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ needs.test-run-id.outputs.testRunId }}
-
-      - name: 3.2) Run EE Cypress tests on ${{ matrix.folder }} using Replay.io browser (no-asserts + no-maps)
+      - name: Run EE Cypress tests on ${{ matrix.folder }} using Replay.io browser (no-asserts + no-maps)
         if: always()
         run: |
           yarn run test-cypress-run \
@@ -210,18 +178,6 @@ jobs:
           RECORD_REPLAY_METADATA_FILE: /tmp/replay-metadata.json
           RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ needs.test-run-id.outputs.testRunId }}
 
-      - name: 4) Run EE Cypress tests on ${{ matrix.folder }} with DeploySentinel
-        if: always()
-        run: |
-          yarn run test-cypress-run \
-          --env grepTags="-@OSS" \
-          --folder ${{ matrix.folder }}
-        env:
-          TERM: xterm
-          DEPLOYSENTINEL_ENABLED: 1
-          CYPRESS_DEPLOYSENTINEL_ENABLED: 1
-          CYPRESS_DEPLOYSENTINEL_KEY: c554175b-4bda-4378-8bb3-b1fe62ccb868
-          
       - name: Upload Replay.io recordings
         uses: replayio/action-upload@v0.5.0
         if: always()
