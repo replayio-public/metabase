@@ -62,7 +62,7 @@ jobs:
       needs.build.result == 'success'
     runs-on: ${{ matrix.platform }}
     timeout-minutes: 120
-    name: e2e-tests-${{matrix-platform}}-${{ matrix.folder }}${{ matrix.context }}-${{ matrix.edition }}
+    name: e2e-tests-${{ matrix.platform }}-${{ matrix.folder }}${{ matrix.context }}-${{ matrix.edition }}
     env:
       MB_EDITION: ${{ matrix.edition }}
       DISPLAY: ""
