@@ -17,6 +17,7 @@ function printCyan(message) {
 
 function executeYarnCommand({ command, message } = {}) {
   return new Promise((resolve, reject) => {
+    console.log(command);
     exec(command, (error, stdout, stderr) => {
       if (error) {
         console.error(stderr);

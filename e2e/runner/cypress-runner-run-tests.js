@@ -36,7 +36,7 @@ const runCypress = async (baseUrl, exitFunction) => {
 
   try {
     await executeYarnCommand({
-      command: `npx @replayio/cypress --mode diagnostic --spec ${getSourceFolder(
+      command: `npx replayio-cypress --mode diagnostic --spec ${getSourceFolder(
         folder,
       )} --config baseurl=${baseUrl} --config-file e2e/support/cypress.config.js --browser replay-chromium`,
       message: "Running cypress tests with replay.io runner\n",
