@@ -171,16 +171,17 @@ jobs:
           --folder ${{ matrix.folder }}
         env:
           TERM: xterm
+          CYPRESS_REPLAYIO_ENABLED: 1
 
-      - name: 2) Run EE Cypress tests on ${{ matrix.folder }} with Video
-        if: always()
-        run: |
-          yarn run test-cypress-run \
-          --env grepTags="-@OSS" \
-          --folder ${{ matrix.folder }}
-        env:
-          TERM: xterm
-          CYPRESS_VIDEO_ENABLED: 1
+      # - name: 2) Run EE Cypress tests on ${{ matrix.folder }} with Video
+      #   if: always()
+      #   run: |
+      #     yarn run test-cypress-run \
+      #     --env grepTags="-@OSS" \
+      #     --folder ${{ matrix.folder }}
+      #   env:
+      #     TERM: xterm
+      #     CYPRESS_VIDEO_ENABLED: 1
 
       - name: 3.1) Run EE Cypress tests on ${{ matrix.folder }} using Replay.io browser (no asserts + maps)
         if: always()
@@ -211,17 +212,17 @@ jobs:
           RECORD_REPLAY_METADATA_FILE: /tmp/replay-metadata.json
           RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ needs.test-run-id.outputs.testRunId }}
 
-      - name: 4) Run EE Cypress tests on ${{ matrix.folder }} with DeploySentinel
-        if: always()
-        run: |
-          yarn run test-cypress-run \
-          --env grepTags="-@OSS" \
-          --folder ${{ matrix.folder }}
-        env:
-          TERM: xterm
-          DEPLOYSENTINEL_ENABLED: 1
-          CYPRESS_DEPLOYSENTINEL_ENABLED: 1
-          CYPRESS_DEPLOYSENTINEL_KEY: c554175b-4bda-4378-8bb3-b1fe62ccb868
+      # - name: 4) Run EE Cypress tests on ${{ matrix.folder }} with DeploySentinel
+      #   if: always()
+      #   run: |
+      #     yarn run test-cypress-run \
+      #     --env grepTags="-@OSS" \
+      #     --folder ${{ matrix.folder }}
+      #   env:
+      #     TERM: xterm
+      #     DEPLOYSENTINEL_ENABLED: 1
+      #     CYPRESS_DEPLOYSENTINEL_ENABLED: 1
+      #     CYPRESS_DEPLOYSENTINEL_KEY: c554175b-4bda-4378-8bb3-b1fe62ccb868
 
       - name: Upload Replay.io recordings
         uses: replayio/action-upload@v0.5.0
