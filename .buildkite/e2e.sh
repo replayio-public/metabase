@@ -7,8 +7,13 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 echo "Init test run id"
 export RECORD_REPLAY_METADATA_TEST_RUN_ID=$(npx uuid)
 
-echo "Yarn install"
-npx -y yarn install --frozen-lockfile --prefer-offline
+if [ -e "${SCRIPT_DIR}/../node_modules" ]; then
+    echo "NPM modules already installed"
+else
+    exit
+    echo "Yarn install"
+    npx -y yarn install --frozen-lockfile --prefer-offline
+fi
 
 if which java > /dev/null; then
     echo "Java already installed"
@@ -29,8 +34,12 @@ else
     bash ./linux-install-1.11.1.1262.sh
 fi
 
-echo "Build uberjar with ./bin/build.sh"
-JAVA_HOME=$JAVA_HOME PATH=$PATH:$JAVA_HOME/bin $SCRIPT_DIR/../bin/build.sh || (sleep 300 && exit 1)
+if [ -e "${SCRIPT_DIR}/../target/uberjar/metabase.jar" ]; then
+    echo "uberjar already built"
+else
+    echo "Build uberjar with ./bin/build.sh"
+    JAVA_HOME=$JAVA_HOME PATH=$PATH:$JAVA_HOME/bin $SCRIPT_DIR/../bin/build.sh || (sleep 300 && exit 1)
+fi
 
 Xvfb :1 &
 
