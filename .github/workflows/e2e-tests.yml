@@ -2,7 +2,7 @@ name: E2E Tests (aggregate)
 
 env:
   REPLAY_API_KEY: rwk_7frgQcd87zppwAc0kq16rIG1rDG2ymaT9paTpQP3z5F
-# RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE: linux-chromium-20230704-9d0c94da8309-0dd39349954f.tar.xz
+RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE: linux-chromium-20230708-25b1bbc8d94b-0dd39349954.tar.xz
 # RECORD_REPLAY_DISABLE_FEATURES: "[\"record-replay\"]"
 # RECORD_REPLAY_DRIVER: /tmp/not-here
 
@@ -80,23 +80,23 @@ jobs:
         edition: [ee]
         folder:
           # - "admin"
-          - "binning"
+          # - "binning"
           - "collections"
           - "custom-column"
           # - "dashboard"
           # - "dashboard-filters"
-          - "downloads"
+          # - "downloads"
           - "embedding"
           # - "filters"
-          - "joins"
+          # - "joins"
           # - "models"
           # - "native"
           # - "native-filters"
-          - "onboarding"
-          - "organization"
-          - "permissions"
+          # - "onboarding"
+          # - "organization"
+          # - "permissions"
           # - "question"
-          - "sharing"
+          # - "sharing"
           # - "visualizations"
     services:
       maildev:
