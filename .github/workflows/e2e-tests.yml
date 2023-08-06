@@ -83,7 +83,7 @@ jobs:
           # - "admin"
           # - "binning"
           # - "collections"
-          - "custom-column"
+          # - "custom-column"
           # - "dashboard"
           # - "dashboard-filters"
           # - "downloads"
@@ -97,7 +97,7 @@ jobs:
           # - "organization"
           # - "permissions"
           # - "question"
-          # - "sharing"
+          - "sharing"
           # - "visualizations"
     services:
       maildev:
