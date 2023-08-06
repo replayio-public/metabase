@@ -77,16 +77,17 @@ jobs:
       fail-fast: false
       matrix:
         java-version: [11]
+        runs: [1, 2, 3, 4, 5]
         edition: [ee]
         folder:
           # - "admin"
           # - "binning"
-          - "collections"
+          # - "collections"
           - "custom-column"
           # - "dashboard"
           # - "dashboard-filters"
           # - "downloads"
-          - "embedding"
+          # - "embedding"
           # - "filters"
           # - "joins"
           # - "models"
@@ -183,21 +184,21 @@ jobs:
       #     TERM: xterm
       #     CYPRESS_VIDEO_ENABLED: 1
 
-      - name: 3.1) Run EE Cypress tests on ${{ matrix.folder }} using Replay.io browser (no asserts + maps)
-        if: always()
-        run: |
-          yarn run test-cypress-run \
-          --env grepTags="-@OSS" \
-          --folder ${{ matrix.folder }} \
-          --browser "replay-chromium"
-        env:
-          TERM: xterm
-          CYPRESS_REPLAYIO_ENABLED: 1
-          RECORD_REPLAY_DISABLE_ASSERTS: 1
-          RECORD_REPLAY_METADATA_FILE: /tmp/replay-metadata.json
-          RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ needs.test-run-id.outputs.testRunId }}
+      # - name: 3.1) Run EE Cypress tests on ${{ matrix.folder }} using Replay.io browser (no asserts + maps)
+      #   if: always()
+      #   run: |
+      #     yarn run test-cypress-run \
+      #     --env grepTags="-@OSS" \
+      #     --folder ${{ matrix.folder }} \
+      #     --browser "replay-chromium"
+      #   env:
+      #     TERM: xterm
+      #     CYPRESS_REPLAYIO_ENABLED: 1
+      #     RECORD_REPLAY_DISABLE_ASSERTS: 1
+      #     RECORD_REPLAY_METADATA_FILE: /tmp/replay-metadata.json
+      #     RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ needs.test-run-id.outputs.testRunId }}
 
-      - name: 3.2) Run EE Cypress tests on ${{ matrix.folder }} using Replay.io browser (no-asserts + no-maps)
+      - name: 3.2) Run EE Cypress tests on ${{ matrix.folder }} using Replay.io browser (no-asserts + no-maps) ${{ matrix.runs}}
         if: always()
         run: |
           yarn run test-cypress-run \
