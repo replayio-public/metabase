@@ -9,7 +9,7 @@ env:
 on:
   # We'll record runs using Replay.io and their browser on a schedule as an experiment
   schedule:
-    - cron: "0 */2 * * *"
+    - cron: "0 */6 * * *"
   push:
 
 concurrency:
