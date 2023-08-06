@@ -77,17 +77,17 @@ jobs:
       fail-fast: false
       matrix:
         java-version: [11]
-        runs: [1, 2, 3]
+        runs: [1, 2, 3, 4, 5]
         edition: [ee]
         folder:
           # - "admin"
           # - "binning"
-          - "collections"
+          # - "collections"
           - "custom-column"
           # - "dashboard"
           # - "dashboard-filters"
           # - "downloads"
-          - "embedding"
+          # - "embedding"
           # - "filters"
           # - "joins"
           # - "models"
@@ -97,7 +97,7 @@ jobs:
           # - "organization"
           # - "permissions"
           # - "question"
-          # - "sharing"
+          - "sharing"
           # - "visualizations"
     services:
       maildev:
