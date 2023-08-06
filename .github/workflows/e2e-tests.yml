@@ -83,7 +83,7 @@ jobs:
           # - "admin"
           # - "binning"
           # - "collections"
-          # - "custom-column"
+          - "custom-column"
           # - "dashboard"
           # - "dashboard-filters"
           # - "downloads"
