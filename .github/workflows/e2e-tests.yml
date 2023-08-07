@@ -1,8 +1,8 @@
 name: E2E Tests (aggregate)
 
 env:
-  REPLAY_API_KEY: rwk_7frgQcd87zppwAc0kq16rIG1rDG2ymaT9paTpQP3z5F
-# RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE: linux-chromium-20230704-9d0c94da8309-0dd39349954f.tar.xz
+  REPLAY_API_KEY: rwk_bKnJVN8ZVx5nyUze0gM45PlhGnmc8CVpFhIpIWusfJ4
+  RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE: linux-chromium-20230630-5e71eebc99d1-9cf9ab0ec88a.tar.xz
 # RECORD_REPLAY_DISABLE_FEATURES: "[\"record-replay\"]"
 # RECORD_REPLAY_DRIVER: /tmp/not-here
 
@@ -223,10 +223,3 @@ jobs:
       #     DEPLOYSENTINEL_ENABLED: 1
       #     CYPRESS_DEPLOYSENTINEL_ENABLED: 1
       #     CYPRESS_DEPLOYSENTINEL_KEY: c554175b-4bda-4378-8bb3-b1fe62ccb868
-
-      - name: Upload Replay.io recordings
-        uses: replayio/action-upload@v0.5.0
-        if: always()
-        with:
-          api-key: rwk_7frgQcd87zppwAc0kq16rIG1rDG2ymaT9paTpQP3z5F
-          public: true
