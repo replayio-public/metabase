@@ -1,8 +1,8 @@
 name: E2E Tests (aggregate)
 
 env:
-  REPLAY_API_KEY: rwk_ccNL68KORZoduxkYyJCA0RsCSj5REPFlWvcs3QtcbgN
-  RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE: linux-chromium-20230713-9fb0f2ba86de-cd7086fd0adc.tar.xz
+  REPLAY_API_KEY: rwk_3GN3y6UIoGXu9twFtF7CCGDPS0YlD1vSZxSqDmvmUg9
+  RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE: linux-chromium-20230720-f81f9caf5a55-35aa1c90e7cf.tar.xz
 # RECORD_REPLAY_DISABLE_FEATURES: "[\"record-replay\"]"
 # RECORD_REPLAY_DRIVER: /tmp/not-here
 
