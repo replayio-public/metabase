@@ -78,6 +78,7 @@ jobs:
       matrix:
         java-version: [11]
         edition: [ee]
+        runs: [1, 2, 3]
         folder:
           # - "admin"
           - "binning"
