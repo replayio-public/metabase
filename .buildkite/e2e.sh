@@ -13,7 +13,8 @@ else
     npx -y yarn install --frozen-lockfile --prefer-offline
 fi
 
-if which java > /dev/null; then
+trap which blarg 2>/dev/null
+if [ "$?" -eq "0" ]; then
     echo "Java already installed"
 else
     echo "Install Java"
