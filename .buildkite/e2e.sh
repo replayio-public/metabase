@@ -5,7 +5,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 echo "Init test run id"
 export RECORD_REPLAY_METADATA_TEST_RUN_ID=$(npx uuid)
 
-if trap test -e "${SCRIPT_DIR}/../node_modules"; then
+if [ -e "${SCRIPT_DIR}/../node_modules"]; then
     echo "NPM modules already installed"
 else
     exit
