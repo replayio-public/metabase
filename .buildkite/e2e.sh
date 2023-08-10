@@ -1,7 +1,3 @@
-set -eox pipefail
-
-trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
-
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 echo "Init test run id"
