@@ -223,3 +223,10 @@ jobs:
       #     DEPLOYSENTINEL_ENABLED: 1
       #     CYPRESS_DEPLOYSENTINEL_ENABLED: 1
       #     CYPRESS_DEPLOYSENTINEL_KEY: c554175b-4bda-4378-8bb3-b1fe62ccb868
+
+      - name: Upload Replay.io recordings
+        uses: replayio/action-upload@v0.5.0
+        if: always()
+        with:
+          api-key: rwk_bKnJVN8ZVx5nyUze0gM45PlhGnmc8CVpFhIpIWusfJ4
+          public: true
