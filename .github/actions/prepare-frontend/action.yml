@@ -8,8 +8,8 @@ runs:
         # Please don't bump this version to anything higher.
         # See https://github.com/facebook/jest/issues/11956 for more details,
         # as a lot of people couldn't complete a jest run with any other versions.
-        node-version: 16.10.0
-        cache: 'yarn'
+        node-version: 16.13.0
+        cache: "yarn"
     - name: Check to see if dependencies should be cached
       if: ${{ contains(github.event.head_commit.message, '[ci nocache]') }}
       run: |
