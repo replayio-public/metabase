@@ -163,7 +163,17 @@ jobs:
       # REPLAY.IO specific jobs
       - name: Install Replay.io browser
         run: npx @replayio/cypress install
-
+      - name: 1) Run EE Cypress tests on ${{ matrix.folder }}
+        if: always()
+        run: |
+          yarn run test-cypress-run \
+          --env grepTags="-@OSS" \
+          --folder ${{ matrix.folder }} \
+          --browser "replay-chromium"
+        env:
+          TERM: xterm
+          CYPRESS_REPLAYIO_ENABLED: 1
+          
       - name: 4) Run EE Cypress tests on ${{ matrix.folder }} with DeploySentinel
         if: always()
         run: |
