@@ -173,6 +173,8 @@ jobs:
         env:
           TERM: xterm
           CYPRESS_REPLAYIO_ENABLED: 1
+          RECORD_REPLAY_DISABLE_ASSERTS: 1
+          RECORD_REPLAY_DISABLE_SOURCEMAP_COLLECTION: 1
           
       - name: 4) Run EE Cypress tests on ${{ matrix.folder }} with DeploySentinel
         if: always()
@@ -186,3 +188,5 @@ jobs:
           CYPRESS_DEPLOYSENTINEL_ENABLED: 1
           CYPRESS_DEPLOYSENTINEL_KEY: fb33e578-aa3b-4b9b-9728-bef88d1da3f9
           CYPRESS_REPLAYIO_ENABLED: 1
+          RECORD_REPLAY_DISABLE_ASSERTS: 1
+          RECORD_REPLAY_DISABLE_SOURCEMAP_COLLECTION: 1
