@@ -86,7 +86,7 @@ jobs:
       matrix:
         java-version: [11]
         edition: [ee]
-        folder: ${{ inputs.folder && fromJSON(inputs.folders) || ["binning","collections","custom-column","downloads","embedding","joins","onboarding","organization","permissions","sharing"] }}
+        folder: ${{ inputs.folder && fromJSON(inputs.folders) || fromJSON('["binning","collections","custom-column","downloads","embedding","joins","onboarding","organization","permissions","sharing"]') }}
     services:
       maildev:
         image: maildev/maildev:2.0.5
