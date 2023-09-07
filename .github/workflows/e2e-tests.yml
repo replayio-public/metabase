@@ -16,6 +16,9 @@ on:
         chromium-build-id:
           description: "Chromium Build ID to download and use. Defaults to latest release"
           type: string
+        folders:
+          description: "Folders to run"
+          type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.run_id }}
@@ -83,26 +86,7 @@ jobs:
       matrix:
         java-version: [11]
         edition: [ee]
-        folder:
-          # - "admin"
-          - "binning"
-          - "collections"
-          - "custom-column"
-          # - "dashboard"
-          # - "dashboard-filters"
-          - "downloads"
-          - "embedding"
-          # - "filters"
-          - "joins"
-          # - "models"
-          # - "native"
-          # - "native-filters"
-          - "onboarding"
-          - "organization"
-          - "permissions"
-          # - "question"
-          - "sharing"
-          # - "visualizations"
+        folder: ${{ inputs.folder && fromJSON(inputs.folders) || ["binning","collections","custom-column","downloads","embedding","joins","onboarding","organization","permissions","sharing"] }}
     services:
       maildev:
         image: maildev/maildev:2.0.5
