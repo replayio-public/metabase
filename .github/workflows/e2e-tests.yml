@@ -167,7 +167,7 @@ jobs:
       # REPLAY.IO specific jobs
       - name: Optionally configure browser download
         if: inputs.chromium-build-id
-        run: echo ::set-env name=RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE::${{ inputs.chromium-build-id }}.tar.xz
+        run: echo "name=${{ inputs.chromium-build-id }}.tar.xz" >> "$GITHUB_ENV"
 
       - name: Install Replay.io browser
         run: npx @replayio/cypress install
