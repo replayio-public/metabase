@@ -11,6 +11,11 @@ on:
   schedule:
     - cron: "0 */6 * * *"
   push:
+  workflow_dispatch:
+    inputs:
+        chromium-build-id:
+          description: "Chromium Build ID to download and use. Defaults to latest release"
+          type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.run_id }}
@@ -160,6 +165,10 @@ jobs:
           mv version.properties resources/
 
       # REPLAY.IO specific jobs
+      - name: Optionally configure browser download
+        if: inputs.chromium-build-id
+        run: echo ::set-env name=RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE::${{ inputs.chromium-build-id }}.tar.xz
+
       - name: Install Replay.io browser
         run: npx @replayio/cypress install
 
