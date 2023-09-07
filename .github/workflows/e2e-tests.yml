@@ -87,7 +87,7 @@ jobs:
       matrix:
         java-version: [11]
         edition: [ee]
-        folder: ${{ inputs.folder && fromJSON(inputs.folders) || fromJSON('["binning","collections","custom-column","downloads","embedding","joins","onboarding","organization","permissions","sharing"]') }}
+        folder: ${{ fromJSON(inputs.folders || '["binning","collections","custom-column","downloads","embedding","joins","onboarding","organization","permissions","sharing"]') }}
     # services:
     #   maildev:
     #     image: maildev/maildev:2.0.5
@@ -154,6 +154,7 @@ jobs:
         if: inputs.chromium-build-id
         run: echo "RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE=${{ inputs.chromium-build-id }}.tar.xz" >> "$GITHUB_ENV"
 
+      - run: echo ${{ inputs.folders }}
       - run: echo ${{ matrix.folder }}
       - run: echo $RECORD_REPLAY_CHROMIUM_DOWNLOAD_FILE
 
