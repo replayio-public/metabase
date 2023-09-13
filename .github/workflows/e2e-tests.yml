@@ -13,12 +13,12 @@ on:
   push:
   workflow_dispatch:
     inputs:
-        chromium-build-id:
-          description: "Chromium Build ID to download and use. Defaults to latest release"
-          type: string
-        folders:
-          description: "Folders to run"
-          type: string
+      chromium-build-id:
+        description: "Chromium Build ID to download and use. Defaults to latest release"
+        type: string
+      folders:
+        description: "Folders to run"
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.run_id }}
@@ -126,6 +126,11 @@ jobs:
           password: dckr_pat_kCPs_U_Z7Z6zOn9CguLFcckDH4Q
 
     steps:
+      - name: Configure debug mode
+        if: runner.debug == '1'
+        run: |
+          echo "DEBUG=cypress:launcher:browsers,replay:cypress:plugin:*,-replay:cypress:plugin:reporter:steps,-replay:cypress:plugin:task,replay:test-utils:reporter" >> "$GITHUB_ENV"
+          echo "RECORD_REPLAY_VERBOSE=1" >> "$GITHUB_ENV"
       - uses: actions/checkout@v3
       - name: Prepare front-end environment
         uses: ./.github/actions/prepare-frontend
