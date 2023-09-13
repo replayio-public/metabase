@@ -127,7 +127,7 @@ jobs:
 
     steps:
       - name: Configure debug mode
-        if: env.ACTIONS_STEP_DEBUG == 'true'
+        if: runner.debug
         run: echo "DEBUG=cypress:launcher:browser,replay:cypress:plugin,replay:cypress:reporter,replay:test-utils:reporter\nRECORD_REPLAY_VERBOSE=1" >> "$GITHUB_ENV"
       - uses: actions/checkout@v3
       - name: Prepare front-end environment
