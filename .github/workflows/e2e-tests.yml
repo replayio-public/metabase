@@ -128,7 +128,9 @@ jobs:
     steps:
       - name: Configure debug mode
         if: runner.debug == '1'
-        run: echo "DEBUG=cypress:launcher:browsers,replay:cypress:plugin:*,-replay:cypress:plugin:reporter:steps,-replay:cypress:plugin:task,replay:test-utils:reporter\nRECORD_REPLAY_VERBOSE=1" >> "$GITHUB_ENV"
+        run: |
+          echo "DEBUG=cypress:launcher:browsers,replay:cypress:plugin:*,-replay:cypress:plugin:reporter:steps,-replay:cypress:plugin:task,replay:test-utils:reporter" >> "$GITHUB_ENV"
+          echo "RECORD_REPLAY_VERBOSE=1" >> "$GITHUB_ENV"
       - uses: actions/checkout@v3
       - name: Prepare front-end environment
         uses: ./.github/actions/prepare-frontend
