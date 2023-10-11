@@ -46,6 +46,7 @@ RUN apk add -U bash ttf-dejavu fontconfig curl java-cacerts && \
 # add Metabase script and uberjar
 COPY --from=builder /home/node/target/uberjar/metabase.jar /app/
 COPY bin/docker/run_metabase.sh /app/
+COPY e2e/snapshots e2e/snapshots
 
 # expose our default runtime port
 EXPOSE 3000
