@@ -6908,6 +6908,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@replayio/replay@npm:^0.17.3":
+  version: 0.17.3
+  resolution: "@replayio/replay@npm:0.17.3"
+  dependencies:
+    "@replayio/sourcemap-upload": ^1.1.1
+    commander: ^7.2.0
+    debug: ^4.3.4
+    is-uuid: ^1.0.2
+    jsonata: ^1.8.6
+    node-fetch: ^2.6.8
+    p-map: ^4.0.0
+    superstruct: ^0.15.4
+    text-table: ^0.2.0
+    ws: ^7.5.0
+  bin:
+    replay: bin/replay.js
+  checksum: 0d29e65924c184eab7c6a6d113b33732ec14077524cf4f700d4ea897cc8f0dc9e190e6babe5db6efebcfb73fb0f966354476a28d6d97e8de8674408f313c67d9
+  languageName: node
+  linkType: hard
+
 "@replayio/sourcemap-upload@npm:^1.1.1":
   version: 1.1.1
   resolution: "@replayio/sourcemap-upload@npm:1.1.1"
@@ -6922,15 +6942,15 @@ __metadata:
   linkType: hard
 
 "@replayio/test-utils@npm:^1.1.2":
-  version: 1.1.2
-  resolution: "@replayio/test-utils@npm:1.1.2"
+  version: 1.1.10
+  resolution: "@replayio/test-utils@npm:1.1.10"
   dependencies:
-    "@replayio/replay": ^0.14.3
+    "@replayio/replay": ^0.17.3
     "@types/node-fetch": ^2.6.2
     debug: ^4.3.4
     node-fetch: ^2.6.7
     uuid: ^8.3.2
-  checksum: 7d52f5feceae46fac7bf741385c4eda0b7bb82aef11f8ae6ea7a6056e5460dd6413517825353cb39ba0f7fd165482714d352fdac4b5383611d2632a276cdf4c4
+  checksum: 370283c07e21bdc3372e27fde215c75f7714c67b20d290b5cb18a61235b3e70d01ee33abed8157ba1cd1d0edddb91cddb6d81856b17aac9435f20e750b415a6b
   languageName: node
   linkType: hard
 
@@ -18457,7 +18477,7 @@ __metadata:
 
 "fsevents@patch:fsevents@^1.2.7#~builtin<compat/fsevents>":
   version: 1.2.13
-  resolution: "fsevents@patch:fsevents@npm%3A1.2.13#~builtin<compat/fsevents>::version=1.2.13&hash=18f3a7"
+  resolution: "fsevents@patch:fsevents@npm%3A1.2.13#~builtin<compat/fsevents>::version=1.2.13&hash=d11327"
   dependencies:
     bindings: ^1.5.0
     nan: ^2.12.1
@@ -18467,7 +18487,7 @@ __metadata:
 
 "fsevents@patch:fsevents@^2.1.2#~builtin<compat/fsevents>, fsevents@patch:fsevents@^2.3.2#~builtin<compat/fsevents>, fsevents@patch:fsevents@~2.3.2#~builtin<compat/fsevents>":
   version: 2.3.2
-  resolution: "fsevents@patch:fsevents@npm%3A2.3.2#~builtin<compat/fsevents>::version=2.3.2&hash=18f3a7"
+  resolution: "fsevents@patch:fsevents@npm%3A2.3.2#~builtin<compat/fsevents>::version=2.3.2&hash=df0bf1"
   dependencies:
     node-gyp: latest
   conditions: os=darwin
@@ -28898,7 +28918,7 @@ __metadata:
 
 "resolve@patch:resolve@^1.1.7#~builtin<compat/resolve>, resolve@patch:resolve@^1.10.0#~builtin<compat/resolve>, resolve@patch:resolve@^1.12.0#~builtin<compat/resolve>, resolve@patch:resolve@^1.13.1#~builtin<compat/resolve>, resolve@patch:resolve@^1.17.0#~builtin<compat/resolve>, resolve@patch:resolve@^1.2.0#~builtin<compat/resolve>, resolve@patch:resolve@^1.3.2#~builtin<compat/resolve>":
   version: 1.17.0
-  resolution: "resolve@patch:resolve@npm%3A1.17.0#~builtin<compat/resolve>::version=1.17.0&hash=07638b"
+  resolution: "resolve@patch:resolve@npm%3A1.17.0#~builtin<compat/resolve>::version=1.17.0&hash=c3c19d"
   dependencies:
     path-parse: ^1.0.6
   checksum: 6fd799f282ddf078c4bc20ce863e3af01fa8cb218f0658d9162c57161a2dbafe092b13015b9a4c58d0e1e801cf7aa7a4f13115fea9db98c3f9a0c43e429bad6f
@@ -28907,7 +28927,7 @@ __metadata:
 
 "resolve@patch:resolve@^1.14.2#~builtin<compat/resolve>, resolve@patch:resolve@^1.19.0#~builtin<compat/resolve>, resolve@patch:resolve@^1.20.0#~builtin<compat/resolve>":
   version: 1.20.0
-  resolution: "resolve@patch:resolve@npm%3A1.20.0#~builtin<compat/resolve>::version=1.20.0&hash=07638b"
+  resolution: "resolve@patch:resolve@npm%3A1.20.0#~builtin<compat/resolve>::version=1.20.0&hash=c3c19d"
   dependencies:
     is-core-module: ^2.2.0
     path-parse: ^1.0.6
@@ -28917,7 +28937,7 @@ __metadata:
 
 "resolve@patch:resolve@^2.0.0-next.4#~builtin<compat/resolve>":
   version: 2.0.0-next.4
-  resolution: "resolve@patch:resolve@npm%3A2.0.0-next.4#~builtin<compat/resolve>::version=2.0.0-next.4&hash=07638b"
+  resolution: "resolve@patch:resolve@npm%3A2.0.0-next.4#~builtin<compat/resolve>::version=2.0.0-next.4&hash=c3c19d"
   dependencies:
     is-core-module: ^2.9.0
     path-parse: ^1.0.7
@@ -31798,7 +31818,7 @@ __metadata:
 
 "typescript@patch:typescript@^4.7.2#~builtin<compat/typescript>":
   version: 4.7.2
-  resolution: "typescript@patch:typescript@npm%3A4.7.2#~builtin<compat/typescript>::version=4.7.2&hash=a1c5e5"
+  resolution: "typescript@patch:typescript@npm%3A4.7.2#~builtin<compat/typescript>::version=4.7.2&hash=65a307"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
