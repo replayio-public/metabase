@@ -1,6 +1,11 @@
 steps:
   - label: "Run metabase tests (macOS) (x86_64)"
     command: "nix develop --command bash .buildkite/run-fly-tests.sh"
+    plugins:
+      - seek-oss/aws-sm#v2.3.1:
+          region: us-east-2
+          env:
+            FLY_ACCESS_TOKEN: prod/fly-api-token
     agents:
       - "os=macos"
       - "queue=default"
