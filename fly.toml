@@ -6,9 +6,23 @@
 app = "metabase-test"
 primary_region = "sea"
 
+[build]
+image = "registry.fly.io/metabase-test:v1"
+
 [http_service]
 internal_port = 3000
 force_https = true
 auto_stop_machines = true
 auto_start_machines = true
 min_machines_running = 0
+
+
+[[http_service.checks]]
+grace_period = "120s"
+interval = "30s"
+method = "GET"
+timeout = "5s"
+path = "/api/health"
+
+[env]
+MB_ENABLE_TEST_ENDPOINTS = "true"

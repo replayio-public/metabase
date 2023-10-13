@@ -1,9 +1,9 @@
 {
-  description = "Nix dev environment for metabase tests";
+  description = "Barebones flake to provide an environment for e2e tests";
 
   # Flake inputs
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs"; # also valid: "nixpkgs"
+    nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-unstable";
   };
 
   # Flake outputs
@@ -28,8 +28,9 @@
         default = pkgs.mkShell {
           # The Nix packages provided in the environment
           packages = with pkgs; [
-            clojure
-            jdk11
+            yarn
+            nodejs_18
+            flyctl
           ];
         };
       });
