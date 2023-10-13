@@ -32,6 +32,15 @@
             nodejs_18
             flyctl
           ];
+          shellHook = ''
+            export BUILDKITE_BRANCH=$BUILDKITE_BRANCH
+            export BUILDKITE_COMMIT=$BUILDKITE_COMMIT
+            export BUILDKITE_BUILD_NUMBER=$BUILDKITE_BUILD_NUMBER
+            export BUILDKITE_BUILD_ID=$BUILDKITE_BUILD_ID
+            export BUILDKITE_MESSAGE=$BUILDKITE_MESSAGE
+            export BUILDKITE_BUILD_URL=$BUILDKITE_BUILD_URL
+            export BUILDKITE_TRIGGERED_FROM_BUILD_ID=$BUILDKITE_TRIGGERED_FROM_BUILD_ID
+          '';
         };
       });
     };
