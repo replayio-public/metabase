@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -euox pipefail
 
 cleanup() {
     # destroy the fly app
@@ -10,7 +10,7 @@ yarn install
 
 # TODO(dmiller): download Replay browser
 # set RECORD_REPLAY_DIRECTORY to current working directory + .replay
-RECORD_REPLAY_DIRECTORY=`pwd`/.replay
+export RECORD_REPLAY_DIRECTORY=`pwd`/.replay
 
 # create the .replay directory
 mkdir -p $RECORD_REPLAY_DIRECTORY/runtimes
