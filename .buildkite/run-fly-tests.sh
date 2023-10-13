@@ -6,6 +6,8 @@ cleanup() {
     fly apps destroy replay-mb-${BUILDKITE_BUILD_NUMBER} -y
 }
 
+yarn install
+
 # This will ensure that the cleanup function is called when the script exits, regardless of the exit status.
 trap cleanup EXIT
 
