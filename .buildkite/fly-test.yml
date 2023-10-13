@@ -1,6 +1,6 @@
 steps:
   - label: "Run metabase tests (macOS) (x86_64)"
-    command: "nix develop .#devShells.x86_64-darwin.chromiumTestShell --command bash ./buildkite/run-fly-tests.sh"
+    command: "nix develop --command bash ./buildkite/run-fly-tests.sh"
     agents:
       - "os=macos"
       - "queue=default"
