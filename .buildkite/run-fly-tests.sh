@@ -33,6 +33,5 @@ fly deploy -a replay-mb-${BUILDKITE_BUILD_NUMBER} -c fly.toml --vm-size shared-c
 CYPRESS_REPLAYIO_ENABLED=1 E2E_HOST=https://replay-mb-${BUILDKITE_BUILD_NUMBER}.fly.dev QA_DB_ENABLED=false yarn test-cypress-run --e2e --browser replay-chromium --folder collections
 
 # upload recordings
-npm i -g @replayio/replay
-replay metadata --init --keys source --warn
-replay upload-all
+node_modules/.bin/replay metadata --init --keys source --warn
+node_modules/.bin/replay upload-all
