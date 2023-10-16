@@ -6869,42 +6869,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@replayio/cypress@npm:^1.1.3":
-  version: 1.1.3
-  resolution: "@replayio/cypress@npm:1.1.3"
+"@replayio/cypress@npm:^1.5.0":
+  version: 1.5.0
+  resolution: "@replayio/cypress@npm:1.5.0"
   dependencies:
-    "@replayio/replay": ^0.14.3
-    "@replayio/test-utils": ^1.1.2
+    "@replayio/replay": ^0.17.4
+    "@replayio/test-utils": ^1.2.0
     chalk: ^4.1.2
     debug: ^4.3.4
     semver: ^7.5.2
     terminate: ^2.6.1
+    txml: ^3.2.5
     uuid: ^8.3.2
   peerDependencies:
     cypress: ">=5.3.0"
   bin:
     replayio-cypress: bin/replayio-cypress.js
-  checksum: 5c95546c9cbbdfaa71535e64de3f4eec05d4d28ea821689a544db2d158a493ac288465f183bf318626896e03adc310ff5270e402431a9287f28ab732e58c830d
-  languageName: node
-  linkType: hard
-
-"@replayio/replay@npm:^0.14.3":
-  version: 0.14.3
-  resolution: "@replayio/replay@npm:0.14.3"
-  dependencies:
-    "@replayio/sourcemap-upload": ^1.1.1
-    commander: ^7.2.0
-    debug: ^4.3.4
-    is-uuid: ^1.0.2
-    jsonata: ^1.8.6
-    node-fetch: ^2.6.8
-    p-map: ^4.0.0
-    superstruct: ^0.15.4
-    text-table: ^0.2.0
-    ws: ^7.5.0
-  bin:
-    replay: bin/replay.js
-  checksum: 1594ecf6b5c38f13eef0cb3756a528f4ab2d122c8914ab8d1dbd1e12b1c17f38c8329784962a247bfad41f8a011166644deecd778e8fd54583ddfe722e431ce8
+  checksum: 25371f35473b5eef77b0c0a7a4231caf56aee049e25a77e58159a944c79a0287db468fcd05a1b02a013f6a76ca7058220cc33c8b1f8da61dae6fe81d581f8c92
   languageName: node
   linkType: hard
 
@@ -6941,16 +6922,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@replayio/test-utils@npm:^1.1.2":
-  version: 1.1.2
-  resolution: "@replayio/test-utils@npm:1.1.2"
+"@replayio/test-utils@npm:^1.2.0":
+  version: 1.2.0
+  resolution: "@replayio/test-utils@npm:1.2.0"
   dependencies:
-    "@replayio/replay": ^0.14.3
-    "@types/node-fetch": ^2.6.2
+    "@replayio/replay": ^0.17.4
     debug: ^4.3.4
     node-fetch: ^2.6.7
     uuid: ^8.3.2
-  checksum: 7d52f5feceae46fac7bf741385c4eda0b7bb82aef11f8ae6ea7a6056e5460dd6413517825353cb39ba0f7fd165482714d352fdac4b5383611d2632a276cdf4c4
+  checksum: 448a042c1989fc9cf767e4b55a01ab297b0e8d470e678b992a2901a0273d5f7bc375b1c47d5bb7395f57c09ac376a4353976612b4d76c50dc00758e238c6641f
   languageName: node
   linkType: hard
 
@@ -9526,16 +9506,6 @@ __metadata:
     "@types/node": "*"
     form-data: ^3.0.0
   checksum: ad63c85ba6a9477b8e057ec8682257738130d98e8ece4e31141789bd99df9d9147985cc8bc0cb5c8983ed5aa6bb95d46df23d1e055f4ad5cf8b82fc69cf626c7
-  languageName: node
-  linkType: hard
-
-"@types/node-fetch@npm:^2.6.2":
-  version: 2.6.4
-  resolution: "@types/node-fetch@npm:2.6.4"
-  dependencies:
-    "@types/node": "*"
-    form-data: ^3.0.0
-  checksum: f3e1d881bb42269e676ecaf49f0e096ab345e22823a2b2d071d60619414817fe02df48a31a8d05adb23054028a2a65521bdb3906ceb763ab6d3339c8d8775058
   languageName: node
   linkType: hard
 
@@ -18477,7 +18447,7 @@ __metadata:
 
 "fsevents@patch:fsevents@^1.2.7#~builtin<compat/fsevents>":
   version: 1.2.13
-  resolution: "fsevents@patch:fsevents@npm%3A1.2.13#~builtin<compat/fsevents>::version=1.2.13&hash=18f3a7"
+  resolution: "fsevents@patch:fsevents@npm%3A1.2.13#~builtin<compat/fsevents>::version=1.2.13&hash=d11327"
   dependencies:
     bindings: ^1.5.0
     nan: ^2.12.1
@@ -18487,7 +18457,7 @@ __metadata:
 
 "fsevents@patch:fsevents@^2.1.2#~builtin<compat/fsevents>, fsevents@patch:fsevents@^2.3.2#~builtin<compat/fsevents>, fsevents@patch:fsevents@~2.3.2#~builtin<compat/fsevents>":
   version: 2.3.2
-  resolution: "fsevents@patch:fsevents@npm%3A2.3.2#~builtin<compat/fsevents>::version=2.3.2&hash=18f3a7"
+  resolution: "fsevents@patch:fsevents@npm%3A2.3.2#~builtin<compat/fsevents>::version=2.3.2&hash=df0bf1"
   dependencies:
     node-gyp: latest
   conditions: os=darwin
@@ -23363,7 +23333,7 @@ __metadata:
     "@pmmmwh/react-refresh-webpack-plugin": 0.5.10
     "@react-oauth/google": ^0.4.0
     "@reduxjs/toolkit": ^1.9.3
-    "@replayio/cypress": ^1.1.3
+    "@replayio/cypress": ^1.5.0
     "@replayio/replay": ^0.17.4
     "@sinonjs/fake-timers": ^9.1.2
     "@snowplow/browser-tracker": ^3.1.6
@@ -28145,6 +28115,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"readable-stream@npm:2 || 3":
+  version: 3.6.2
+  resolution: "readable-stream@npm:3.6.2"
+  dependencies:
+    inherits: ^2.0.3
+    string_decoder: ^1.1.1
+    util-deprecate: ^1.0.1
+  checksum: bdcbe6c22e846b6af075e32cf8f4751c2576238c5043169a1c221c92ee2878458a816a4ea33f4c67623c0b6827c8a400409bfb3cf0bf3381392d0b1dfb52ac8d
+  languageName: node
+  linkType: hard
+
 "readable-stream@npm:^3.0.6, readable-stream@npm:^3.1.1, readable-stream@npm:^3.2.0, readable-stream@npm:^3.5.0, readable-stream@npm:^3.6.0":
   version: 3.6.0
   resolution: "readable-stream@npm:3.6.0"
@@ -28919,7 +28900,7 @@ __metadata:
 
 "resolve@patch:resolve@^1.1.7#~builtin<compat/resolve>, resolve@patch:resolve@^1.10.0#~builtin<compat/resolve>, resolve@patch:resolve@^1.12.0#~builtin<compat/resolve>, resolve@patch:resolve@^1.13.1#~builtin<compat/resolve>, resolve@patch:resolve@^1.17.0#~builtin<compat/resolve>, resolve@patch:resolve@^1.2.0#~builtin<compat/resolve>, resolve@patch:resolve@^1.3.2#~builtin<compat/resolve>":
   version: 1.17.0
-  resolution: "resolve@patch:resolve@npm%3A1.17.0#~builtin<compat/resolve>::version=1.17.0&hash=07638b"
+  resolution: "resolve@patch:resolve@npm%3A1.17.0#~builtin<compat/resolve>::version=1.17.0&hash=c3c19d"
   dependencies:
     path-parse: ^1.0.6
   checksum: 6fd799f282ddf078c4bc20ce863e3af01fa8cb218f0658d9162c57161a2dbafe092b13015b9a4c58d0e1e801cf7aa7a4f13115fea9db98c3f9a0c43e429bad6f
@@ -28928,7 +28909,7 @@ __metadata:
 
 "resolve@patch:resolve@^1.14.2#~builtin<compat/resolve>, resolve@patch:resolve@^1.19.0#~builtin<compat/resolve>, resolve@patch:resolve@^1.20.0#~builtin<compat/resolve>":
   version: 1.20.0
-  resolution: "resolve@patch:resolve@npm%3A1.20.0#~builtin<compat/resolve>::version=1.20.0&hash=07638b"
+  resolution: "resolve@patch:resolve@npm%3A1.20.0#~builtin<compat/resolve>::version=1.20.0&hash=c3c19d"
   dependencies:
     is-core-module: ^2.2.0
     path-parse: ^1.0.6
@@ -28938,7 +28919,7 @@ __metadata:
 
 "resolve@patch:resolve@^2.0.0-next.4#~builtin<compat/resolve>":
   version: 2.0.0-next.4
-  resolution: "resolve@patch:resolve@npm%3A2.0.0-next.4#~builtin<compat/resolve>::version=2.0.0-next.4&hash=07638b"
+  resolution: "resolve@patch:resolve@npm%3A2.0.0-next.4#~builtin<compat/resolve>::version=2.0.0-next.4&hash=c3c19d"
   dependencies:
     is-core-module: ^2.9.0
     path-parse: ^1.0.7
@@ -31248,6 +31229,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"through2@npm:^3.0.1":
+  version: 3.0.2
+  resolution: "through2@npm:3.0.2"
+  dependencies:
+    inherits: ^2.0.4
+    readable-stream: 2 || 3
+  checksum: 47c9586c735e7d9cbbc1029f3ff422108212f7cc42e06d5cc9fff7901e659c948143c790e0d0d41b1b5f89f1d1200bdd200c7b72ad34f42f9edbeb32ea49e8b7
+  languageName: node
+  linkType: hard
+
 "through@npm:2, through@npm:^2.3.8, through@npm:~2.3, through@npm:~2.3.1":
   version: 2.3.8
   resolution: "through@npm:2.3.8"
@@ -31667,6 +31658,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"txml@npm:^3.2.5":
+  version: 3.2.5
+  resolution: "txml@npm:3.2.5"
+  dependencies:
+    through2: ^3.0.1
+  checksum: a8357d90dd725f66a9868f02eb6d95dd6bcf682d6cc6e699007c9b2ede7ebdcbffe40373fe1e83c11657edc5beb9dea47828f39cce8d81375d15a87116e66cc2
+  languageName: node
+  linkType: hard
+
 "type-check@npm:^0.4.0, type-check@npm:~0.4.0":
   version: 0.4.0
   resolution: "type-check@npm:0.4.0"
@@ -31819,7 +31819,7 @@ __metadata:
 
 "typescript@patch:typescript@^4.7.2#~builtin<compat/typescript>":
   version: 4.7.2
-  resolution: "typescript@patch:typescript@npm%3A4.7.2#~builtin<compat/typescript>::version=4.7.2&hash=a1c5e5"
+  resolution: "typescript@patch:typescript@npm%3A4.7.2#~builtin<compat/typescript>::version=4.7.2&hash=65a307"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
