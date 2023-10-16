@@ -30,7 +30,7 @@ fly app create --name replay-mb-${BUILDKITE_BUILD_NUMBER} -o replay
 fly deploy -a replay-mb-${BUILDKITE_BUILD_NUMBER} -c fly.toml --vm-size shared-cpu-4x --ha=false
 
 # run the tests
-CYPRESS_REPLAYIO_ENABLED=1 E2E_HOST=https://replay-mb-${BUILDKITE_BUILD_NUMBER}.fly.dev QA_DB_ENABLED=false yarn test-cypress-run --e2e --browser replay-chromium
+CYPRESS_REPLAYIO_ENABLED=1 E2E_HOST=https://replay-mb-${BUILDKITE_BUILD_NUMBER}.fly.dev QA_DB_ENABLED=false yarn test-cypress-run --e2e --browser replay-chromium --folder collections
 
 # upload recordings
 npm i -g @replayio/replay
