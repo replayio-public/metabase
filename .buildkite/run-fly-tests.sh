@@ -16,6 +16,7 @@ export RECORD_REPLAY_DIRECTORY=`pwd`/.replay
 mkdir -p $RECORD_REPLAY_DIRECTORY/runtimes
 
 # download the Replay browser to RECORD_REPLAY_DIRECTORY/runtimes/Replay-Chromium.app/
+# TODO(dmiller): grab this from the parent pipeline's artifact
 curl -L https://static.replay.io/downloads/macOS-chromium-20230916-e7589a401ac1-4d0a9f5b9de2.dmg -o $RECORD_REPLAY_DIRECTORY/runtimes/Replay-Chromium.app.dmg
 hdiutil attach $RECORD_REPLAY_DIRECTORY/runtimes/Replay-Chromium.app.dmg
 cp -R /Volumes/Replay-Chromium/Replay-Chromium.app $RECORD_REPLAY_DIRECTORY/runtimes/Replay-Chromium.app
@@ -30,3 +31,8 @@ fly deploy -a replay-mb-${BUILDKITE_BUILD_NUMBER} -c fly.toml --vm-size shared-c
 
 # run the tests
 CYPRESS_REPLAYIO_ENABLED=1 E2E_HOST=https://replay-mb-${BUILDKITE_BUILD_NUMBER}.fly.dev QA_DB_ENABLED=false yarn test-cypress-run --e2e --browser replay-chromium
+
+# upload recordings
+npm i -g @replayio/replay
+replay metadata --init --keys source --warn
+replay upload-all
