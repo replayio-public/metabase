@@ -7,6 +7,7 @@ steps:
           region: us-east-2
           env:
             FLY_ACCESS_TOKEN: prod/fly-api-token
+            RECORD_REPLAY_API_KEY: prod/metabase-macos-x86-replay-api-key
     agents:
       - "os=macos"
       - "queue=default"

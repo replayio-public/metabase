@@ -41,6 +41,7 @@
             export BUILDKITE_BUILD_URL=$BUILDKITE_BUILD_URL
             export BUILDKITE_TRIGGERED_FROM_BUILD_ID=$BUILDKITE_TRIGGERED_FROM_BUILD_ID
             export FLY_ACCESS_TOKEN=$FLY_ACCESS_TOKEN
+            export RECORD_REPLAY_API_KEY=$RECORD_REPLAY_API_KEY
           '';
         };
       });
