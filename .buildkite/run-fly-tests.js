@@ -9,8 +9,31 @@ const runCommandWithEnv = (command, env = {}) => {
 };
 
 // Function to download files
+// const download = (url, destination) => {
+//   return new Promise((resolve, reject) => {
+//     const file = fs.createWriteStream(destination);
+//     https
+//       .get(url, response => {
+//         response.pipe(file);
+//         file.on("finish", () => {
+//           file.close(resolve);
+//         });
+//       })
+//       .on("error", err => {
+//         fs.unlink(destination);
+//         reject(err.message);
+//       });
+//   });
+// };
+
 const download = (url, destination) => {
   return new Promise((resolve, reject) => {
+    if (!fs.existsSync(path.dirname(destination))) {
+      reject(
+        new Error(`Directory does not exist: ${path.dirname(destination)}`),
+      );
+      return;
+    }
     const file = fs.createWriteStream(destination);
     https
       .get(url, response => {
@@ -37,6 +60,9 @@ const download = (url, destination) => {
     if (!fs.existsSync(recordReplayDir)) {
       fs.mkdirSync(path.join(recordReplayDir, "runtimes"), { recursive: true });
     }
+    console.log(
+      `Directories created up to: ${path.join(recordReplayDir, "runtimes")}`,
+    );
 
     const dmgFile = path.join(
       recordReplayDir,
