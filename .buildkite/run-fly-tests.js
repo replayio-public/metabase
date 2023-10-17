@@ -133,7 +133,12 @@ const download = (url, destination) => {
     recordingIds.shift();
     console.log("recordingIds", recordingIds);
 
-    runCommandWithEnv("node_modules/.bin/replay upload-all");
+    try {
+      runCommandWithEnv("node_modules/.bin/replay upload-all");
+    } catch (e) {
+      console.log(`Error uploading all recordings: ${e}`);
+      console.log("Continuing...");
+    }
 
     // call replay process on each recording ID
     let errorProcessingRecording = false;
