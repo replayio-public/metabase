@@ -58,7 +58,10 @@ const download = (url, destination) => {
     process.env.RECORD_REPLAY_DIRECTORY = recordReplayDir;
 
     if (!fs.existsSync(recordReplayDir)) {
-      fs.mkdirSync(path.join(recordReplayDir, "runtimes"), { recursive: true });
+      const ret = fs.mkdirSync(path.join(recordReplayDir, "runtimes"), {
+        recursive: true,
+      });
+      console.log(`mkdir ret: ${ret}`);
     }
     if (!fs.existsSync(path.join(recordReplayDir, "runtimes"))) {
       throw new Error("Directory was not created successfully.");
