@@ -60,6 +60,13 @@ const download = (url, destination) => {
     if (!fs.existsSync(recordReplayDir)) {
       fs.mkdirSync(path.join(recordReplayDir, "runtimes"), { recursive: true });
     }
+    if (!fs.existsSync(path.join(recordReplayDir, "runtimes"))) {
+      throw new Error("Directory was not created successfully.");
+    }
+    console.log(
+      `Directories created up to: ${path.join(recordReplayDir, "runtimes")}`,
+    );
+
     console.log(
       `Directories created up to: ${path.join(recordReplayDir, "runtimes")}`,
     );
