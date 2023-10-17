@@ -130,8 +130,8 @@ const download = (url, destination) => {
       .split("\n")
       .map(line => line.split(" ")[0]);
     // drop first element (header)
-    ids.shift();
-    console.log("ids", ids);
+    recordingIds.shift();
+    console.log("recordingIds", recordingIds);
 
     runCommandWithEnv("node_modules/.bin/replay upload-all");
 
