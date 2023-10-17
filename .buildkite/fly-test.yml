@@ -1,6 +1,6 @@
 steps:
   - label: "Run metabase tests (macOS) (x86_64)"
-    command: "nix develop --command bash .buildkite/run-fly-tests.sh"
+    command: "nix develop --command node .buildkite/run-fly-tests.js"
     timeout_in_minutes: 45
     plugins:
       - seek-oss/aws-sm#v2.3.1:
