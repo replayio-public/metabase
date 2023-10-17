@@ -31,7 +31,6 @@
             yarn
             nodejs_18
             flyctl
-            cypress
           ];
           shellHook = ''
             export BUILDKITE_BRANCH=$BUILDKITE_BRANCH
