@@ -124,9 +124,9 @@ const download = (url, destination) => {
     );
 
     // get list of recording IDs with replay ls --json
-    const outputString = execSync(
-      "node_modules/.bin/replay ls --json",
-    ).toString();
+    const outputString = execSync("node_modules/.bin/replay ls --json", {
+      maxBuffer: 1024 * 1024 * 1024,
+    }).toString();
     console.log(`outputString: ${outputString}`);
     const recordings = JSON.parse(outputString);
     const recordingIds = recordings.map(recording => recording.id);
