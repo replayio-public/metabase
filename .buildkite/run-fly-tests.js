@@ -123,13 +123,16 @@ const download = (url, destination) => {
       "node_modules/.bin/replay metadata --init --keys source --warn",
     );
 
-    // get list of recording IDs with replay ls --json
-    const outputString = execSync("node_modules/.bin/replay ls --json", {
-      maxBuffer: 1024 * 1024 * 1024,
-    }).toString();
+    const outputString = execSync("node_modules/.bin/replay ls").toString();
     console.log(`outputString: ${outputString}`);
-    const recordings = JSON.parse(outputString);
-    const recordingIds = recordings.map(recording => recording.id);
+    // grab first column of output
+    const recordingIds = outputString
+      .split("\n")
+      .map(line => line.split(" ")[0]);
+    // drop first element (header)
+    ids.shift();
+    console.log("ids", ids);
+
     runCommandWithEnv("node_modules/.bin/replay upload-all");
 
     // call replay process on each recording ID
