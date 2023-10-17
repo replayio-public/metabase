@@ -12,3 +12,16 @@ steps:
       - "os=macos"
       - "queue=default"
       - "runtimeType=test"
+  - label: "Run metabase tests (macOS) (arm64)"
+    command: "nix develop --command node .buildkite/run-fly-tests.js"
+    timeout_in_minutes: 45
+    plugins:
+      - seek-oss/aws-sm#v2.3.1:
+          region: us-east-2
+          env:
+            FLY_ACCESS_TOKEN: prod/fly-api-token
+            RECORD_REPLAY_API_KEY: prod/metabase-macos-x86-replay-api-key
+    agents:
+      - os=macos
+      - queue=runtime
+      - runtimeType=test
