@@ -3,28 +3,20 @@ const fs = require("fs");
 const path = require("path");
 const https = require("https");
 
+const generateRandomString = (length = 6) => {
+  const characters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
+};
+
 const runCommandWithEnv = (command, env = {}) => {
   console.log(`$ ${command}`);
   execSync(command, { stdio: "inherit", env: { ...process.env, ...env } });
 };
-
-// Function to download files
-// const download = (url, destination) => {
-//   return new Promise((resolve, reject) => {
-//     const file = fs.createWriteStream(destination);
-//     https
-//       .get(url, response => {
-//         response.pipe(file);
-//         file.on("finish", () => {
-//           file.close(resolve);
-//         });
-//       })
-//       .on("error", err => {
-//         fs.unlink(destination);
-//         reject(err.message);
-//       });
-//   });
-// };
 
 const download = (url, destination) => {
   return new Promise((resolve, reject) => {
@@ -94,10 +86,10 @@ const download = (url, destination) => {
     );
     runCommandWithEnv("hdiutil detach /Volumes/Replay-Chromium");
 
+    const randomString = generateRandomString();
+
     const cleanup = () => {
-      runCommandWithEnv(
-        `fly apps destroy replay-mb-${process.env.BUILDKITE_BUILD_NUMBER} -y`,
-      );
+      runCommandWithEnv(`fly apps destroy replay-mb-${randomString} -y`);
     };
 
     process.on("exit", cleanup);
@@ -105,16 +97,16 @@ const download = (url, destination) => {
     process.on("SIGTERM", cleanup);
 
     runCommandWithEnv(
-      `fly app create --name replay-mb-${process.env.BUILDKITE_BUILD_NUMBER} -o replay`,
+      `fly app create --name replay-mb-${randomString} -o replay`,
     );
     runCommandWithEnv(
-      `fly deploy -a replay-mb-${process.env.BUILDKITE_BUILD_NUMBER} -c fly.toml --vm-size shared-cpu-4x --ha=false`,
+      `fly deploy -a replay-mb-${randomString} -c fly.toml --vm-size shared-cpu-4x --ha=false`,
     );
     runCommandWithEnv(
       `yarn test-cypress-run --e2e --browser replay-chromium --folder collections`,
       {
         CYPRESS_REPLAYIO_ENABLED: "1",
-        E2E_HOST: `https://replay-mb-${process.env.BUILDKITE_BUILD_NUMBER}.fly.dev`,
+        E2E_HOST: `https://replay-mb-${randomString}.fly.dev`,
         QA_DB_ENABLED: "false",
       },
     );
