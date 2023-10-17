@@ -122,7 +122,28 @@ const download = (url, destination) => {
     runCommandWithEnv(
       "node_modules/.bin/replay metadata --init --keys source --warn",
     );
+
+    // get list of recording IDs with replay ls --json
+    const recordings = JSON.parse(
+      execSync("node_modules/.bin/replay ls --json"),
+    );
+    const recordingIds = recordings.map(recording => recording.id);
     runCommandWithEnv("node_modules/.bin/replay upload-all");
+
+    // call replay process on each recording ID
+    let errorProcessingRecording = false;
+    recordingIds.forEach(recordingId => {
+      try {
+        runCommandWithEnv(`node_modules/.bin/replay process ${recordingId}`);
+      } catch (e) {
+        errorProcessingRecording = true;
+        console.log(`Error processing recording ${recordingId}: ${e}`);
+      }
+    });
+
+    if (errorProcessingRecording) {
+      throw new Error("Error processing recording");
+    }
   } catch (err) {
     console.error(err);
   }
