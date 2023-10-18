@@ -47,6 +47,7 @@ const download = (url, destination) => {
 
     const currentDir = process.cwd();
     const recordReplayDir = path.join(currentDir, ".replay");
+    process.env.RECORD_REPLAY_DIRECTORY = recordReplayDir;
 
     if (!fs.existsSync(path.join(recordReplayDir, "runtimes"))) {
       const ret = fs.mkdirSync(path.join(recordReplayDir, "runtimes"), {
