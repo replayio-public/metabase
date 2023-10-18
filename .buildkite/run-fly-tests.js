@@ -91,23 +91,26 @@ const runCommandWithEnv = (command, env = {}) => {
 
     // Set Chrome binary path based on OS
     let chromeDir;
+    let destDirName;
     if (os.platform() === "linux") {
       chromeDir = path.join(tmpDir, "build", "replay-chromium");
+      destDirName = "replay-chromium";
     } else if (os.platform() === "darwin") {
       chromeDir = path.join(tmpDir, "build", "Replay-Chromium.app");
+      destDirName = "Replay-Chromium.app";
     } else if (os.platform() === "win32") {
       chromeDir = path.join(tmpDir, "build", "replay-chromium");
+      destDirName = "replay-chromium";
     } else {
       throw new Error(`Unsupported platform: ${os.platform()}`);
     }
 
+    const destPath = path.join(recordReplayDir, "runtimes", destDirName);
     console.log(
-      `Moving unpacked chrome directory: ${chromeDir} to ${recordReplayDir}`,
+      `Moving unpacked chrome directory: ${chromeDir} to ${destPath}`,
     );
-    fs.renameSync(chromeDir, path.join(recordReplayDir, "runtimes", "chrome"));
-    process.on("exit", () =>
-      fs.rmdirSync(recordReplayDir, { recursive: true }),
-    );
+    fs.renameSync(chromeDir, destPath);
+    process.on("exit", () => fs.rmdirSync(destPath, { recursive: true }));
 
     const randomString = generateRandomString();
 
