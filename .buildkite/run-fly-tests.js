@@ -1,7 +1,6 @@
 const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
-const https = require("https");
 const os = require("os");
 
 const generateRandomString = (length = 6) => {
@@ -16,29 +15,6 @@ const generateRandomString = (length = 6) => {
 const runCommandWithEnv = (command, env = {}) => {
   console.log(`$ ${command}`);
   execSync(command, { stdio: "inherit", env: { ...process.env, ...env } });
-};
-
-const download = (url, destination) => {
-  return new Promise((resolve, reject) => {
-    if (!fs.existsSync(path.dirname(destination))) {
-      reject(
-        new Error(`Directory does not exist: ${path.dirname(destination)}`),
-      );
-      return;
-    }
-    const file = fs.createWriteStream(destination);
-    https
-      .get(url, response => {
-        response.pipe(file);
-        file.on("finish", () => {
-          file.close(resolve);
-        });
-      })
-      .on("error", err => {
-        fs.unlink(destination);
-        reject(err.message);
-      });
-  });
 };
 
 (async () => {
@@ -114,29 +90,24 @@ const download = (url, destination) => {
     );
 
     // Set Chrome binary path based on OS
-    let chromeBinary;
+    let chromeDir;
     if (os.platform() === "linux") {
-      chromeBinary = path.join(tmpDir, "build", "replay-chromium", "chrome");
+      chromeDir = path.join(tmpDir, "build", "replay-chromium");
     } else if (os.platform() === "darwin") {
-      chromeBinary = path.join(
-        tmpDir,
-        "build",
-        "Replay-Chromium.app",
-        "Contents",
-        "MacOS",
-        "Chromium",
-      );
+      chromeDir = path.join(tmpDir, "build", "Replay-Chromium.app");
     } else if (os.platform() === "win32") {
-      chromeBinary = path.join(
-        tmpDir,
-        "build",
-        "replay-chromium",
-        "chrome.exe",
-      );
+      chromeDir = path.join(tmpDir, "build", "replay-chromium");
     } else {
       throw new Error(`Unsupported platform: ${os.platform()}`);
     }
-    process.env.REPLAY_BROWSER_BINARY_PATH = chromeBinary;
+
+    console.log(
+      `Moving unpacked chrome directory: ${chromeDir} to ${recordReplayDir}`,
+    );
+    fs.renameSync(chromeDir, path.join(recordReplayDir, "runtimes", "chrome"));
+    process.on("exit", () =>
+      fs.rmdirSync(recordReplayDir, { recursive: true }),
+    );
 
     const randomString = generateRandomString();
 
