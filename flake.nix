@@ -42,6 +42,7 @@
             export BUILDKITE_TRIGGERED_FROM_BUILD_ID=$BUILDKITE_TRIGGERED_FROM_BUILD_ID
             export FLY_ACCESS_TOKEN=$FLY_ACCESS_TOKEN
             export RECORD_REPLAY_API_KEY=$RECORD_REPLAY_API_KEY
+            export RUNTIME_BUILD_ID=$RUNTIME_BUILD_ID
           '';
         };
       });

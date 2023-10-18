@@ -65,25 +65,63 @@ const download = (url, destination) => {
       `Directories created up to: ${path.join(recordReplayDir, "runtimes")}`,
     );
 
-    const dmgFile = path.join(
-      recordReplayDir,
-      "runtimes",
-      "Replay-Chromium.app.dmg",
-    );
-    await download(
-      "https://static.replay.io/downloads/macOS-chromium-20230916-e7589a401ac1-4d0a9f5b9de2.dmg",
-      dmgFile,
+    // if not set in buildkite meta-data, use environment variable
+    const RUNTIME_BUILD_ID =
+      execSync("buildkite-agent meta-data get build-id", {
+        encoding: "utf8",
+      }).trim() || process.env.RUNTIME_BUILD_ID;
+
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), ""));
+    process.on("exit", () => fs.rmdirSync(tmpDir, { recursive: true }));
+
+    let buildFile;
+    if (process.platform === "win32") {
+      buildFile = `${RUNTIME_BUILD_ID}.zip`;
+    } else if (process.arch === "x64") {
+      buildFile = `${RUNTIME_BUILD_ID}.tar.xz`;
+    } else if (process.arch === "arm64") {
+      buildFile = `${RUNTIME_BUILD_ID}-arm.tar.xz`;
+    } else {
+      throw new Error(
+        `Unsupported platform: ${process.platform} ${process.arch}`,
+      );
+    }
+
+    const buildUrl = `https://static.replay.io/downloads/${buildFile}`;
+
+    console.log(`Downloading build from ${buildUrl}`);
+    execSync(`curl ${buildUrl} -o ${path.join(tmpDir, buildFile)}`);
+
+    // Extract build
+    fs.mkdirSync(path.join(tmpDir, "build"));
+    execSync(
+      `tar xf ${path.join(tmpDir, buildFile)} -C ${path.join(tmpDir, "build")}`,
     );
 
-    runCommandWithEnv(`hdiutil attach ${dmgFile}`);
-    runCommandWithEnv(
-      `cp -R /Volumes/Replay-Chromium/Replay-Chromium.app ${path.join(
-        recordReplayDir,
-        "runtimes",
+    // Set Chrome binary path based on OS
+    let chromeBinary;
+    if (os.platform() === "linux") {
+      chromeBinary = path.join(tmpDir, "build", "replay-chromium", "chrome");
+    } else if (os.platform() === "darwin") {
+      chromeBinary = path.join(
+        tmpDir,
+        "build",
         "Replay-Chromium.app",
-      )}`,
-    );
-    runCommandWithEnv("hdiutil detach /Volumes/Replay-Chromium");
+        "Contents",
+        "MacOS",
+        "Chromium",
+      );
+    } else if (os.platform() === "win32") {
+      chromeBinary = path.join(
+        tmpDir,
+        "build",
+        "replay-chromium",
+        "chrome.exe",
+      );
+    } else {
+      throw new Error(`Unsupported platform: ${os.platform()}`);
+    }
+    process.env.REPLAY_BROWSER_BINARY_PATH = chromeBinary;
 
     const randomString = generateRandomString();
 
