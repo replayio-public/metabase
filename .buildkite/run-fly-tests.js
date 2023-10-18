@@ -2,6 +2,7 @@ const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const https = require("https");
+const os = require("os");
 
 const generateRandomString = (length = 6) => {
   const characters = "abcdefghijklmnopqrstuvwxyz";
