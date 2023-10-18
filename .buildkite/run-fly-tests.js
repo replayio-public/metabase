@@ -66,21 +66,35 @@ const download = (url, destination) => {
     );
 
     // if not set in buildkite meta-data, use environment variable
-    const RUNTIME_BUILD_ID =
-      execSync("buildkite-agent meta-data get build-id", {
+    let runtimeBuildId;
+    try {
+      const buildId = execSync("buildkite-agent meta-data get build-id", {
         encoding: "utf8",
-      }).trim() || process.env.RUNTIME_BUILD_ID;
+      }).trim();
+      runtimeBuildId = buildId;
+    } catch (e) {
+      console.log(`Error getting build ID from buildkite: ${e}`);
+      console.log("Continuing...");
+    }
+    if (!runtimeBuildId) {
+      if (!process.env.RUNTIME_BUILD_ID) {
+        throw new Error("No runtime build ID set");
+      }
+      runtimeBuildId = process.env.RUNTIME_BUILD_ID;
+    }
+
+    process.env.RUNTIME_BUILD_ID = runtimeBuildId;
 
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), ""));
     process.on("exit", () => fs.rmdirSync(tmpDir, { recursive: true }));
 
     let buildFile;
     if (process.platform === "win32") {
-      buildFile = `${RUNTIME_BUILD_ID}.zip`;
+      buildFile = `${runtimeBuildId}.zip`;
     } else if (process.arch === "x64") {
-      buildFile = `${RUNTIME_BUILD_ID}.tar.xz`;
+      buildFile = `${runtimeBuildId}.tar.xz`;
     } else if (process.arch === "arm64") {
-      buildFile = `${RUNTIME_BUILD_ID}-arm.tar.xz`;
+      buildFile = `${runtimeBuildId}-arm.tar.xz`;
     } else {
       throw new Error(
         `Unsupported platform: ${process.platform} ${process.arch}`,
