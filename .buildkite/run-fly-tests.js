@@ -17,6 +17,41 @@ const runCommandWithEnv = (command, env = {}) => {
   execSync(command, { stdio: "inherit", env: { ...process.env, ...env } });
 };
 
+function getPlatform() {
+  switch (os.platform()) {
+    case "linux":
+      return "linux";
+    case "darwin":
+      return "macOS";
+    case "win32":
+      return "windows";
+  }
+
+  throw new Error(`Unsupported platform: ${os.platform()}`);
+}
+
+function getLatestBuildIdForPlatform(platform) {
+  const releasesText = execSync("curl -s https://app.replay.io/api/releases", {
+    encoding: "utf8",
+  }).trim();
+
+  const json = JSON.parse(releasesText);
+
+  const latest = json
+    .filter(
+      release =>
+        release.platform === platform && release.runtime === "chromium",
+    )
+    .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime())
+    .pop();
+
+  if (!latest) {
+    throw new Error("Failed to find build for " + platform);
+  }
+
+  return latest.buildId;
+}
+
 (async () => {
   try {
     runCommandWithEnv("yarn install");
@@ -53,11 +88,10 @@ const runCommandWithEnv = (command, env = {}) => {
       console.log(`Error getting build ID from buildkite: ${e}`);
       console.log("Continuing...");
     }
-    if (!runtimeBuildId) {
-      if (!process.env.RUNTIME_BUILD_ID) {
-        throw new Error("No runtime build ID set");
-      }
+    if (runtimeBuildId) {
       runtimeBuildId = process.env.RUNTIME_BUILD_ID;
+    } else {
+      runtimeBuildId = getLatestBuildIdForPlatform(getPlatform());
     }
 
     process.env.RUNTIME_BUILD_ID = runtimeBuildId;
