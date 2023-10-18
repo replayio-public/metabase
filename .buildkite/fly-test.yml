@@ -14,7 +14,7 @@ steps:
       - "runtimeType=test"
   - label: "Run metabase tests (macOS) (arm64)"
     command: "nix develop --command node .buildkite/run-fly-tests.js"
-    timeout_in_minutes:
+    timeout_in_minutes: 90
     plugins:
       - seek-oss/aws-sm#v2.3.1:
           region: us-east-2
