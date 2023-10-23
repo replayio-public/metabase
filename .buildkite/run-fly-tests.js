@@ -134,7 +134,7 @@ function getLatestBuildIdForPlatform(platform) {
     if (runtimeBuildId) {
       runtimeBuildId = process.env.RUNTIME_BUILD_ID;
     } else {
-      runtimeBuildId = getLatestBuildIdForPlatform(getPlatform());
+      runtimeBuildId = await getLatestBuildIdForPlatform(getPlatform());
     }
 
     process.env.RUNTIME_BUILD_ID = runtimeBuildId;
