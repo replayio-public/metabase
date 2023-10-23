@@ -212,12 +212,12 @@ function getLatestBuildIdForPlatform(platform) {
     runCommandWithEnv(
       `fly deploy -a replay-mb-${randomString} -c fly.toml --vm-size shared-cpu-4x --ha=false`,
     );
-    // on unix run rm -R -f cypress/
-    // on windows run rmdir /S /Q cypress
-    if (process.platform === "win32") {
-      runCommandWithEnv("rmdir /S /Q cypress");
-    } else {
-      runCommandWithEnv("rm -R -f cypress/");
+    if (fs.existsSync("cypress")) {
+      if (process.platform === "win32") {
+        runCommandWithEnv("rmdir /S /Q cypress");
+      } else {
+        runCommandWithEnv("rm -R -f cypress/");
+      }
     }
     runCommandWithEnv(
       `yarn test-cypress-run --e2e --browser replay-chromium --folder collections`,
