@@ -2,6 +2,7 @@ const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
+const https = require("https");
 
 const generateRandomString = (length = 6) => {
   const characters = "abcdefghijklmnopqrstuvwxyz";
@@ -31,25 +32,35 @@ function getPlatform() {
 }
 
 function getLatestBuildIdForPlatform(platform) {
-  const releasesText = execSync("curl -s https://app.replay.io/api/releases", {
-    encoding: "utf8",
-  }).trim();
-
-  const json = JSON.parse(releasesText);
-
-  const latest = json
-    .filter(
-      release =>
-        release.platform === platform && release.runtime === "chromium",
-    )
-    .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime())
-    .pop();
-
-  if (!latest) {
-    throw new Error("Failed to find build for " + platform);
-  }
-
-  return latest.buildId;
+  return new Promise((resolve, reject) => {
+    https
+      .get("https://app.replay.io/api/releases", res => {
+        let data = "";
+        res.on("data", chunk => {
+          data += chunk;
+        });
+        res.on("end", () => {
+          const json = JSON.parse(data);
+          const latest = json
+            .filter(
+              release =>
+                release.platform === platform && release.runtime === "chromium",
+            )
+            .sort(
+              (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime(),
+            )
+            .pop();
+          if (!latest) {
+            reject(new Error("Failed to find build for " + platform));
+          } else {
+            resolve(latest.buildId);
+          }
+        });
+      })
+      .on("error", err => {
+        reject(err);
+      });
+  });
 }
 
 (async () => {
@@ -115,8 +126,11 @@ function getLatestBuildIdForPlatform(platform) {
     const buildUrl = `https://static.replay.io/downloads/${buildFile}`;
 
     console.log(`Downloading build from ${buildUrl}`);
-    execSync(`curl ${buildUrl} -o ${path.join(tmpDir, buildFile)}`);
 
+    const file = fs.createWriteStream(path.join(tmpDir, buildFile));
+    https.get(buildUrl, response => {
+      response.pipe(file);
+    });
     // Extract build
     fs.mkdirSync(path.join(tmpDir, "build"));
     execSync(

@@ -25,3 +25,16 @@ steps:
       - os=macos
       - queue=runtime
       - runtimeType=test
+  - label: "Run metabase tests (Windows) (x86_64)"
+    command: "node .buildkite/run-fly-tests.js"
+    timeout_in_minutes: 90
+    plugins:
+      - seek-oss/aws-sm#v2.3.1:
+          region: us-east-2
+          env:
+            FLY_ACCESS_TOKEN: prod/fly-api-token
+            RECORD_REPLAY_API_KEY: prod/metabase-windows-x86-replay-api-key
+    agents:
+      - os=windows
+      - queue=runtime
+      - runtimeType=test
