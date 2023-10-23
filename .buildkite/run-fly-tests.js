@@ -4,6 +4,32 @@ const path = require("path");
 const os = require("os");
 const https = require("https");
 
+function getSecret(key) {
+  return execSync(
+    `aws secretsmanager get-secret-value --secret-id "${key}" --region us-east-2 --output json --query "SecretString"`,
+  )
+    .toString()
+    .trim()
+    .replaceAll('"', "");
+}
+
+function setSecrets() {
+  const osArch = `${os.platform()}-${os.arch()}`;
+  const RECORD_REPLAY_API_KEY = `prod/metabase-${osArch}-replay-api-key`;
+
+  const secrets = {
+    FLY_ACCESS_TOKEN: "prod/fly-api-token",
+    RECORD_REPLAY_API_KEY,
+  };
+
+  // for each secret, set the environment variable if it isn't set by calling getSecret
+  Object.entries(secrets).forEach(([envVar, secretName]) => {
+    if (!process.env[envVar]) {
+      process.env[envVar] = getSecret(secretName);
+    }
+  });
+}
+
 const generateRandomString = (length = 6) => {
   const characters = "abcdefghijklmnopqrstuvwxyz";
   let result = "";
@@ -64,6 +90,7 @@ function getLatestBuildIdForPlatform(platform) {
 }
 
 (async () => {
+  setSecrets();
   try {
     runCommandWithEnv("yarn install");
 
