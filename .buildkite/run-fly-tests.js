@@ -160,8 +160,12 @@ function getLatestBuildIdForPlatform(platform) {
     console.log(`Downloading build from ${buildUrl}`);
 
     const file = fs.createWriteStream(path.join(tmpDir, buildFile));
-    https.get(buildUrl, response => {
-      response.pipe(file);
+    await new Promise((resolve, reject) => {
+      https.get(buildUrl, response => {
+        response.pipe(file);
+        response.on("end", () => resolve(response));
+        response.on("error", reject);
+      });
     });
     // Extract build
     fs.mkdirSync(path.join(tmpDir, "build"));
