@@ -1,10 +1,6 @@
 const cypress = require("cypress");
 
-const {
-  executeYarnCommand,
-  parseArguments,
-  args,
-} = require("./cypress-runner-utils");
+const { parseArguments, args } = require("./cypress-runner-utils");
 
 const folder = args["--folder"];
 const isFolder = !!folder;
@@ -16,11 +12,6 @@ const getSourceFolder = folder => {
 };
 
 const runCypress = async (baseUrl, exitFunction) => {
-  await executeYarnCommand({
-    command: "yarn run clean-cypress-artifacts",
-    message: "Removing the existing Cypress artifacts\n",
-  });
-
   const defaultConfig = {
     browser: "chrome",
     configFile: "e2e/support/cypress.config.js",
@@ -35,7 +26,7 @@ const runCypress = async (baseUrl, exitFunction) => {
   const finalConfig = Object.assign({}, defaultConfig, userArgs);
 
   try {
-    const { status, message, totalFailed, failures } = isOpenMode
+    const { status, message, failures } = isOpenMode
       ? await cypress.open(finalConfig)
       : await cypress.run(finalConfig);
 
