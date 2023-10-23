@@ -14,8 +14,13 @@ function getSecret(key) {
 }
 
 function setSecrets() {
-  const osArch = `${os.platform()}-${os.arch()}`;
-  const RECORD_REPLAY_API_KEY = `prod/metabase-${osArch}-replay-api-key`;
+  const rawOS = os.platform();
+  const rawArch = os.arch();
+  const osPlatform = rawOS === "win32" ? "windows" : rawOS;
+  const osArch = rawArch === "x64" ? "x86_64" : rawArch;
+
+  const osArchString = `${osPlatform}-${osArch}`;
+  const RECORD_REPLAY_API_KEY = `prod/metabase-${osArchString}-replay-api-key`;
 
   const secrets = {
     FLY_ACCESS_TOKEN: "prod/fly-api-token",
