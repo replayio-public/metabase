@@ -17,7 +17,7 @@ function setSecrets() {
   const rawOS = os.platform();
   const rawArch = os.arch();
   const osPlatform = rawOS === "win32" ? "windows" : rawOS;
-  const osArch = rawArch === "x64" ? "x86_64" : rawArch;
+  const osArch = rawArch === "x64" ? "x86" : rawArch;
 
   const osArchString = `${osPlatform}-${osArch}`;
   const RECORD_REPLAY_API_KEY = `prod/metabase-${osArchString}-replay-api-key`;
