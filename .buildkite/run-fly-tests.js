@@ -46,7 +46,12 @@ const generateRandomString = (length = 6) => {
 
 const runCommandWithEnv = (command, env = {}) => {
   console.log(`$ ${command}`);
-  execSync(command, { stdio: "inherit", env: { ...process.env, ...env } });
+  try {
+    execSync(command, { stdio: "inherit", env: { ...process.env, ...env } });
+  } catch (error) {
+    console.error(`Command failed: ${command}`);
+    throw error;
+  }
 };
 
 function getPlatform() {
