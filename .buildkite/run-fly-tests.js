@@ -210,6 +210,7 @@ function getLatestBuildIdForPlatform(platform) {
     process.on("exit", cleanup);
     process.on("SIGINT", cleanup);
     process.on("SIGTERM", cleanup);
+    process.on("uncaughtException", cleanup);
 
     runCommandWithEnv(
       `fly app create --name replay-mb-${randomString} -o replay`,
