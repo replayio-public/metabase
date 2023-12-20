@@ -3,18 +3,19 @@
    [buddy.core.codecs :as codecs]
    [clojure.core.async :as a]
    [clojure.test :refer :all]
-   [java-time :as t]
+   [java-time.api :as t]
    [metabase.events :as events]
    [metabase.query-processor.context :as qp.context]
    [metabase.query-processor.error-type :as qp.error-type]
    [metabase.query-processor.middleware.process-userland-query
     :as process-userland-query]
    [metabase.query-processor.util :as qp.util]
-   [metabase.test :as mt]))
+   [metabase.test :as mt]
+   [methodical.core :as methodical]))
 
 (set! *warn-on-reflection* true)
 
-(defn- do-with-query-execution [query run]
+(defn do-with-query-execution [query run]
   (mt/with-clock #t "2020-02-04T12:22-08:00[US/Pacific]"
     (let [original-hash (qp.util/query-hash query)
           result        (promise)]
@@ -30,7 +31,7 @@
                 (:hash qe)         (update :hash (fn [^bytes a-hash]
                                                    (some-> a-hash codecs/bytes->hex)))))))))))
 
-(defmacro ^:private with-query-execution {:style/indent 1} [[qe-result-binding query] & body]
+(defmacro with-query-execution {:style/indent 1} [[qe-result-binding query] & body]
   `(do-with-query-execution ~query (fn [~qe-result-binding] ~@body)))
 
 (defn- process-userland-query
@@ -57,7 +58,8 @@
               :json_query             query
               :average_execution_time nil
               :context                nil
-              :running_time           true}
+              :running_time           true
+              :cached                 false}
              (process-userland-query query))
           "Result should have query execution info")
       (is (= {:hash         "29f0bca06d6679e873b1f5a3a36dac18a5b4642c6545d24456ad34b1cad4ecc6"
@@ -69,9 +71,12 @@
               :native       false
               :pulse_id     nil
               :card_id      nil
+              :action_id    nil
+              :is_sandboxed false
               :context      nil
               :running_time true
               :cache_hit    false
+              :cache_hash   nil ;; this is filled only for eligible queries
               :dashboard_id nil}
              (qe))
           "QueryExecution should be saved"))))
@@ -94,6 +99,7 @@
               :json_query   query
               :native       false
               :pulse_id     nil
+              :action_id    nil
               :card_id      nil
               :context      nil
               :running_time true
@@ -101,12 +107,18 @@
              (qe))
           "QueryExecution saved in the DB should have query execution info. empty `:data` should get added to failures"))))
 
-(deftest viewlog-call-test
+(def ^:private ^:dynamic *viewlog-call-count* nil)
+
+(methodical/defmethod events/publish-event! ::event
+  [_topic _event]
+  (when *viewlog-call-count*
+    (swap! *viewlog-call-count* inc)))
+
+(deftest ^:parallel viewlog-call-test
   (testing "no viewlog event with nil card id"
-    (let [call-count (atom 0)]
-      (with-redefs [events/publish-event! (fn [& _] (swap! call-count inc))]
-        (mt/test-qp-middleware process-userland-query/process-userland-query {:query? true} {} [] nil)
-        (is (= 0 @call-count))))))
+    (binding [*viewlog-call-count* (atom 0)]
+      (mt/test-qp-middleware process-userland-query/process-userland-query {:query? true} {} [] nil)
+      (is (zero? @*viewlog-call-count*)))))
 
 (defn- async-middleware [qp]
   (fn async-middleware-qp [query rff context]

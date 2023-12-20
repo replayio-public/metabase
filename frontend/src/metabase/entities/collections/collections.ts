@@ -3,7 +3,7 @@ import { createSelector } from "@reduxjs/toolkit";
 
 import { GET } from "metabase/lib/api";
 import { createEntity, undo } from "metabase/lib/entities";
-import * as Urls from "metabase/lib/urls";
+import * as Urls from "metabase/lib/urls/collections";
 
 import { CollectionSchema } from "metabase/schema";
 import { getUserPersonalCollectionId } from "metabase/selectors/user";
@@ -81,13 +81,13 @@ const Collections = createEntity({
   selectors: {
     getExpandedCollectionsById: createSelector(
       [
-        state => state.entities.collections || {},
+        state => Collections.selectors.getList(state),
         getUserPersonalCollectionId,
-        (state, props) => props?.collectionFilter,
+        (_state, props) => props?.collectionFilter,
       ],
       (collections, currentUserPersonalCollectionId, collectionFilter) =>
         getExpandedCollectionsById(
-          Object.values(collections),
+          collections || [],
           currentUserPersonalCollectionId,
           collectionFilter,
         ),
@@ -97,7 +97,7 @@ const Collections = createEntity({
 
   getAnalyticsMetadata(
     [object]: [Collection],
-    { action }: { action: ReduxAction },
+    { action: _action }: { action: ReduxAction },
     getState: GetState,
   ) {
     const type = object && getCollectionType(object.parent_id, getState());

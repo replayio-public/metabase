@@ -54,13 +54,21 @@ function buildTextTagOption(tagName) {
   };
 }
 
+/**
+ *
+ * @param {import("metabase-lib/metadata/Metadata").default} metadata
+ * @param {import("metabase-types/api").ParameterTarget|null} parameter
+ * @param {import("metabase-types/api").Card} card
+ * @param {import("metabase-types/store").DashboardCard|null} [dashcard]
+ * @returns {*}
+ */
 export function getParameterMappingOptions(
   metadata,
   parameter = null,
   card,
   dashcard = null,
 ) {
-  if (dashcard && card.display === "text") {
+  if (dashcard && ["heading", "text"].includes(card.display)) {
     const tagNames = tag_names(dashcard.visualization_settings.text || "");
     return tagNames ? tagNames.map(buildTextTagOption) : [];
   }

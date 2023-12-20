@@ -4,7 +4,7 @@ import fetchMock from "fetch-mock";
 import {
   renderWithProviders,
   screen,
-  waitForElementToBeRemoved,
+  waitForLoaderToBeRemoved,
 } from "__support__/ui";
 import {
   setupCardsEndpoints,
@@ -32,7 +32,7 @@ import {
   createMockQueryBuilderState,
 } from "metabase-types/store/mocks";
 
-import { DashboardState } from "metabase-types/store";
+import type { DashboardState } from "metabase-types/store";
 import MainNavbar from "./MainNavbar";
 
 type SetupOpts = {
@@ -100,7 +100,7 @@ async function setup({
     collections.push(personalCollection);
   }
 
-  setupCollectionsEndpoints(collections);
+  setupCollectionsEndpoints({ collections });
   setupDatabasesEndpoints(databases);
   fetchMock.get("path:/api/bookmark", []);
 
@@ -115,7 +115,7 @@ async function setup({
     dashboardId = openDashboard.id;
     dashboardsForState[openDashboard.id] = {
       ...openDashboard,
-      ordered_cards: openDashboard.ordered_cards.map(c => c.id),
+      dashcards: openDashboard.dashcards.map(c => c.id),
     };
     dashboardsForEntities.push(openDashboard);
   }
@@ -143,9 +143,7 @@ async function setup({
     },
   );
 
-  await waitForElementToBeRemoved(() =>
-    screen.queryAllByTestId("loading-spinner"),
-  );
+  await waitForLoaderToBeRemoved();
 }
 
 async function setupCollectionPage({

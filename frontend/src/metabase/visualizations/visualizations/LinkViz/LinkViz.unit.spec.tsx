@@ -5,16 +5,18 @@ import {
   screen,
   fireEvent,
   getIcon,
+  waitForLoaderToBeRemoved,
 } from "__support__/ui";
 import {
   setupSearchEndpoints,
   setupRecentViewsEndpoints,
+  setupCollectionByIdEndpoint,
+  setupUserRecipientsEndpoint,
 } from "__support__/server-mocks";
+import * as domUtils from "metabase/lib/dom";
+import registerVisualizations from "metabase/visualizations/register";
 
-import type {
-  DashboardOrderedCard,
-  LinkCardSettings,
-} from "metabase-types/api";
+import type { DashboardCard, LinkCardSettings } from "metabase-types/api";
 import {
   createMockDashboardCardWithVirtualCard,
   createMockCollectionItem,
@@ -22,11 +24,15 @@ import {
   createMockRecentItem,
   createMockTable,
   createMockDashboard,
+  createMockUser,
 } from "metabase-types/api/mocks";
 
-import LinkViz, { LinkVizProps } from "./LinkViz";
+import type { LinkVizProps } from "./LinkViz";
+import { LinkViz } from "./LinkViz";
 
-type LinkCardVizSettings = DashboardOrderedCard["visualization_settings"] & {
+registerVisualizations();
+
+type LinkCardVizSettings = DashboardCard["visualization_settings"] & {
   link: LinkCardSettings;
 };
 
@@ -108,12 +114,13 @@ const searchingDashcard = createMockDashboardCardWithVirtualCard({
   },
 });
 
+const searchCardCollection = createMockCollection();
 const searchCardItem = createMockCollectionItem({
   id: 1,
   model: "card",
   name: "Question Uno",
   display: "pie",
-  collection: createMockCollection(),
+  collection: searchCardCollection,
 });
 
 const setup = (options?: Partial<LinkVizProps>) => {
@@ -177,6 +184,13 @@ describe("LinkViz", () => {
 
       expect(screen.getByText("Choose a link")).toBeInTheDocument();
     });
+
+    it("should have a link that loads the URL in a new page", () => {
+      setup({ isEditing: false });
+
+      expect(screen.getByText("https://example23.com")).toBeInTheDocument();
+      expect(screen.getByRole("link")).toHaveAttribute("target", "_blank");
+    });
   });
 
   describe("entity links", () => {
@@ -212,16 +226,12 @@ describe("LinkViz", () => {
           tableLinkDashcard.visualization_settings as LinkCardVizSettings,
       });
 
-      expect(screen.getByRole("link")).toHaveAttribute("target", "_blank");
+      expect(screen.getByRole("link")).not.toHaveAttribute("target");
     });
 
     it("sets embedded entity links to not open in new tabs", () => {
-      // here, we're mocking this appearing in an iframe by manipulating window.top !== window.self
-      const topCache = window.top;
-      // @ts-expect-error we need to delete this for it to actually update
-      delete window.top;
-      // @ts-expect-error it doesn't actually matter if this is valid
-      window.top = {};
+      // here, we're mocking this appearing in an iframe
+      jest.spyOn(domUtils, "isWithinIframe").mockReturnValue(true);
 
       setup({
         isEditing: false,
@@ -231,13 +241,14 @@ describe("LinkViz", () => {
       });
 
       expect(screen.getByRole("link")).not.toHaveAttribute("target");
-      // @ts-expect-error we need to delete this for it to actually update
-      delete window.top;
-      window.top = topCache;
     });
 
     it("clicking a search item should update the entity", async () => {
       setupSearchEndpoints([searchCardItem]);
+      setupUserRecipientsEndpoint({ users: [createMockUser()] });
+      setupCollectionByIdEndpoint({
+        collections: [searchCardCollection],
+      });
 
       const { changeSpy } = setup({
         isEditing: true,
@@ -253,7 +264,8 @@ describe("LinkViz", () => {
       // "Loading..." appears and is then replaced by "Question Uno". On CI,
       // `findByText` was sometimes running while "Loading..." was still
       // visible, so the extra expectation ensures good timing
-      expect(await screen.findByText("Loading...")).toBeInTheDocument();
+      await waitForLoaderToBeRemoved();
+
       userEvent.click(await screen.findByText("Question Uno"));
 
       expect(changeSpy).toHaveBeenCalledWith({

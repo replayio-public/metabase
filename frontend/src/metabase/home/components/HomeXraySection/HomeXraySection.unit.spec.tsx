@@ -1,4 +1,4 @@
-import { Database, DatabaseCandidate } from "metabase-types/api";
+import type { Database, DatabaseCandidate } from "metabase-types/api";
 import {
   createMockDatabase,
   createMockDatabaseCandidate,
@@ -11,7 +11,7 @@ import {
 import {
   renderWithProviders,
   screen,
-  waitForElementToBeRemoved,
+  waitForLoaderToBeRemoved,
 } from "__support__/ui";
 import { HomeXraySection } from "./HomeXraySection";
 
@@ -24,7 +24,7 @@ const setup = async ({ database, candidates }: SetupOpts) => {
   setupDatabasesEndpoints([database]);
   setupDatabaseCandidatesEndpoint(database.id, candidates);
   renderWithProviders(<HomeXraySection />);
-  await waitForElementToBeRemoved(() => screen.queryByText(/Loading/i));
+  await waitForLoaderToBeRemoved();
 };
 
 describe("HomeXraySection", () => {

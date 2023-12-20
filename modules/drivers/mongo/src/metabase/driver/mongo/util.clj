@@ -4,15 +4,15 @@
    [clojure.string :as str]
    [metabase.config :as config]
    [metabase.driver.util :as driver.u]
-   [metabase.models.database :refer [Database]]
+   [metabase.lib.metadata.protocols :as lib.metadata.protocols]
    [metabase.models.secret :as secret]
+   [metabase.query-processor.store :as qp.store]
    [metabase.util :as u]
    [metabase.util.i18n :refer [trs tru]]
    [metabase.util.log :as log]
    [metabase.util.ssh :as ssh]
    [monger.core :as mg]
-   [monger.credentials :as mcred]
-   [toucan2.core :as t2])
+   [monger.credentials :as mcred])
   (:import
    (com.mongodb MongoClient MongoClientOptions MongoClientOptions$Builder MongoClientURI)))
 
@@ -20,6 +20,10 @@
 
 (def ^:dynamic ^com.mongodb.DB *mongo-connection*
   "Connection to a Mongo database. Bound by top-level `with-mongo-connection` so it may be reused within its body."
+  nil)
+
+(def ^:dynamic ^com.mongodb.MongoClient *mongo-client*
+  "Client used to connect to a Mongo database. Bound by top-level `with-mongo-connection` so it may be reused within its body."
   nil)
 
 ;; the code below is done to support "additional connection options" the way some of the JDBC drivers do.
@@ -86,11 +90,12 @@
                                             [server-address options credentials]))
 
 (defn- database->details
-  "Make sure DATABASE is in a standard db details format. This is done so we can accept several different types of
-   values for DATABASE, such as plain strings or the usual MB details map."
+  "Make sure `database` is in a standard db details format. This is done so we can accept several different types of
+  values for `database`, such as plain strings or the usual MB details map."
   [database]
   (cond
-    (integer? database)             (t2/select-one [Database :details] :id database)
+    (integer? database)             (qp.store/with-metadata-provider database
+                                      (:details (lib.metadata.protocols/database (qp.store/metadata-provider))))
     (string? database)              {:dbname database}
     (:dbname (:details database))   (:details database) ; entire Database obj
     (:dbname database)              database            ; connection details map only
@@ -218,24 +223,27 @@
 
 (defn do-with-mongo-connection
   "Run `f` with a new connection (bound to [[*mongo-connection*]]) to `database`. Don't use this directly; use
-  [[with-mongo-connection]]."
+  [[with-mongo-connection]]. Also dynamically binds the Mongo client to [[*mongo-client*]]."
   [f database]
   (let [details (database->details database)]
     (ssh/with-ssh-tunnel [details-with-tunnel details]
       (let [connection-info (details->mongo-connection-info (normalize-details details-with-tunnel))
             [mongo-client db] (connect connection-info)]
-       (log/debug (u/format-color 'cyan (trs "Opened new MongoDB connection.")))
-       (try
-         (binding [*mongo-connection* db]
-           (f *mongo-connection*))
-         (finally
-           (mg/disconnect mongo-client)
-           (log/debug (u/format-color 'cyan (trs "Closed MongoDB connection.")))))))))
+        (log/debug (u/format-color 'cyan (trs "Opened new MongoDB connection.")))
+        (try
+          (binding [*mongo-connection* db
+                    *mongo-client*     mongo-client]
+            (f *mongo-connection*))
+          (finally
+            (mg/disconnect mongo-client)
+            (log/debug (u/format-color 'cyan (trs "Closed MongoDB connection.")))))))))
 
 (defmacro with-mongo-connection
   "Open a new MongoDB connection to ``database-or-connection-string`, bind connection to `binding`, execute `body`, and
   close the connection. The DB connection is re-used by subsequent calls to [[with-mongo-connection]] within
   `body`. (We're smart about it: `database` isn't even evaluated if [[*mongo-connection*]] is already bound.)
+
+  [[*mongo-client*]] is also dynamically bound to the MongoClient instance.
 
     ;; delay isn't derefed if *mongo-connection* is already bound
     (with-mongo-connection [^com.mongodb.DB conn @(:db (sel :one Table ...))]
@@ -246,8 +254,8 @@
        ...)
 
   `database-or-connection-string` can also optionally be the connection details map on its own."
-  [[binding database] & body]
-  `(let [f# (fn [~binding]
+  [[database-binding database] & body]
+  `(let [f# (fn [~database-binding]
               ~@body)]
      (if *mongo-connection*
        (f# *mongo-connection*)

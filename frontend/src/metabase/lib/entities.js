@@ -166,7 +166,7 @@ export function createEntity(def) {
 
   // normalize helpers
   entity.normalize = (object, schema = entity.schema) => ({
-    // include raw `object` (and alias under nameOne) for convienence
+    // include raw `object` (and alias under nameOne) for convenience
     object,
     [entity.nameOne]: object,
     // include standard normalizr properties, `result` and `entities`
@@ -174,7 +174,7 @@ export function createEntity(def) {
   });
 
   entity.normalizeList = (list, schema = entity.schema) => ({
-    // include raw `list` (and alias under nameMany) for convienence
+    // include raw `list` (and alias under nameMany) for convenience
     list,
     [entity.nameMany]: list,
     // include standard normalizr properties, `result` and `entities`
@@ -351,7 +351,7 @@ export function createEntity(def) {
   // HACK: the above actions return the normalizr results
   // (i.e. { entities, result }) rather than the loaded object(s), except
   // for fetch and fetchList when the data is cached, in which case it returns
-  // the noralized object.
+  // the normalized object.
   //
   // This is a problem when we use the result of one of the actions as though
   // though the action creator was an API client.
@@ -382,6 +382,7 @@ export function createEntity(def) {
   // SELECTORS
 
   const getEntities = state => state.entities;
+  const getSettings = state => state.settings;
 
   // OBJECT SELECTORS
 
@@ -425,12 +426,14 @@ export function createEntity(def) {
   );
 
   const getList = createCachedSelector(
-    [getEntities, getEntityIds],
+    [getEntities, getEntityIds, getSettings],
     // delegate to getObject
-    (entities, entityIds) =>
+    (entities, entityIds, settings) =>
       entityIds &&
       entityIds
-        .map(entityId => entity.selectors.getObject({ entities }, { entityId }))
+        .map(entityId =>
+          entity.selectors.getObject({ entities, settings }, { entityId }),
+        )
         .filter(e => e != null), // deleted entities might remain in lists,
   )((state, { entityQuery } = {}) =>
     entityQuery ? JSON.stringify(entityQuery) : "",

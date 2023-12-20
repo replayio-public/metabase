@@ -40,7 +40,6 @@
   assert-file-exists
   copy-file!
   create-directory-unless-exists!
-  delete-file!
   delete-file-if-exists!
   download-file!
   file-exists?
@@ -49,7 +48,8 @@
   find-files
   nio-path
   project-root-directory
-  temporary-file]
+  temporary-file
+  zip-directory->file]
 
  [input
   interactive?

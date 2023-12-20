@@ -1,13 +1,24 @@
 // various Metabase-specific "scoping" functions like inside popover/modal/navbar/main/sidebar content area
-export const POPOVER_ELEMENT = ".popover[data-state~='visible']";
+export const POPOVER_ELEMENT =
+  ".popover[data-state~='visible'],[data-position]";
 
 export function popover() {
   cy.get(POPOVER_ELEMENT).should("be.visible");
   return cy.get(POPOVER_ELEMENT);
 }
 
+export function main() {
+  return cy.get("main");
+}
+
+export function menu() {
+  return cy.findByRole("menu");
+}
+
 export function modal() {
-  return cy.get(".ModalContainer .ModalContent");
+  const LEGACY_MODAL_SELECTOR = ".Modal";
+  const MODAL_SELECTOR = ".emotion-Modal-content[role='dialog']";
+  return cy.get([MODAL_SELECTOR, LEGACY_MODAL_SELECTOR].join(","));
 }
 
 export function sidebar() {
@@ -66,6 +77,10 @@ export function filterWidget() {
   return cy.get("fieldset");
 }
 
+export function clearFilterWidget(index = 0) {
+  return filterWidget().eq(index).icon("close").click();
+}
+
 export const openQuestionActions = () => {
   cy.findByTestId("qb-header-action-panel").icon("ellipsis").click();
 };
@@ -106,16 +121,16 @@ export const queryBuilderMain = () => {
   return cy.findByTestId("query-builder-main");
 };
 
-export const dashboardHeader = () => {
-  return cy.get("main header");
-};
-
 export const dashboardParametersContainer = () => {
   return cy.findByTestId("dashboard-parameters-widget-container");
 };
 
 export const undoToast = () => {
   return cy.findByTestId("toast-undo");
+};
+
+export const undoToastList = () => {
+  return cy.findAllByTestId("toast-undo");
 };
 
 export function dashboardCards() {

@@ -1,4 +1,5 @@
-import { ReactNode, useCallback, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { t } from "ttag";
 import type { LocationDescriptor } from "history";
 
@@ -9,7 +10,7 @@ import * as Urls from "metabase/lib/urls";
 
 import ActionCreator from "metabase/actions/containers/ActionCreator";
 import CreateCollectionModal from "metabase/collections/containers/CreateCollectionModal";
-import CreateDashboardModal from "metabase/dashboard/containers/CreateDashboardModal";
+import { CreateDashboardModalConnected } from "metabase/dashboard/containers/CreateDashboardModal";
 
 import type { CollectionId, WritebackAction } from "metabase-types/api";
 
@@ -169,7 +170,7 @@ const NewItemMenu = ({
             </Modal>
           ) : modal === "new-dashboard" ? (
             <Modal onClose={handleModalClose}>
-              <CreateDashboardModal
+              <CreateDashboardModalConnected
                 collectionId={collectionId}
                 onClose={handleModalClose}
               />

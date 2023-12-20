@@ -9,10 +9,12 @@ import { dismissUndo, performUndo } from "metabase/redux/undo";
 import BodyComponent from "metabase/components/BodyComponent";
 
 import { isReducedMotionPreferred } from "metabase/lib/dom";
+import { Ellipsified } from "metabase/core/components/Ellipsified";
 import {
   CardContent,
   CardContentSide,
   CardIcon,
+  ControlsCardContent,
   DefaultText,
   DismissIcon,
   ToastCard,
@@ -62,33 +64,37 @@ function UndoToast({ undo, onUndo, onDismiss }) {
           data-testid="toast-undo"
           translateY={isReducedMotionPreferred() ? 0 : translateY}
           color={undo.toastColor}
+          role="status"
         >
           <CardContent>
-            <CardContentSide>
+            <CardContentSide maw="75ch">
               {undo.icon && <CardIcon name={undo.icon} color="white" />}
-              {renderMessage(undo)}
+              <Ellipsified showTooltip={false}>
+                {renderMessage(undo)}
+              </Ellipsified>
             </CardContentSide>
-            <CardContentSide>
+            <ControlsCardContent>
               {undo.actions?.length > 0 && (
                 <UndoButton role="button" onClick={onUndo}>
                   {undo.actionLabel ?? t`Undo`}
                 </UndoButton>
               )}
-              <DismissIcon name="close" onClick={onDismiss} />
-            </CardContentSide>
+              {undo.canDismiss && (
+                <DismissIcon name="close" onClick={onDismiss} />
+              )}
+            </ControlsCardContent>
           </CardContent>
         </ToastCard>
       )}
     </Motion>
   );
 }
-
 function UndoListingInner() {
   const dispatch = useDispatch();
   const undos = useSelector(state => state.undo);
 
   return (
-    <UndoList>
+    <UndoList data-testid="undo-list" aria-label="undo-list">
       {undos.map(undo => (
         <UndoToast
           key={undo._domId}

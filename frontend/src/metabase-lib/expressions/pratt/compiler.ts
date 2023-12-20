@@ -21,7 +21,8 @@ import {
   ROOT,
   ARG_LIST,
 } from "./syntax";
-import { assert, NodeType, Node, CompileError } from "./types";
+import type { NodeType, Node } from "./types";
+import { assert, CompileError } from "./types";
 
 export type Expr =
   | number
@@ -202,7 +203,7 @@ function compileSubtractionOp(node: Node, opts: Options): Expr {
 
 // ----------------------------------------------------------------
 
-function compileBoolean(node: Node, opts: Options): Expr {
+function compileBoolean(node: Node, _opts: Options): Expr {
   assert(node.type === BOOLEAN, "Invalid Node Type");
   assert(node.token?.text, "Empty token text");
   const text = node.token.text.toLowerCase();

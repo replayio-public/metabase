@@ -4,6 +4,7 @@
    [malli.core :as mc]
    [malli.error :as me]
    [metabase.lib.schema]
+   [metabase.lib.schema.aggregation :as aggregation]
    [metabase.lib.schema.expression :as expression]
    [metabase.lib.test-metadata :as meta]))
 
@@ -27,7 +28,7 @@
         (is (mc/validate ::expression/integer expr))))
     (testing "Multiplication with one or more non-integer args should NOT be considered to be an integer expression."
       (let [expr [:* {:lib/uuid (str (random-uuid))} venues-price 2.1]]
-        (is (= :type/Number
+        (is (= :type/Float
                (expression/type-of expr)))
         (is (mc/validate :mbql.clause/* expr))
         (is (not (mc/validate ::expression/integer expr)))
@@ -73,7 +74,7 @@
                                               y]))
     1   1   :type/Integer
     1.1 1.1 :type/Float
-    1   1.1 :type/Number
+    1   1.1 :type/Float
 
     ;; type-of for a numeric arithmetic expression with a ref without type info should return type/Number (#29946)
     [:field {:lib/uuid "00000000-0000-0000-0000-000000000001"} 1]
@@ -151,3 +152,14 @@
               {:lib/uuid "00000000-0000-0000-0000-000000000000"}
               [:interval {:lib/uuid "00000000-0000-0000-0000-000000000002"} 3 :minute]
               [:field {:base-type :type/Date, :lib/uuid "00000000-0000-0000-0000-000000000001"} 1]]))))))
+
+
+(deftest ^:parallel metric-test
+  (are [schema] (not (me/humanize (mc/explain schema
+                                              [:+
+                                               {:lib/uuid "00000000-0000-0000-0000-000000000000"}
+                                               [:metric {:lib/uuid "00000000-0000-0000-0000-000000000000"} 1]
+                                               2])))
+    :mbql.clause/+
+    ::expression/number
+    ::aggregation/aggregation))

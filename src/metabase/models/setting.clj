@@ -50,8 +50,8 @@
 
   * `:only` means this Setting can *only* have a User- or Database-local value and cannot have a 'normal' site-wide
   value. It cannot be set via env var. Default values are still allowed for User- and Database-local-only Settings.
-  User- and Database-local-only Settings are never returned by [[writable-settings]] or
-  [[user-readable-values-map]] regardless of their [[Visibility]].
+  Database-local-only Settings are never returned by [[writable-settings]] or [[user-readable-values-map]] regardless of
+  their [[Visibility]].
 
   * `:allowed` means this Setting can be User- or Database-local and can also have a normal site-wide value; if both
   are specified, the User- or Database-specific value will be returned preferentially when we are in the context of a
@@ -81,10 +81,13 @@
    [environ.core :as env]
    [medley.core :as m]
    [metabase.api.common :as api]
+   [metabase.config :as config]
+   [metabase.events :as events]
    [metabase.models.interface :as mi]
    [metabase.models.serialization :as serdes]
    [metabase.models.setting.cache :as setting.cache]
    [metabase.plugins.classloader :as classloader]
+   [metabase.server.middleware.json]
    [metabase.util :as u]
    [metabase.util.date-2 :as u.date]
    [metabase.util.i18n :refer [deferred-trs deferred-tru trs tru]]
@@ -96,6 +99,10 @@
    (clojure.lang Keyword Symbol)
    (java.io StringWriter)
    (java.time.temporal Temporal)))
+
+;;; this namespace is required for side effects since it has the JSON encoder definitions for `java.time` classes and
+;;; other things we need for `:json` settings
+(comment metabase.server.middleware.json/keep-me)
 
 ;; TODO -- a way to SET Database-local values.
 (def ^:dynamic *database-local-values*
@@ -128,7 +135,9 @@
   #{"-site-url"
     "enable-advanced-humanization"
     "metabot-enabled"
-    "ldap-sync-admin-group"})
+    "ldap-sync-admin-group"
+    "user-recent-views"
+    "most-recently-viewed-dashboard"})
 
 (def ^:dynamic *allow-retired-setting-names*
   "A dynamic val that controls whether it's allowed to use retired settings.
@@ -170,7 +179,6 @@
      custom-formatting
      custom-geojson
      custom-geojson-enabled
-     enable-content-management?
      enable-embedding
      enable-nested-queries
      enable-sandboxes?
@@ -180,7 +188,8 @@
      humanization-strategy
      landing-page
      loading-message
-     max-results-bare-rows
+     aggregated-query-row-limit
+     unaggregated-query-row-limit
      native-query-autocomplete-match-style
      persisted-models-enabled
      report-timezone
@@ -196,7 +205,10 @@
      site-name
      source-address-header
      start-of-week
-     subscription-allowed-domains})
+     subscription-allowed-domains
+     uploads-enabled
+     uploads-database-id
+     uploads-schema-name})
 
 (defmethod serdes/extract-all "Setting" [_model _opts]
   (for [{:keys [key value]} (admin-writable-site-wide-settings
@@ -296,8 +308,20 @@
    ;; `:site-locale` setting requires a call to `java.util.Locale/setDefault`
    :on-change   (s/maybe clojure.lang.IFn)
 
-   ;; optional fn called whether to allow the getter to return a value. Useful for ensuring premium settings are not available to
-   :enabled?    (s/maybe clojure.lang.IFn)})
+   ;; If non-nil, determines the Enterprise feature flag required to use this setting. If the feature is not enabled,
+   ;; the setting will behave the same as if `enabled?` returns `false` (see below).
+   :feature     (s/maybe s/Keyword)
+
+   ;; Function which returns true if the setting should be enabled. If it returns false, the setting will throw an
+   ;; exception when it is attempted to be set, and will return its default value when read. Defaults to always enabled.
+   :enabled?    (s/maybe clojure.lang.IFn)
+
+   ;; Keyword that determines what kind of audit log entry should be created when this setting is written. Options are
+   ;; `:never`, `:no-value`, `:raw-value`, and `:getter`. User- and database-local settings are never audited. `:getter`
+   ;; should be used for most non-sensitive settings, and will log the value returned by its getter, which may be a
+   ;; the default getter or a custom one.
+   ;; (default: `:no-value`)
+   :audit       (s/maybe (s/enum :never :no-value :raw-value :getter))})
 
 (defonce ^{:doc "Map of loaded defsettings"}
   registered-settings
@@ -335,7 +359,7 @@
     (doseq [changed-setting (into (set (keys d1))
                                   (set (keys d2)))]
       (when-let [on-change (get-in rs [(keyword changed-setting) :on-change])]
-        (on-change (clojure.core/get old changed-setting) (clojure.core/get new changed-setting))))))
+        (on-change (core/get old changed-setting) (core/get new changed-setting))))))
 
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
@@ -359,10 +383,11 @@
   (setting-name [this]
     (name this)))
 
-(defn- allows-site-wide-values? [setting]
-  (and
-   (not= (:database-local (resolve-setting setting)) :only)
-   (not= (:user-local (resolve-setting setting)) :only)))
+(defn- database-local-only? [setting]
+  (= (:database-local (resolve-setting setting)) :only))
+
+(defn- user-local-only? [setting]
+  (= (:user-local (resolve-setting setting)) :only))
 
 (defn- allows-database-local-values? [setting]
   (#{:only :allowed} (:database-local (resolve-setting setting))))
@@ -374,6 +399,16 @@
 
 (defn- allows-user-local-values? [setting]
   (#{:only :allowed} (:user-local (resolve-setting setting))))
+
+(defn- allows-site-wide-values? [setting]
+  (and
+   (not (database-local-only? setting))
+   (not (user-local-only? setting))))
+
+(defn- site-wide-only? [setting]
+  (and
+   (not (allows-database-local-values? setting))
+   (not (allows-user-local-values? setting))))
 
 (defn- user-local-value [setting-definition-or-name]
   (let [{setting-name :name, :as setting} (resolve-setting setting-definition-or-name)]
@@ -389,10 +424,7 @@
   (let [{setting-name :name} (resolve-setting setting-definition-or-name)]
     ;; Update the atom in *user-local-values* with the new value before writing to the DB. This ensures that
     ;; subsequent setting updates within the same API request will not overwrite this value.
-    (swap! @*user-local-values*
-           (fn [old-settings] (if value
-                                (assoc old-settings setting-name value)
-                                (dissoc old-settings setting-name))))
+    (swap! @*user-local-values* u/assoc-dissoc setting-name value)
     (t2/update! 'User api/*current-user-id* {:settings (json/generate-string @@*user-local-values*)})))
 
 (def ^:dynamic *enforce-setting-access-checks*
@@ -400,19 +432,26 @@
   set to true when settings are being written directly via /api/setting endpoints."
   false)
 
+(defn- has-feature?
+  [feature]
+  (u/ignore-exceptions
+   (classloader/require 'metabase.public-settings.premium-features))
+  (let [has-feature?' (resolve 'metabase.public-settings.premium-features/has-feature?)]
+    (has-feature?' feature)))
+
 (defn has-advanced-setting-access?
   "If `advanced-permissions` is enabled, check if current user has permissions to edit `setting`.
   Return `false` for all non-admins when `advanced-permissions` is disabled. Return `true` for all admins."
   []
   (or api/*is-superuser?*
       (do
-        (u/ignore-exceptions
-         (classloader/require 'metabase-enterprise.advanced-permissions.common
-                              'metabase.public-settings.premium-features))
-        (if-let [current-user-has-application-permisisons?
-                 (and ((resolve 'metabase.public-settings.premium-features/enable-advanced-permissions?))
+        (when config/ee-available?
+          (classloader/require 'metabase-enterprise.advanced-permissions.common
+                               'metabase.public-settings.premium-features))
+        (if-let [current-user-has-application-permissions?
+                 (and (has-feature? :advanced-permissions)
                       (resolve 'metabase-enterprise.advanced-permissions.common/current-user-has-application-permissions?))]
-          (current-user-has-application-permisisons? :setting)
+          (current-user-has-application-permissions? :setting)
           false))))
 
 (defn- current-user-can-access-setting?
@@ -475,19 +514,20 @@
         db-is-set-up? (or (requiring-resolve 'metabase.db/db-is-set-up?)
                           ;; this should never be hit. it is just overly cautious against a NPE here. But no way this
                           ;; cannot resolve
-                          (constantly false))]
+                          (constantly false))
+        db-value      #(t2/select-one-fn :value Setting :key (setting-name setting-definition-or-name))]
     ;; cannot use db (and cache populated from db) if db is not set up
     (when (and (db-is-set-up?) (allows-site-wide-values? setting))
       (let [v (if *disable-cache*
-                (t2/select-one-fn :value Setting :key (setting-name setting-definition-or-name))
+                (db-value)
                 (do
                   (setting.cache/restore-cache-if-needed!)
                   (let [cache (setting.cache/cache)]
                     (if (nil? cache)
                       ;; If another thread is populating the cache for the first time, we will have a nil value for
                       ;; the cache and must hit the db while the cache populates
-                      (t2/select-one-fn :value Setting :key (setting-name setting-definition-or-name))
-                      (clojure.core/get cache (setting-name setting-definition-or-name))))))]
+                      (db-value)
+                      (core/get cache (setting-name setting-definition-or-name))))))]
         (not-empty v)))))
 
 (defn default-value
@@ -608,14 +648,13 @@
   looks for first for a corresponding env var, then checks the cache, then returns the default value of the Setting,
   if any."
   [setting-definition-or-name]
-  (let [{:keys [cache? getter enabled? default]} (resolve-setting setting-definition-or-name)
-        disable-cache?                           (not cache?)]
-    (if (or (nil? enabled?) (enabled?))
-      (if (= *disable-cache* disable-cache?)
-        (getter)
-        (binding [*disable-cache* disable-cache?]
-          (getter)))
-      default)))
+  (let [{:keys [cache? getter enabled? default feature]} (resolve-setting setting-definition-or-name)
+        disable-cache?                                   (or *disable-cache* (not cache?))]
+    (if (or (and feature (not (has-feature? feature)))
+            (and enabled? (not (enabled?))))
+      default
+      (binding [*disable-cache* disable-cache?]
+        (getter)))))
 
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
@@ -649,6 +688,14 @@
   (when (seq v)
     (boolean (re-matches #"^\*{10}.{2}$" v))))
 
+(defn obfuscate-value
+  "Obfuscate the value of sensitive Setting. We'll still show the last 2 characters so admins can still check that the
+  value is what's expected (e.g. the correct password).
+
+    (obfuscate-value \"sensitivePASSWORD123\") ;; -> \"**********23\""
+  [s]
+  (str "**********" (str/join (take-last 2 (str s)))))
+
 (defmulti set-value-of-type!
   "Set the value of a `setting-type` `setting-definition-or-name`. A `nil` value deletes the current value of the
   Setting (when set in the application database). Returns `new-value`.
@@ -675,6 +722,10 @@
           (log/warn (trs "Setting {0} is deprecated as of Metabase {1} and may be removed in a future version."
                          setting-name
                          deprecated)))
+        (when (and
+               (= :only (:user-local setting))
+               (not (should-set-user-local-value? setting)))
+          (log/warn (trs "Setting {0} can only be set in a user-local way, but there are no *user-local-values*." setting-name)))
         (if (should-set-user-local-value? setting)
           ;; If this is user-local and this is being set in the context of an API call, we don't want to update the
           ;; site-wide value or write or read from the cache
@@ -778,6 +829,36 @@
 (defn- default-setter-for-type [setting-type]
   (partial set-value-of-type! (keyword setting-type)))
 
+(defn- audit-setting-change!
+  [{:keys [name audit sensitive?]} previous-value new-value]
+  (let [maybe-obfuscate #(cond-> % sensitive? obfuscate-value)]
+    (events/publish-event!
+     :event/setting-update
+     {:details (merge {:key name}
+                      (when (not= audit :no-value)
+                        {:previous-value (maybe-obfuscate previous-value)
+                         :new-value      (maybe-obfuscate new-value)}))
+      :user-id api/*current-user-id*
+      :model  :model/Setting})))
+
+(defn- should-audit?
+  "Returns true if the setting change should be written to the `audit_log`."
+  [setting]
+  (not= (:audit setting) :never))
+
+(defn- set-with-audit-logging!
+  "Calls the setting's setter with `new-value`, and then writes the change to the `audit_log` table if necessary."
+  [{:keys [setter getter audit] :as setting} new-value]
+  (if (should-audit? setting)
+    (let [audit-value-fn #(condp = audit
+                            :no-value  nil
+                            :raw-value (get-raw-value setting)
+                            :getter    (getter))
+          previous-value (audit-value-fn)]
+      (u/prog1 (setter new-value)
+        (audit-setting-change! setting previous-value (audit-value-fn))))
+    (setter new-value)))
+
 (defn set!
   "Set the value of `setting-definition-or-name`. What this means depends on the Setting's `:setter`; by default, this
   just updates the Settings cache and writes its value to the DB.
@@ -788,14 +869,18 @@
 
     (mandrill-api-key \"xyz123\")"
   [setting-definition-or-name new-value]
-  (let [{:keys [setter cache?], :as setting} (resolve-setting setting-definition-or-name)
-        name                                 (setting-name setting)]
+  (let [{:keys [setter cache? enabled? feature] :as setting} (resolve-setting setting-definition-or-name)
+        name                                                 (setting-name setting)]
+    (when (and feature (not (has-feature? feature)))
+      (throw (ex-info (tru "Setting {0} is not enabled because feature {1} is not available" name feature) setting)))
+    (when (and enabled? (not (enabled?)))
+      (throw (ex-info (tru "Setting {0} is not enabled" name) setting)))
     (when-not (current-user-can-access-setting? setting)
       (throw (ex-info (tru "You do not have access to the setting {0}" name) setting)))
     (when (= setter :none)
       (throw (UnsupportedOperationException. (tru "You cannot set {0}; it is a read-only setting." name))))
     (binding [*disable-cache* (not cache?)]
-      (setter new-value))))
+      (set-with-audit-logging! setting new-value))))
 
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
@@ -823,15 +908,18 @@
                  :visibility     :admin
                  :sensitive?     false
                  :cache?         true
+                 :feature        nil
                  :database-local :never
                  :user-local     :never
                  :deprecated     nil
-                 :enabled?       nil}
+                 :enabled?       nil
+                 ;; Disable auditing by default for user- or database-local settings
+                 :audit          (if (site-wide-only? setting) :no-value :never)}
                 (dissoc setting :name :type :default)))
       (s/validate SettingDefinition <>)
       (validate-default-value-for-type <>)
       ;; eastwood complains about (setting-name @registered-settings) for shadowing the function `setting-name`
-      (when-let [registered-setting (clojure.core/get @registered-settings setting-name)]
+      (when-let [registered-setting (core/get @registered-settings setting-name)]
         (when (not= setting-ns (:namespace registered-setting))
           (throw (ex-info (tru "Setting {0} already registered in {1}" setting-name (:namespace registered-setting))
                           {:existing-setting (dissoc registered-setting :on-change :getter :setter)}))))
@@ -850,6 +938,10 @@
         (throw (ex-info (tru "Setting {0} allows both user-local and database-local values; this is not supported"
                              setting-name)
                         {:setting setting})))
+      (when (and (:enabled? setting) (:feature setting))
+        (throw (ex-info (tru "Setting {0} uses both :enabled? and :feature options, which are mutually exclusive"
+                             setting-name)
+                        {:setting setting})))
       (swap! registered-settings assoc setting-name <>))))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
@@ -859,7 +951,7 @@
 (defn- setting-fn-docstring [{:keys [default description], setting-type :type, :as setting}]
   ;; indentation below is intentional to make it clearer what shape the generated documentation is going to take.
   (str
-   description \newline
+   (description) \newline
    \newline
    (format "`%s` is a `%s` Setting. You can get its value by calling:\n" (setting-name setting) setting-type)
    \newline
@@ -944,10 +1036,10 @@
   "Defines a new Setting that will be added to the DB at some point in the future.
   Conveniently can be used as a getter/setter as well
 
-    (defsetting mandrill-api-key (trs \"API key for Mandrill.\"))
-    (mandrill-api-key)            ; get the value
-    (mandrill-api-key! new-value) ; update the value
-    (mandrill-api-key! nil)       ; delete the value
+  (defsetting mandrill-api-key (trs \"API key for Mandrill.\"))
+  (mandrill-api-key)            ; get the value
+  (mandrill-api-key! new-value) ; update the value
+  (mandrill-api-key! nil)       ; delete the value
 
   A setting can be set from the Admin Panel or via the corresponding env var, eg. `MB_MANDRILL_API_KEY` for the
   example above.
@@ -1022,7 +1114,23 @@
 
   Do you want to update something else when this setting changes? Takes a function which takes 2 arguments, `old`, and
   `new` and calls it with the old and new settings values. By default, the :on-change will be missing, and nothing
-  will happen, in [[call-on-change]] below."
+  will happen, in [[call-on-change]] below.
+
+  ###### `:feature`
+  If non-nil, determines the Enterprise feature flag required to use this setting. If the feature is not enabled,
+  the setting will behave the same as if `enabled?` returns `false` (see below).
+
+  ###### `enabled?`
+  Function which returns true if the setting should be enabled. If it returns false, the setting will throw an
+  exception when it is attempted to be set, and will return its default value when read. Defaults to always enabled.
+
+  ###### `audit`
+  Keyword that determines what kind of audit log entry should be created when this setting is written. Options are
+  `:never`, `:no-value`, `:raw-value`, and `:getter`. User- and database-local settings are never audited. `:getter`
+  should be used for most non-sensitive settings, and will log the value returned by its getter, which may be
+  the default getter or a custom one. `:raw-value` will audit the raw string value of the setting in the database.
+  (default: `:no-value` for most settings; `:never` for user- and database-local settings, settings with no setter,
+  and `:sensitive` settings.)"
   {:style/indent 1}
   [setting-symbol description & {:as options}]
   {:pre [(symbol? setting-symbol)
@@ -1035,6 +1143,8 @@
                                           (in-test?))
                                     description
                                     (validate-description-form description))
+        ;; wrap the description form in a thunk, so its result updates with its dependencies
+        description               `(fn [] ~description)
         definition-form           (assoc options
                                          :name (keyword setting-symbol)
                                          :description description
@@ -1061,9 +1171,8 @@
 (defn set-many!
   "Set the value of several Settings at once.
 
-    (set-all {:mandrill-api-key \"xyz123\", :another-setting \"ABC\"})"
+    (set-many! {:mandrill-api-key \"xyz123\", :another-setting \"ABC\"})"
   [settings]
-  {:pre [(map? settings)]}
   ;; if setting any of the settings fails, roll back the entire DB transaction and the restore the cache from the DB
   ;; to revert any changes in the cache
   (try
@@ -1074,14 +1183,6 @@
     (catch Throwable e
       (setting.cache/restore-cache!)
       (throw e))))
-
-(defn obfuscate-value
-  "Obfuscate the value of sensitive Setting. We'll still show the last 2 characters so admins can still check that the
-  value is what's expected (e.g. the correct password).
-
-    (obfuscate-value \"sensitivePASSWORD123\") ;; -> \"**********23\""
-  [s]
-  (str "**********" (str/join (take-last 2 (str s)))))
 
 (defn user-facing-value
   "Get the value of a Setting that should be displayed to a User (i.e. via `/api/setting/` endpoints): for Settings set
@@ -1129,7 +1230,7 @@
                          (log/error e (trs "Error fetching value of Setting"))))
      :is_env_setting set-via-env-var?
      :env_name       (env-var-name setting)
-     :description    (str description)
+     :description    (str (description))
      :default        (if set-via-env-var?
                        (tru "Using value of env var {0}" (str \$ (env-var-name setting)))
                        default)}))
@@ -1222,7 +1323,7 @@
     (into
      {}
      (comp (filter (fn [[_setting-name setting]]
-                     (and (allows-site-wide-values? setting)
+                     (and (not (database-local-only? setting))
                           (can-read-setting? setting visibilities))))
            (map (fn [[setting-name]]
                   [setting-name (get setting-name)])))

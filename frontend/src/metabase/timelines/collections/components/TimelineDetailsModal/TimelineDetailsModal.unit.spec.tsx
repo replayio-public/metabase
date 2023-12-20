@@ -1,13 +1,16 @@
-import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderWithProviders, screen, waitFor } from "__support__/ui";
 import {
   createMockCollection,
   createMockTimeline,
   createMockTimelineEvent,
 } from "metabase-types/api/mocks";
-import TimelineDetailsModal, {
-  TimelineDetailsModalProps,
-} from "./TimelineDetailsModal";
+import type { TimelineDetailsModalProps } from "./TimelineDetailsModal";
+import TimelineDetailsModal from "./TimelineDetailsModal";
+
+function setup(props: TimelineDetailsModalProps) {
+  renderWithProviders(<TimelineDetailsModal {...props} />);
+}
 
 describe("TimelineDetailsModal", () => {
   it("should use the collection's name for default timelines", () => {
@@ -21,7 +24,7 @@ describe("TimelineDetailsModal", () => {
       }),
     });
 
-    render(<TimelineDetailsModal {...props} />);
+    setup(props);
 
     expect(screen.getByText("Analytics events")).toBeInTheDocument();
   });
@@ -37,7 +40,7 @@ describe("TimelineDetailsModal", () => {
       }),
     });
 
-    render(<TimelineDetailsModal {...props} />);
+    setup(props);
 
     expect(screen.getByText("Metrics events")).toBeInTheDocument();
   });
@@ -53,7 +56,7 @@ describe("TimelineDetailsModal", () => {
       }),
     });
 
-    render(<TimelineDetailsModal {...props} />);
+    setup(props);
 
     userEvent.type(screen.getByPlaceholderText("Search for an event"), "RC");
     await waitFor(() => {

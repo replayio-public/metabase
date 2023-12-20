@@ -7,6 +7,7 @@
    [metabase.driver.athena :as athena]
    [metabase.driver.ddl.interface :as ddl.i]
    [metabase.driver.sql-jdbc.connection :as sql-jdbc.conn]
+   [metabase.driver.sql-jdbc.execute :as sql-jdbc.execute]
    [metabase.driver.sql-jdbc.sync :as sql-jdbc.sync]
    [metabase.driver.sql.util.unprepare :as unprepare]
    [metabase.test.data.interface :as tx]
@@ -30,7 +31,10 @@
 ;; names.
 (defmethod ddl.i/format-name :athena
   [driver database-or-table-or-field-name]
-  ((get-method ddl.i/format-name :sql-jdbc) driver (str/replace database-or-table-or-field-name #"-" "_")))
+  (let [name' ((get-method ddl.i/format-name :sql-jdbc) driver (str/replace database-or-table-or-field-name #"-" "_"))]
+    (if (= name' "test_data")
+      "v2_test_data"
+      name')))
 
 (defmethod tx/dbdef->connection-details :athena
   [driver _context {:keys [database-name], :as _dbdef}]
@@ -70,26 +74,26 @@
 ;;;    aws configure --profile athena-ci
 ;;;
 ;;; 3. Delete the data from the `MB_ATHENA_TEST_S3_STAGING_DIR` S3 bucket. The data directory is the same as the dataset
-;;;    name you want to delete with hyphens replaced with underscores e.g. `sample-dataset` becomes `sample_dataset`
+;;;    name you want to delete with hyphens replaced with underscores e.g. `test-data` becomes `test_data`
 ;;;
 ;;;    ```
-;;;    aws s3 --profile athena-ci rm s3://metabase-ci-athena-results/sample_dataset --recursive
+;;;    aws s3 --profile athena-ci rm s3://metabase-ci-athena-results/test_data --recursive
 ;;;    ```
 ;;;
 ;;; 4. Delete the database from the Glue Console.
 ;;;
 ;;;    ```
-;;;    aws glue --profile athena-ci delete-database --name sample_dataset
+;;;    aws glue --profile athena-ci delete-database --name test_data
 ;;;   ```
 ;;;
 ;;; 5. After this you can recreate the database normally using the test loading code. Note that you must
 ;;;    enable [[*allow-database-creation*]] for this to work:
 ;;;
 ;;;    ```
-;;;    (t2/delete! 'Database :engine "athena", :name "sample-dataset")
+;;;    (t2/delete! 'Database :engine "athena", :name "test-data")
 ;;;    (binding [metabase.test.data.athena/*allow-database-creation* true]
 ;;;      (metabase.driver/with-driver :athena
-;;;        (metabase.test/dataset sample-dataset
+;;;        (metabase.test/dataset test-data
 ;;;          (metabase.test/db))))
 ;;;    ```
 
@@ -211,10 +215,14 @@
 (defn- existing-databases
   "Set of databases that already exist in our S3 bucket, so we don't try to create them a second time."
   []
-  (jdbc/with-db-connection [conn (server-connection-spec)]
-    (let [dbs (into #{} (map :database_name) (jdbc/query conn ["SHOW DATABASES;"]))]
-      (log/infof "The following Athena databases have already been created: %s" (pr-str (sort dbs)))
-      dbs)))
+  (sql-jdbc.execute/do-with-connection-with-options
+   :athena
+   (server-connection-spec)
+   nil
+   (fn [^java.sql.Connection conn]
+     (let [dbs (into #{} (map :database_name) (jdbc/query {:connection conn} ["SHOW DATABASES;"]))]
+       (log/infof "The following Athena databases have already been created: %s" (pr-str (sort dbs)))
+       dbs))))
 
 (def ^:private ^:dynamic *allow-database-creation*
   "Whether to allow database creation. This is normally disabled to prevent people from accidentally loading duplicate

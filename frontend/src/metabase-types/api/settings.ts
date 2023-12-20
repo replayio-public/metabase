@@ -104,10 +104,11 @@ export interface Version {
 }
 
 export interface VersionInfoRecord {
-  version?: string; // tag
+  version: string; // tag
   released?: string; // year-month-day
   patch?: boolean;
   highlights?: string[];
+  announcement_url?: string;
 }
 
 export interface VersionInfo {
@@ -122,10 +123,14 @@ export type LoadingMessage =
   | "running-query"
   | "loading-results";
 
-export type TokenStatusStatus = "unpaid" | "past-due" | string;
+export type TokenStatusStatus = "unpaid" | "past-due" | "invalid" | string;
 
 export interface TokenStatus {
   status?: TokenStatusStatus;
+  valid: boolean;
+  "valid-thru"?: string;
+  "error-details"?: string;
+  trial: boolean;
 }
 
 export type DayOfWeekId =
@@ -137,34 +142,52 @@ export type DayOfWeekId =
   | "friday"
   | "saturday";
 
-export interface TokenFeatures {
-  advanced_config: boolean;
-  advanced_permissions: boolean;
-  audit_app: boolean;
-  content_management: boolean;
-  embedding: boolean;
-  hosting: boolean;
-  sandboxes: boolean;
-  sso: boolean;
-  whitelabel: boolean;
-}
+export const tokenFeatures = [
+  "advanced_permissions",
+  "audit_app",
+  "cache_granular_controls",
+  "disable_password_login",
+  "content_verification",
+  "embedding",
+  "hosting",
+  "official_collections",
+  "sandboxes",
+  "sso_google",
+  "sso_jwt",
+  "sso_ldap",
+  "sso_saml",
+  "session_timeout_config",
+  "whitelabel",
+  "dashboard_subscription_filters",
+  "snippet_collections",
+  "email_allow_list",
+  "email_restrict_recipients",
+] as const;
+
+export type TokenFeature = (typeof tokenFeatures)[number];
+export type TokenFeatures = Record<TokenFeature, boolean>;
 
 export type PasswordComplexity = {
   total?: number;
   digit?: number;
 };
 
+export type SessionCookieSameSite = "lax" | "strict" | "none";
+
 export interface SettingDefinition {
   key: string;
   env_name?: string;
   is_env_setting: boolean;
   value?: unknown;
+  default?: unknown;
 }
 
 export interface OpenAiModel {
   id: string;
   owned_by: string;
 }
+
+export type HelpLinkSetting = "metabase" | "hidden" | "custom";
 
 export interface Settings {
   "active-users-count"?: number;
@@ -175,17 +198,22 @@ export interface Settings {
   "application-name": string;
   "available-fonts": string[];
   "available-locales": LocaleData[] | null;
+  "bcc-enabled?": boolean;
   "cloud-gateway-ips": string[] | null;
   "custom-formatting": FormattingSettings;
   "custom-homepage": boolean;
   "custom-homepage-dashboard": number | null;
   "deprecation-notice-version"?: string;
+  "dismissed-custom-dashboard-toast"?: boolean;
   "email-configured?": boolean;
+  "embedding-app-origin": string;
   "embedding-secret-key"?: string;
   "enable-embedding": boolean;
   "enable-enhancements?": boolean;
   "enable-nested-queries": boolean;
   "enable-query-caching"?: boolean;
+  "query-caching-ttl-ratio": number;
+  "query-caching-min-ttl": number;
   "enable-password-login": boolean;
   "enable-public-sharing": boolean;
   "enable-xrays": boolean;
@@ -197,6 +225,8 @@ export interface Settings {
   "google-auth-enabled": boolean;
   "has-user-setup": boolean;
   "hide-embed-branding?": boolean;
+  "help-link": HelpLinkSetting;
+  "help-link-custom-destination": string;
   "is-hosted?": boolean;
   "is-metabot-enabled": boolean;
   "jwt-enabled"?: boolean;
@@ -204,6 +234,7 @@ export interface Settings {
   "ldap-configured?": boolean;
   "ldap-enabled": boolean;
   "loading-message": LoadingMessage;
+  "map-tile-server-url": string;
   "openai-api-key": string | null;
   "openai-organization": string | null;
   "openai-model": string | null;
@@ -219,6 +250,7 @@ export interface Settings {
   "search-typeahead-enabled": boolean;
   "setup-token": string | null;
   "session-cookies": boolean | null;
+  "session-cookie-samesite": SessionCookieSameSite;
   "snowplow-enabled": boolean;
   "snowplow-url": string;
   "show-database-syncing-modal": boolean;
@@ -246,6 +278,10 @@ export interface Settings {
   "uploads-database-id": number | null;
   "uploads-schema-name": string | null;
   "uploads-table-prefix": string | null;
+  "user-visibility": string | null;
+  "last-acknowledged-version": string | null;
 }
 
 export type SettingKey = keyof Settings;
+
+export type SettingValue = Settings[SettingKey];

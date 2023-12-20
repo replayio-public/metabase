@@ -6,24 +6,23 @@
    [clojure.test :refer :all]
    [metabase.api.session :as api.session]
    [metabase.driver.h2 :as h2]
+   [metabase.email.messages :as messages]
    [metabase.http-client :as client]
    [metabase.models
     :refer [LoginHistory PermissionsGroup PermissionsGroupMembership Pulse
             PulseChannel Session User]]
-   [metabase.models.setting :as setting]
+   [metabase.models.setting :as setting :refer [defsetting]]
    [metabase.public-settings :as public-settings]
+   [metabase.public-settings.premium-features-test :as premium-features-test]
    [metabase.server.middleware.session :as mw.session]
    [metabase.test :as mt]
    [metabase.test.data.users :as test.users]
    [metabase.test.fixtures :as fixtures]
    [metabase.test.integrations.ldap :as ldap.test]
    [metabase.util :as u]
-   [metabase.util.schema :as su]
-   [schema.core :as s]
+   [metabase.util.malli.schema :as ms]
    [toucan2.core :as t2]
-   [toucan2.tools.with-temp :as t2.with-temp])
-  (:import
-   (java.util UUID)))
+   [toucan2.tools.with-temp :as t2.with-temp]))
 
 (set! *warn-on-reflection* true)
 
@@ -33,79 +32,76 @@
 
 (use-fixtures :once (fixtures/initialize :db :web-server :test-users))
 
-(use-fixtures :each (fn [thunk]
-                      ;; reset login throtllers
-                      (doseq [throttler (vals @#'api.session/login-throttlers)]
-                        (reset! (:attempts throttler) nil))
-                      (thunk)))
+(defn- reset-throttlers! []
+  (doseq [throttler (vals @#'api.session/login-throttlers)]
+    (reset! (:attempts throttler) nil)))
 
 (def ^:private SessionResponse
-  {:id (s/pred mt/is-uuid-string? "session")})
+  [:map
+   [:id ms/UUIDString]])
 
 (def ^:private session-cookie @#'mw.session/metabase-session-cookie)
 
 (deftest login-test
+  (reset-throttlers!)
   (testing "POST /api/session"
     (testing "Test that we can login"
-      (is (schema= SessionResponse
-                   (mt/client :post 200 "session" (mt/user->credentials :rasta)))))
+      (is (malli= SessionResponse
+                  (mt/client :post 200 "session" (mt/user->credentials :rasta)))))
     (testing "Test that we can login with email of mixed case"
       (let [creds    (update (mt/user->credentials :rasta) :username u/upper-case-en)
             response (mt/client :post 200 "session" creds)]
-        (is (schema= SessionResponse
-                     response))
+        (is (malli= SessionResponse
+                    response))
         (testing "Login should record a LoginHistory item"
-          (is (schema= {:id                 su/IntGreaterThanZero
-                        :timestamp          java.time.OffsetDateTime
-                        :user_id            (s/eq (mt/user->id :rasta))
-                        :device_id          client/UUIDString
-                        :device_description su/NonBlankString
-                        :ip_address         su/NonBlankString
-                        :active             (s/eq true)
-                        s/Keyword s/Any}
-                       (t2/select-one LoginHistory :user_id (mt/user->id :rasta), :session_id (:id response)))))))
+          (is (malli= [:map
+                       [:id                 ms/PositiveInt]
+                       [:timestamp          (ms/InstanceOfClass java.time.OffsetDateTime)]
+                       [:user_id            [:= (mt/user->id :rasta)]]
+                       [:device_id          ms/UUIDString]
+                       [:device_description ms/NonBlankString]
+                       [:ip_address         ms/NonBlankString]
+                       [:active             [:= true]]]
+                      (t2/select-one LoginHistory :user_id (mt/user->id :rasta), :session_id (:id response)))))))
     (testing "Test that 'remember me' checkbox sets Max-Age attribute on session cookie"
       (let [body (assoc (mt/user->credentials :rasta) :remember true)
-            response (mt/client-full-response :post 200 "session" body)]
+            response (mt/client-real-response :post 200 "session" body)]
         ;; clj-http sets :expires key in response when Max-Age attribute is set
         (is (get-in response [:cookies session-cookie :expires])))
       (let [body (assoc (mt/user->credentials :rasta) :remember false)
-            response (mt/client-full-response :post 200 "session" body)]
+            response (mt/client-real-response :post 200 "session" body)]
         (is (nil? (get-in response [:cookies session-cookie :expires]))))))
   (testing "failure should log an error(#14317)"
     (t2.with-temp/with-temp [User user]
-      (is (schema= [(s/one (s/eq :error)
-                           "log type")
-                    (s/one clojure.lang.ExceptionInfo
-                           "exception")
-                    (s/one (s/eq "Authentication endpoint error")
-                           "log message")]
-                   (->> (mt/with-log-messages-for-level :error
-                          (mt/client :post 400 "session" {:email (:email user), :password "wooo"}))
-                        ;; geojson can throw errors and we want the authentication error
-                        (filter (fn [[_log-level _error message]] (= message "Authentication endpoint error")))
-                        first))))))
+      (is (=? [:error clojure.lang.ExceptionInfo "Authentication endpoint error"]
+              (->> (mt/with-log-messages-for-level :error
+                     (mt/client :post 400 "session" {:email (:email user), :password "wooo"}))
+                   ;; geojson can throw errors and we want the authentication error
+                   (filter (fn [[_log-level _error message]] (= message "Authentication endpoint error")))
+                   first))))))
 
-(deftest ^:parallel login-validation-test
+(deftest login-validation-test
+  (reset-throttlers!)
   (testing "POST /api/session"
     (testing "Test for required params"
-      (is (= {:errors {:username "value must be a non-blank string."}}
-             (mt/client :post 400 "session" {})))
+      (is (=? {:errors {:username "value must be a non-blank string."}}
+              (mt/client :post 400 "session" {})))
 
-      (is (= {:errors {:password "value must be a non-blank string."}}
-             (mt/client :post 400 "session" {:username "anything@metabase.com"}))))
+      (is (=? {:errors {:password "value must be a non-blank string."}}
+              (mt/client :post 400 "session" {:username "anything@metabase.com"}))))
 
     (testing "Test for inactive user (user shouldn't be able to login if :is_active = false)"
       ;; Return same error as incorrect password to avoid leaking existence of user
-      (is (= {:errors {:_error "Your account is disabled."}}
-             (mt/client :post 401 "session" (mt/user->credentials :trashbird)))))
+      (is (=? {:errors {:_error "Your account is disabled."}}
+              (mt/client :post 401 "session" (mt/user->credentials :trashbird)))))
 
     (testing "Test for password checking"
-      (is (= {:errors {:password "did not match stored password"}}
-             (mt/client :post 401 "session" (-> (mt/user->credentials :rasta)
-                                             (assoc :password "something else"))))))))
+      (is (=? {:errors {:password "did not match stored password"}}
+              (mt/client :post 401 "session" (-> (mt/user->credentials :rasta)
+                                                 (assoc :password "something else"))))))))
 
 (deftest login-throttling-test
+  (reset-throttlers!)
   (testing (str "Test that people get blocked from attempting to login if they try too many times (Check that"
                 " throttling works at the API level -- more tests in the throttle library itself:"
                 " https://github.com/metabase/throttle)")
@@ -119,14 +115,9 @@
         (is (re= #"^Too many attempts! You must wait \d+ seconds before trying again\.$"
                  (login))))
       (testing "Error should be logged (#14317)"
-        (is (schema= [(s/one (s/eq :error)
-                             "log type")
-                      (s/one clojure.lang.ExceptionInfo
-                             "exception")
-                      (s/one (s/eq "Authentication endpoint error")
-                             "log message")]
-                     (first (mt/with-log-messages-for-level :error
-                              (login))))))
+        (is (=? [:error clojure.lang.ExceptionInfo "Authentication endpoint error"]
+                (first (mt/with-log-messages-for-level :error
+                         (login))))))
       (is (re= #"^Too many attempts! You must wait \d+ seconds before trying again\.$"
                (login))
           "Trying to login immediately again should still return throttling error"))))
@@ -147,6 +138,7 @@
     (reduce clean-key throttlers ks)))
 
 (deftest failure-threshold-throttling-test
+  (reset-throttlers!)
   (testing "Test that source based throttling kicks in after the login failure threshold (50) has been reached"
     (with-redefs [api.session/login-throttlers          (cleaned-throttlers #'api.session/login-throttlers
                                                                             [:username :ip-address])
@@ -167,6 +159,7 @@
                  (error)))))))
 
 (deftest failure-threshold-per-request-source
+  (reset-throttlers!)
   (testing "The same as above, but ensure that throttling is done on a per request source basis."
     (with-redefs [api.session/login-throttlers          (cleaned-throttlers #'api.session/login-throttlers
                                                                             [:username :ip-address])
@@ -191,6 +184,7 @@
                  (error)))))))
 
 (deftest logout-test
+  (reset-throttlers!)
   (testing "DELETE /api/session"
     (testing "Test that we can logout"
       ;; clear out cached session tokens so next time we make an API request it log in & we'll know we have a valid
@@ -207,17 +201,18 @@
         (is (= nil
                (t2/select-one Session :id session-id)))
         (testing "LoginHistory item should still exist, but session_id should be set to nil (active = false)"
-          (is (schema= {:id                 (s/eq login-history-id)
-                        :timestamp          java.time.OffsetDateTime
-                        :user_id            (s/eq (mt/user->id :rasta))
-                        :device_id          client/UUIDString
-                        :device_description su/NonBlankString
-                        :ip_address         su/NonBlankString
-                        :active             (s/eq false)
-                        s/Keyword           s/Any}
-                       (t2/select-one LoginHistory :id login-history-id))))))))
+          (is (malli= [:map
+                       [:id                 ms/PositiveInt]
+                       [:timestamp          (ms/InstanceOfClass java.time.OffsetDateTime)]
+                       [:user_id            [:= (mt/user->id :rasta)]]
+                       [:device_id          ms/UUIDString]
+                       [:device_description ms/NonBlankString]
+                       [:ip_address         ms/NonBlankString]
+                       [:active             [:= false]]]
+                (t2/select-one LoginHistory :id login-history-id))))))))
 
 (deftest forgot-password-test
+  (reset-throttlers!)
   (testing "POST /api/session/forgot_password"
     ;; deref forgot-password-impl for the tests since it returns a future
     (with-redefs [api.session/forgot-password-impl
@@ -249,13 +244,32 @@
                                     {:email (:username (mt/user->credentials :rasta))})
               (is (mt/received-email-body? :rasta (re-pattern my-url)))))))
       (testing "test that email is required"
-        (is (= {:errors {:email "value must be a valid email address."}}
-               (mt/client :post 400 "session/forgot_password" {}))))
+        (is (=? {:errors {:email "value must be a valid email address."}}
+                (mt/client :post 400 "session/forgot_password" {}))))
       (testing "Test that email not found also gives 200 as to not leak existence of user"
         (is (= nil
                (mt/client :post 204 "session/forgot_password" {:email "not-found@metabase.com"})))))))
 
+(deftest forgot-password-event-test
+  (reset-throttlers!)
+  (premium-features-test/with-premium-features #{:audit-app}
+    (with-redefs [api.session/forgot-password-impl
+                  (let [orig @#'api.session/forgot-password-impl]
+                    (fn [& args] (u/deref-with-timeout (apply orig args) 1000)))]
+      (mt/with-model-cleanup [:model/User]
+        (testing "Test that forgot password event is logged."
+          (mt/user-http-request :rasta :post 204 "session/forgot_password"
+                                {:email (:username (mt/user->credentials :rasta))})
+          (let [rasta-id (mt/user->id :rasta)]
+            (is (= {:topic    :password-reset-initiated
+                    :user_id  rasta-id
+                    :model_id rasta-id
+                    :model    "User"
+                    :details  {:token (t2/select-one-fn :reset_token :model/User :id rasta-id)}}
+                   (mt/latest-audit-log-entry :password-reset-initiated rasta-id)))))))))
+
 (deftest forgot-password-throttling-test
+  (reset-throttlers!)
   (testing "Test that email based throttling kicks in after the login failure threshold (10) has been reached"
     (letfn [(send-password-reset! [& [expected-status & _more]]
               (mt/client :post (or expected-status 204) "session/forgot_password" {:email "not-found@metabase.com"}))]
@@ -274,13 +288,14 @@
                  (error))))))))
 
 (deftest reset-password-test
+  (reset-throttlers!)
   (testing "POST /api/session/reset_password"
     (testing "Test that we can reset password from token (AND after token is used it gets removed)"
       (mt/with-fake-inbox
         (let [password {:old "password"
                         :new "whateverUP12!!"}]
           (t2.with-temp/with-temp [User {:keys [email id]} {:password (:old password), :reset_triggered (System/currentTimeMillis)}]
-            (let [token (u/prog1 (str id "_" (UUID/randomUUID))
+            (let [token (u/prog1 (str id "_" (random-uuid))
                           (t2/update! User id {:reset_token <>}))
                   creds {:old {:password (:old password)
                                :username email}
@@ -290,50 +305,73 @@
               (mt/client :post 200 "session" (:old creds))
               ;; Call reset password endpoint to change the PW
               (testing "reset password endpoint should return a valid session token"
-                (is (schema= {:session_id (s/pred mt/is-uuid-string? "session")
-                              :success    (s/eq true)}
-                             (mt/client :post 200 "session/reset_password" {:token    token
-                                                                            :password (:new password)}))))
+                (is (=? {:session_id mt/is-uuid-string?
+                         :success    true}
+                        (mt/client :post 200 "session/reset_password" {:token    token
+                                                                       :password (:new password)}))))
               (testing "Old creds should no longer work"
                 (is (= {:errors {:password "did not match stored password"}}
                        (mt/client :post 401 "session" (:old creds)))))
               (testing "New creds *should* work"
-                (is (schema= SessionResponse
-                             (mt/client :post 200 "session" (:new creds)))))
+                (is (malli= SessionResponse
+                            (mt/client :post 200 "session" (:new creds)))))
               (testing "check that reset token was cleared"
                 (is (= {:reset_token     nil
                         :reset_triggered nil}
                        (mt/derecordize (t2/select-one [User :reset_token :reset_triggered], :id id))))))))))))
 
+(deftest reset-password-successful-event-test
+  (reset-throttlers!)
+  (premium-features-test/with-premium-features #{:audit-app}
+    (testing "Test that a successful password reset creates the correct event"
+      (mt/with-model-cleanup [:model/Activity :model/AuditLog :model/User]
+        (mt/with-fake-inbox
+          (let [password {:old "password"
+                          :new "whateverUP12!!"}]
+            (t2.with-temp/with-temp [User {:keys [id]} {:password (:old password), :reset_triggered (System/currentTimeMillis)}]
+              (let [token       (u/prog1 (str id "_" (random-uuid))
+                                  (t2/update! User id {:reset_token <> :last_login :%now}))
+                    reset-token (t2/select-one-fn :reset_token :model/User :id id)]
+                (mt/client :post 200 "session/reset_password" {:token    token
+                                                               :password (:new password)})
+                (is (= {:topic    :password-reset-successful
+                        :user_id  nil
+                        :model    "User"
+                        :model_id id
+                        :details  {:token reset-token}}
+                       (mt/latest-audit-log-entry :password-reset-successful id)))))))))))
+
 (deftest reset-password-validation-test
+  (reset-throttlers!)
   (testing "POST /api/session/reset_password"
     (testing "Test that token and password are required"
-      (is (= {:errors {:token "value must be a non-blank string."}}
-             (mt/client :post 400 "session/reset_password" {})))
-      (is (= {:errors {:password "password is too common."}}
-             (mt/client :post 400 "session/reset_password" {:token "anything"}))))
+      (is (=? {:errors {:token "value must be a non-blank string."}}
+              (mt/client :post 400 "session/reset_password" {})))
+      (is (=? {:errors {:password "password is too common."}}
+              (mt/client :post 400 "session/reset_password" {:token "anything"}))))
 
     (testing "Test that malformed token returns 400"
-      (is (= {:errors {:password "Invalid reset token"}}
-             (mt/client :post 400 "session/reset_password" {:token    "not-found"
-                                                            :password "whateverUP12!!"}))))
+      (is (=? {:errors {:password "Invalid reset token"}}
+              (mt/client :post 400 "session/reset_password" {:token    "not-found"
+                                                             :password "whateverUP12!!"}))))
 
     (testing "Test that invalid token returns 400"
-      (is (= {:errors {:password "Invalid reset token"}}
-             (mt/client :post 400 "session/reset_password" {:token    "1_not-found"
-                                                            :password "whateverUP12!!"}))))
+      (is (=? {:errors {:password "Invalid reset token"}}
+              (mt/client :post 400 "session/reset_password" {:token    "1_not-found"
+                                                             :password "whateverUP12!!"}))))
 
     (testing "Test that an expired token doesn't work"
-      (let [token (str (mt/user->id :rasta) "_" (UUID/randomUUID))]
+      (let [token (str (mt/user->id :rasta) "_" (random-uuid))]
         (t2/update! User (mt/user->id :rasta) {:reset_token token, :reset_triggered 0})
-        (is (= {:errors {:password "Invalid reset token"}}
-               (mt/client :post 400 "session/reset_password" {:token    token
-                                                              :password "whateverUP12!!"})))))))
+        (is (=? {:errors {:password "Invalid reset token"}}
+                (mt/client :post 400 "session/reset_password" {:token    token
+                                                               :password "whateverUP12!!"})))))))
 
 (deftest check-reset-token-valid-test
+  (reset-throttlers!)
   (testing "GET /session/password_reset_token_valid"
     (testing "Check that a valid, unexpired token returns true"
-      (let [token (str (mt/user->id :rasta) "_" (UUID/randomUUID))]
+      (let [token (str (mt/user->id :rasta) "_" (random-uuid))]
         (t2/update! User (mt/user->id :rasta) {:reset_token token, :reset_triggered (dec (System/currentTimeMillis))})
         (is (= {:valid true}
                (mt/client :get 200 "session/password_reset_token_valid", :token token)))))
@@ -343,42 +381,81 @@
              (mt/client :get 200 "session/password_reset_token_valid", :token "ABCDEFG"))))
 
     (testing "Check that an expired but valid token returns false"
-      (let [token (str (mt/user->id :rasta) "_" (UUID/randomUUID))]
+      (let [token (str (mt/user->id :rasta) "_" (random-uuid))]
         (t2/update! User (mt/user->id :rasta) {:reset_token token, :reset_triggered 0})
         (is (= {:valid false}
                (mt/client :get 200 "session/password_reset_token_valid", :token token)))))))
 
+(deftest reset-token-ttl-hours-test
+  (testing "Test reset-token-ttl-hours-test"
+    (testing "reset-token-ttl-hours-test is reset to default when not set"
+      (mt/with-temp-env-var-value [mb-reset-token-ttl-hours nil]
+        (is (= 48 (setting/get-value-of-type :integer :reset-token-ttl-hours)))))
+
+    (testing "reset-token-ttl-hours-test is set to positive value"
+      (mt/with-temp-env-var-value [mb-reset-token-ttl-hours 36]
+        (is (= 36 (setting/get-value-of-type :integer :reset-token-ttl-hours)))))
+
+    (testing "reset-token-ttl-hours-test is set to large positive value"
+      (mt/with-temp-env-var-value [mb-reset-token-ttl-hours (+ Integer/MAX_VALUE 1)]
+        (is (= (+ Integer/MAX_VALUE 1) (setting/get-value-of-type :integer :reset-token-ttl-hours)))))
+
+    (testing "reset-token-ttl-hours-test is set to zero"
+      (mt/with-temp-env-var-value [mb-reset-token-ttl-hours 0]
+        (is (= 0 (setting/get-value-of-type :integer :reset-token-ttl-hours)))))
+
+    (testing "reset-token-ttl-hours-test is set to negative value"
+      (mt/with-temp-env-var-value [mb-reset-token-ttl-hours -1]
+        (is (= -1 (setting/get-value-of-type :integer :reset-token-ttl-hours)))))))
+
 (deftest properties-test
+  (reset-throttlers!)
   (testing "GET /session/properties"
     (testing "Unauthenticated"
       (is (= (set (keys (setting/user-readable-values-map #{:public})))
              (set (keys (mt/client :get 200 "session/properties"))))))
 
     (testing "Authenticated normal user"
-      (is (= (set (keys (setting/user-readable-values-map #{:public :authenticated})))
-             (set (keys (mt/user-http-request :lucky :get 200 "session/properties"))))))
+      (mt/with-test-user :lucky
+       (is (= (set (keys (setting/user-readable-values-map #{:public :authenticated})))
+              (set (keys (mt/user-http-request :lucky :get 200 "session/properties")))))))
 
     (testing "Authenticated settings manager"
-      (with-redefs [setting/has-advanced-setting-access? (constantly true)]
-        (is (= (set (keys (setting/user-readable-values-map #{:public :authenticated :settings-manager})))
-               (set (keys (mt/user-http-request :lucky :get 200 "session/properties")))))))
+      (mt/with-test-user :lucky
+       (with-redefs [setting/has-advanced-setting-access? (constantly true)]
+         (is (= (set (keys (setting/user-readable-values-map #{:public :authenticated :settings-manager})))
+                (set (keys (mt/user-http-request :lucky :get 200 "session/properties"))))))))
 
     (testing "Authenticated super user"
-      (is (= (set (keys (setting/user-readable-values-map #{:public :authenticated :settings-manager :admin})))
-             (set (keys (mt/user-http-request :crowberto :get 200 "session/properties"))))))))
+      (mt/with-test-user :crowberto
+        (is (= (set (keys (setting/user-readable-values-map #{:public :authenticated :settings-manager :admin})))
+               (set (keys (mt/user-http-request :crowberto :get 200 "session/properties")))))))
+
+    (testing "Includes user-local settings"
+      (defsetting test-session-api-setting
+        "test setting"
+        :user-local :only
+        :type       :string
+        :default    "FOO")
+
+      (mt/with-test-user :lucky
+        (is (= "FOO"
+               (-> (mt/user-http-request :crowberto :get 200 "session/properties")
+                   :test-session-api-setting)))))))
 
 (deftest properties-i18n-test
+  (reset-throttlers!)
   (testing "GET /session/properties"
     (testing "Setting the X-Metabase-Locale header should result give you properties in that locale"
       (mt/with-mock-i18n-bundles {"es" {:messages {"Connection String" "Cadena de conexión !"}}}
         (is (= "Cadena de conexión !"
-               (-> (mt/client :get 200 "session/properties" {:request-options {:headers {"X-Metabase-Locale" "es"}}})
+               (-> (mt/client :get 200 "session/properties" {:request-options {:headers {"x-metabase-locale" "es"}}})
                    :engines :h2 :details-fields first :display-name)))))))
-
 
 ;;; ------------------------------------------- TESTS FOR GOOGLE SIGN-IN ---------------------------------------------
 
 (deftest google-auth-test
+  (reset-throttlers!)
   (testing "POST /google_auth"
     (mt/with-temporary-setting-values [google-auth-client-id "pretend-client-id.apps.googleusercontent.com"]
       (testing "Google auth works with an active account"
@@ -390,8 +467,8 @@
                                                  "\"first_name\":\"test\","
                                                  "\"last_name\":\"user\","
                                                  "\"email\":\"test@metabase.com\"}")})]
-            (is (schema= SessionResponse
-                         (mt/client :post 200 "session/google_auth" {:token "foo"}))))))
+            (is (malli= SessionResponse
+                        (mt/client :post 200 "session/google_auth" {:token "foo"}))))))
       (testing "Google auth throws exception for a disabled account"
         (t2.with-temp/with-temp [User _ {:email "test@metabase.com" :is_active false}]
           (with-redefs [http/post (constantly
@@ -407,22 +484,24 @@
 ;;; ------------------------------------------- TESTS FOR LDAP AUTH STUFF --------------------------------------------
 
 (deftest ldap-login-test
+  (reset-throttlers!)
   (ldap.test/with-ldap-server
     (testing "Test that we can login with LDAP"
       (t2.with-temp/with-temp [User _ {:email    "ngoc@metabase.com"
                                        :password "securedpassword"}]
-        (is (schema= SessionResponse
-                     (mt/client :post 200 "session" {:username "ngoc@metabase.com"
-                                                     :password "securedpassword"})))))
+        (is (malli= SessionResponse
+                    (mt/client :post 200 "session" {:username "ngoc@metabase.com"
+                                                    :password "securedpassword"})))))
 
     (testing "Test that login will fallback to local for users not in LDAP"
       (mt/with-temporary-setting-values [enable-password-login true]
-        (is (schema= SessionResponse
-                     (mt/client :post 200 "session" (mt/user->credentials :crowberto)))))
+        (is (malli= SessionResponse
+                    (mt/client :post 200 "session" (mt/user->credentials :crowberto)))))
       (testing "...but not if password login is disabled"
-        (mt/with-temporary-setting-values [enable-password-login false]
-          (is (= "Password login is disabled for this instance."
-                 (mt/client :post 401 "session" (mt/user->credentials :crowberto)))))))
+        (premium-features-test/with-premium-features #{:disable-password-login}
+          (mt/with-temporary-setting-values [enable-password-login false]
+            (is (= "Password login is disabled for this instance."
+                   (mt/client :post 401 "session" (mt/user->credentials :crowberto))))))))
 
     (testing "Test that login will NOT fallback for users in LDAP but with an invalid password"
       ;; NOTE: there's a different password in LDAP for Lucky
@@ -441,24 +520,24 @@
       (mt/with-temporary-setting-values [ldap-user-base "cn=wrong,cn=com"]
         (t2.with-temp/with-temp [User _ {:email    "ngoc@metabase.com"
                                          :password "securedpassword"}]
-          (is (schema= SessionResponse
-                       (mt/client :post 200 "session" {:username "ngoc@metabase.com"
-                                                       :password "securedpassword"}))))))
+          (is (malli= SessionResponse
+                      (mt/client :post 200 "session" {:username "ngoc@metabase.com"
+                                                      :password "securedpassword"}))))))
 
     (testing "Test that we can login with LDAP with new user"
       (try
-        (is (schema= SessionResponse
-                     (mt/client :post 200 "session" {:username "sbrown20", :password "1234"})))
+        (is (malli= SessionResponse
+                    (mt/client :post 200 "session" {:username "sbrown20", :password "1234"})))
         (finally
           (t2/delete! User :email "sally.brown@metabase.com"))))
 
     (testing "Test that we can login with LDAP multiple times if the email stored in LDAP contains upper-case
              characters (#13739)"
       (try
-        (is (schema=
+        (is (malli=
              SessionResponse
              (mt/client :post 200 "session" {:username "John.Smith@metabase.com", :password "strongpassword"})))
-        (is (schema=
+        (is (malli=
              SessionResponse
              (mt/client :post 200 "session" {:username "John.Smith@metabase.com", :password "strongpassword"})))
         (finally
@@ -468,13 +547,14 @@
       (t2.with-temp/with-temp [PermissionsGroup group {:name "Accounting"}]
         (mt/with-temporary-raw-setting-values
           [ldap-group-mappings (json/generate-string {"cn=Accounting,ou=Groups,dc=metabase,dc=com" [(:id group)]})]
-          (is (schema= SessionResponse
-                       (mt/client :post 200 "session" {:username "fred.taylor@metabase.com", :password "pa$$word"})))
+          (is (malli= SessionResponse
+                      (mt/client :post 200 "session" {:username "fred.taylor@metabase.com", :password "pa$$word"})))
           (testing "PermissionsGroupMembership should exist"
             (let [user-id (t2/select-one-pk User :email "fred.taylor@metabase.com")]
               (is (t2/exists? PermissionsGroupMembership :group_id (u/the-id group) :user_id (u/the-id user-id))))))))))
 
 (deftest no-password-no-login-test
+  (reset-throttlers!)
   (testing "A user with no password should not be able to do password-based login"
     (t2.with-temp/with-temp [User user]
       (t2/update! User (u/the-id user) {:password nil, :password_salt nil})
@@ -491,6 +571,7 @@
 ;;; ------------------------------------------- TESTS FOR UNSUBSCRIBING NONUSERS STUFF --------------------------------------------
 
 (deftest unsubscribe-test
+  (reset-throttlers!)
   (testing "POST /pulse/unsubscribe"
     (let [email "test@metabase.com"]
       (testing "Invalid hash"
@@ -500,24 +581,44 @@
                                                                  :hash     "fake-hash"}))))
 
       (testing "Valid hash but not email"
-        (mt/with-temp* [Pulse        [{pulse-id :id} {}]
-                        PulseChannel [_ {:pulse_id pulse-id}]]
+        (mt/with-temp [Pulse        {pulse-id :id} {}
+                       PulseChannel _              {:pulse_id pulse-id}]
           (is (= "Email for pulse-id doesnt exist."
                  (mt/client :post 400 "session/pulse/unsubscribe" {:pulse-id pulse-id
                                                                    :email    email
-                                                                   :hash     (api.session/generate-hash pulse-id email)})))))
+                                                                   :hash     (messages/generate-pulse-unsubscribe-hash pulse-id email)})))))
 
       (testing "Valid hash and email"
-        (mt/with-temp* [Pulse        [{pulse-id :id} {}]
-                        PulseChannel [_ {:pulse_id     pulse-id
-                                         :channel_type "email"
-                                         :details      {:emails [email]}}]]
-          (is (= {:status "success"}
+        (mt/with-temp [Pulse        {pulse-id :id} {:name "title"}
+                       PulseChannel _              {:pulse_id     pulse-id
+                                                    :channel_type "email"
+                                                    :details      {:emails [email]}}]
+          (is (= {:status "success" :title "title"}
                  (mt/client :post 200 "session/pulse/unsubscribe" {:pulse-id pulse-id
                                                                    :email    email
-                                                                   :hash     (api.session/generate-hash pulse-id email)}))))))))
+                                                                   :hash     (messages/generate-pulse-unsubscribe-hash pulse-id email)}))))))))
+
+(deftest unsubscribe-event-test
+  (reset-throttlers!)
+  (premium-features-test/with-premium-features #{:audit-app}
+    (mt/with-model-cleanup [:model/User]
+      (testing "Valid hash and email returns event."
+        (t2.with-temp/with-temp [Pulse        {pulse-id :id} {}
+                                 PulseChannel _              {:pulse_id     pulse-id
+                                                              :channel_type "email"
+                                                              :details      {:emails ["test@metabase.com"]}}]
+          (mt/client :post 200 "session/pulse/unsubscribe" {:pulse-id pulse-id
+                                                            :email    "test@metabase.com"
+                                                            :hash     (messages/generate-pulse-unsubscribe-hash pulse-id "test@metabase.com")})
+          (is (= {:topic    :subscription-unsubscribe
+                  :user_id  nil
+                  :model    "Pulse"
+                  :model_id nil
+                  :details  {:email "test@metabase.com"}}
+                 (mt/latest-audit-log-entry :subscription-unsubscribe))))))))
 
 (deftest unsubscribe-undo-test
+  (reset-throttlers!)
   (testing "POST /pulse/unsubscribe/undo"
     (let [email "test@metabase.com"]
       (testing "Invalid hash"
@@ -527,19 +628,36 @@
                                                                       :hash     "fake-hash"}))))
 
       (testing "Valid hash and email doesn't exist"
-        (mt/with-temp* [Pulse        [{pulse-id :id} {}]
-                        PulseChannel [_ {:pulse_id pulse-id}]]
-          (is (= {:status "success"}
+        (mt/with-temp [Pulse        {pulse-id :id} {:name "title"}
+                       PulseChannel _              {:pulse_id pulse-id}]
+          (is (= {:status "success" :title "title"}
                  (mt/client :post 200 "session/pulse/unsubscribe/undo" {:pulse-id pulse-id
                                                                         :email    email
-                                                                        :hash     (api.session/generate-hash pulse-id email)})))))
+                                                                        :hash     (messages/generate-pulse-unsubscribe-hash pulse-id email)})))))
 
       (testing "Valid hash and email already exists"
-        (mt/with-temp* [Pulse        [{pulse-id :id} {}]
-                        PulseChannel [_ {:pulse_id     pulse-id
-                                         :channel_type "email"
-                                         :details      {:emails [email]}}]]
+        (mt/with-temp [Pulse        {pulse-id :id} {}
+                       PulseChannel _              {:pulse_id     pulse-id
+                                                    :channel_type "email"
+                                                    :details      {:emails [email]}}]
           (is (= "Email for pulse-id already exists."
                  (mt/client :post 400 "session/pulse/unsubscribe/undo" {:pulse-id pulse-id
                                                                         :email    email
-                                                                        :hash     (api.session/generate-hash pulse-id email)}))))))))
+                                                                        :hash     (messages/generate-pulse-unsubscribe-hash pulse-id email)}))))))))
+
+(deftest unsubscribe-undo-event-test
+  (reset-throttlers!)
+  (premium-features-test/with-premium-features #{:audit-app}
+    (mt/with-model-cleanup [:model/User]
+      (testing "Undoing valid hash and email returns event"
+        (t2.with-temp/with-temp [Pulse        {pulse-id :id} {}
+                                 PulseChannel _              {:pulse_id pulse-id}]
+          (mt/client :post 200 "session/pulse/unsubscribe/undo" {:pulse-id pulse-id
+                                                                 :email    "test@metabase.com"
+                                                                 :hash     (messages/generate-pulse-unsubscribe-hash pulse-id "test@metabase.com")})
+          (is (= {:topic    :subscription-unsubscribe-undo
+                  :user_id  nil
+                  :model    "Pulse"
+                  :model_id nil
+                  :details  {:email "test@metabase.com"}}
+                 (mt/latest-audit-log-entry :subscription-unsubscribe-undo))))))))

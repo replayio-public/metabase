@@ -27,7 +27,9 @@ const CypressBackend = {
         "-Dh2.bindAddress=localhost", // fix H2 randomly not working (?)
         "-Djava.awt.headless=true", // when running on macOS prevent little Java icon from popping up in Dock
         "-Duser.timezone=US/Pacific",
+        // if you comment this line 👇 you can get (very noisy) backend console logs in the terminal for e2e tests
         `-Dlog4j.configurationFile=file:${__dirname}/../../frontend/test/__runner__/log4j2.xml`,
+        "-Dclojure.server.repl={:port,5555,:accept,clojure.core.server/repl}",
       ];
 
       const metabaseConfig = {
@@ -36,10 +38,7 @@ const CypressBackend = {
         MB_JETTY_HOST: "0.0.0.0",
         MB_JETTY_PORT: server.port,
         MB_ENABLE_TEST_ENDPOINTS: "true",
-        MB_PREMIUM_EMBEDDING_TOKEN:
-          (process.env["MB_EDITION"] === "ee" &&
-            process.env["MB_PREMIUM_EMBEDDING_TOKEN"]) ||
-          undefined,
+        MB_DANGEROUS_UNSAFE_ENABLE_TESTING_H2_CONNECTIONS_DO_NOT_ENABLE: "true",
       };
 
       /**

@@ -11,6 +11,10 @@ import IconBorder from "metabase/components/IconBorder";
 import { color } from "metabase/lib/colors";
 
 import { columnSettings } from "metabase/visualizations/lib/settings/column";
+import {
+  getDefaultSize,
+  getMinSize,
+} from "metabase/visualizations/shared/utils/sizes";
 import { isNumeric } from "metabase-lib/types/utils/isa";
 
 import { getValue } from "./utils";
@@ -32,7 +36,8 @@ export default class Progress extends Component {
   static identifier = "progress";
   static iconName = "progress";
 
-  static minSize = { width: 3, height: 3 };
+  static minSize = getMinSize("progress");
+  static defaultSize = getDefaultSize("progress");
 
   static isSensible({ cols, rows }) {
     return rows.length === 1 && cols.length === 1;
@@ -162,7 +167,13 @@ export default class Progress extends Component {
     }
 
     const clicked = { value, column, settings };
-    const isClickable = visualizationIsClickable(clicked);
+    const isClickable = onVisualizationClick != null;
+
+    const handleClick = e => {
+      if (onVisualizationClick && visualizationIsClickable(clicked)) {
+        onVisualizationClick({ ...clicked, event: e.nativeEvent });
+      }
+    };
 
     return (
       <div className={cx(this.props.className, "flex layout-centered")}>
@@ -203,10 +214,7 @@ export default class Progress extends Component {
               overflow: "hidden",
             }}
             data-testid="progress-bar"
-            onClick={
-              isClickable &&
-              (e => onVisualizationClick({ ...clicked, event: e.nativeEvent }))
-            }
+            onClick={handleClick}
           >
             <div
               style={{

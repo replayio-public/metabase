@@ -13,14 +13,17 @@
    [metabase.shared.util.namespaces :as u.ns]
    [metabase.util.format :as u.format]
    [metabase.util.log :as log]
+   [metabase.util.memoize :as memoize]
    [net.cgrand.macrovich :as macros]
    [weavejester.dependency :as dep]
-   #?@(:clj  [[clojure.math.numeric-tower :as math]
+   #?@(:clj  ([clojure.math.numeric-tower :as math]
+              [me.flowthing.pp :as pp]
               [metabase.config :as config]
               #_{:clj-kondo/ignore [:discouraged-namespace]}
               [metabase.util.jvm :as u.jvm]
+              [metabase.util.string :as u.str]
               [potemkin :as p]
-              [ring.util.codec :as codec]]))
+              [ring.util.codec :as codec])))
   #?(:clj (:import
            (java.text Normalizer Normalizer$Form)
            (java.util Locale)
@@ -31,7 +34,7 @@
 (u.ns/import-fns
   [u.format colorize format-bytes format-color format-milliseconds format-nanoseconds format-seconds])
 
-#?(:clj (p/import-vars [metabase.util.jvm
+#?(:clj (p/import-vars [u.jvm
                         all-ex-data
                         auto-retry
                         decode-base64
@@ -48,7 +51,9 @@
                         sorted-take
                         varargs
                         with-timeout
-                        with-us-locale]))
+                        with-us-locale]
+                       [u.str
+                        build-sentence]))
 
 (defmacro or-with
   "Like or, but determines truthiness with `pred`."
@@ -151,18 +156,20 @@
 (defn lower-case-en
   "Locale-agnostic version of [[clojure.string/lower-case]]. [[clojure.string/lower-case]] uses the default locale in
   conversions, turning `ID` into `ıd`, in the Turkish locale. This function always uses the `en-US` locale."
-  ^String [^CharSequence s]
-  #?(:clj  (.. s toString (toLowerCase (Locale/US)))
-     :cljs (.toLowerCase s)))
+  ^String [s]
+  (when s
+    #?(:clj  (.toLowerCase (str s) (Locale/US))
+       :cljs (.toLowerCase (str s)))))
 
 (defn upper-case-en
   "Locale-agnostic version of `clojure.string/upper-case`.
   `clojure.string/upper-case` uses the default locale in conversions, turning
   `id` into `İD`, in the Turkish locale. This function always uses the
   `en-US` locale."
-  ^String [^CharSequence s]
-  #?(:clj  (.. s toString (toUpperCase (Locale/US)))
-     :cljs (.toUpperCase s)))
+  ^String [s]
+  (when s
+    #?(:clj  (.toUpperCase (str s) (Locale/US))
+       :cljs (.toUpperCase (str s)))))
 
 (defn capitalize-en
   "Locale-agnostic version of [[clojure.string/capitalize]]."
@@ -199,22 +206,24 @@
 (def ^{:arglists '([x])} ->kebab-case-en
   "Like [[camel-snake-kebab.core/->kebab-case]], but always uses English for lower-casing, supports keywords with
   namespaces, and returns `nil` when passed `nil` (rather than throwing an exception)."
-  (wrap-csk-conversion-fn-to-handle-nil-and-namespaced-keywords ->kebab-case-en*))
+  (memoize/lru (wrap-csk-conversion-fn-to-handle-nil-and-namespaced-keywords ->kebab-case-en*) :lru/threshold 256))
 
 (def ^{:arglists '([x])} ->snake_case_en
   "Like [[camel-snake-kebab.core/->snake_case]], but always uses English for lower-casing, supports keywords with
   namespaces, and returns `nil` when passed `nil` (rather than throwing an exception)."
-  (wrap-csk-conversion-fn-to-handle-nil-and-namespaced-keywords ->snake_case_en*))
+  (memoize/lru (wrap-csk-conversion-fn-to-handle-nil-and-namespaced-keywords ->snake_case_en*) :lru/threshold 256))
 
 (def ^{:arglists '([x])} ->camelCaseEn
   "Like [[camel-snake-kebab.core/->camelCase]], but always uses English for upper- and lower-casing, supports keywords
   with namespaces, and returns `nil` when passed `nil` (rather than throwing an exception)."
-  (wrap-csk-conversion-fn-to-handle-nil-and-namespaced-keywords ->camelCaseEn*))
+  (memoize/lru (wrap-csk-conversion-fn-to-handle-nil-and-namespaced-keywords ->camelCaseEn*) :lru/threshold 256))
+
 
 (def ^{:arglists '([x])} ->SCREAMING_SNAKE_CASE_EN
   "Like [[camel-snake-kebab.core/->SCREAMING_SNAKE_CASE]], but always uses English for upper- and lower-casing, supports
   keywords with namespaces, and returns `nil` when passed `nil` (rather than throwing an exception)."
-  (wrap-csk-conversion-fn-to-handle-nil-and-namespaced-keywords ->SCREAMING_SNAKE_CASE_EN*))
+  (memoize/lru (wrap-csk-conversion-fn-to-handle-nil-and-namespaced-keywords ->SCREAMING_SNAKE_CASE_EN*)
+               :lru/threshold 256))
 
 (defn capitalize-first-char
   "Like string/capitalize, only it ignores the rest of the string
@@ -338,7 +347,7 @@
   ^Double [^Integer decimal-place, ^Number number]
   {:pre [(integer? decimal-place) (number? number)]}
   #?(:clj  (double (.setScale (bigdec number) decimal-place BigDecimal/ROUND_HALF_UP))
-     :cljs (double (.toPrecision number decimal-place))))
+     :cljs (parse-double (.toFixed number decimal-place))))
 
 (defn real-number?
   "Is `x` a real number (i.e. not a `NaN` or an `Infinity`)?"
@@ -609,9 +618,19 @@
 
      (pprint-to-str 'green some-obj)"
   (^String [x]
-   (with-out-str
-     #_{:clj-kondo/ignore [:discouraged-var]}
-     (pprint/pprint x)))
+   (#?@
+    (:clj
+     (with-out-str
+       #_{:clj-kondo/ignore [:discouraged-var]}
+       (pp/pprint x {:max-width 120}))
+
+     :cljs
+     ;; we try to set this permanently above, but it doesn't seem to work in Cljs, so just bind it every time. The
+     ;; default value wastes too much space, 120 is a little easier to read actually.
+     (binding [pprint/*print-right-margin* 120]
+       (with-out-str
+         #_{:clj-kondo/ignore [:discouraged-var]}
+         (pprint/pprint x))))))
 
   (^String [color-symb x]
    (u.format/colorize color-symb (pprint-to-str x))))
@@ -829,3 +848,29 @@
     {:to-create (when (seq create-ids) (filter #(create-ids (:id %)) new-items))
      :to-delete (when (seq delete-ids) (filter #(delete-ids (:id %)) current-items))
      :to-update (when (seq update-ids) (filter #(update-ids (:id %)) new-items))}))
+
+(defn empty-or-distinct?
+  "True if collection `xs` is either [[empty?]] or all values are [[distinct?]]."
+  [xs]
+  (or (empty? xs)
+      (apply distinct? xs)))
+
+(defn traverse
+  "Traverses a graph of nodes using a user-defined function.
+
+  `nodes`: A collection of initial nodes to start the traversal from.
+  `traverse-fn`: A function that, given a node, returns its directly connected nodes.
+
+  The function performs a breadth-first traversal starting from the initial nodes, applying
+  `traverse-fn` to each node to find connected nodes, and continues until all reachable nodes
+  have been visited. Returns a set of all traversed nodes."
+  [nodes traverse-fn]
+  (loop [to-traverse (set nodes)
+         traversed   #{}]
+    (let [item        (first to-traverse)
+          found       (traverse-fn item)
+          traversed   (conj traversed item)
+          to-traverse (set/union (disj to-traverse item) (set/difference found traversed))]
+      (if (empty? to-traverse)
+        traversed
+        (recur to-traverse traversed)))))

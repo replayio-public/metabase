@@ -41,14 +41,14 @@ describe("issue 12985 > dashboard filter dropdown/search", () => {
       }).then(({ body: { id, card_id, dashboard_id } }) => {
         cy.log("Connect dashboard filters to the nested card");
 
-        cy.request("PUT", `/api/dashboard/${dashboard_id}/cards`, {
-          cards: [
+        cy.request("PUT", `/api/dashboard/${dashboard_id}`, {
+          dashcards: [
             {
               id,
               card_id,
               row: 0,
               col: 0,
-              size_x: 10,
+              size_x: 13,
               size_y: 8,
               series: [],
               visualization_settings: {},
@@ -101,14 +101,14 @@ describe("issue 12985 > dashboard filter dropdown/search", () => {
       ({ body: { id, card_id, dashboard_id } }) => {
         cy.log("Connect dashboard filter to the aggregated card");
 
-        cy.request("PUT", `/api/dashboard/${dashboard_id}/cards`, {
-          cards: [
+        cy.request("PUT", `/api/dashboard/${dashboard_id}`, {
+          dashcards: [
             {
               id,
               card_id,
               row: 0,
               col: 0,
-              size_x: 8,
+              size_x: 11,
               size_y: 6,
               series: [],
               visualization_settings: {},
