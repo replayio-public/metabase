@@ -21,6 +21,10 @@ import { keyForSingleSeries } from "metabase/visualizations/lib/settings/series"
 
 import ChartCaption from "metabase/visualizations/components/ChartCaption";
 import { ChartSettingOrderedSimple } from "metabase/visualizations/components/settings/ChartSettingOrderedSimple";
+import {
+  getDefaultSize,
+  getMinSize,
+} from "metabase/visualizations/shared/utils/sizes";
 import FunnelNormal from "../components/FunnelNormal";
 import FunnelBar from "../components/FunnelBar";
 import LegendHeader from "../components/LegendHeader";
@@ -36,8 +40,8 @@ export default class Funnel extends Component {
 
   static noHeader = true;
 
-  static minSize = { width: 5, height: 4 };
-  static defaultSize = { width: 5, height: 4 };
+  static minSize = getMinSize("funnel");
+  static defaultSize = getDefaultSize("funnel");
 
   static isSensible({ cols, rows }) {
     return cols.length === 2;
@@ -224,39 +228,39 @@ export default class Funnel extends Component {
   }
 
   render() {
-    const { headerIcon, settings } = this.props;
+    const { headerIcon, settings, showTitle } = this.props;
+    const hasTitle = showTitle && settings["card.title"];
 
-    const hasTitle = settings["card.title"];
+    const { actionButtons, className, onChangeCardAndRun, series } = this.props;
+
+    let component = <FunnelNormal {...this.props} className="flex-full" />;
 
     if (settings["funnel.type"] === "bar") {
-      return <FunnelBar {...this.props} />;
-    } else {
-      const { actionButtons, className, onChangeCardAndRun, series } =
-        this.props;
-      return (
-        <div className={cx(className, "flex flex-column p1")}>
-          {hasTitle && (
-            <ChartCaption
-              series={series}
-              settings={settings}
-              icon={headerIcon}
+      component = <FunnelBar {...this.props} />;
+    }
+
+    return (
+      <div className={cx(className, "flex flex-column p1")}>
+        {hasTitle && (
+          <ChartCaption
+            series={series}
+            settings={settings}
+            icon={headerIcon}
+            actionButtons={actionButtons}
+            onChangeCardAndRun={onChangeCardAndRun}
+          />
+        )}
+        {!hasTitle &&
+          actionButtons && ( // always show action buttons if we have them
+            <LegendHeader
+              series={series._raw || series}
               actionButtons={actionButtons}
               onChangeCardAndRun={onChangeCardAndRun}
             />
           )}
-          {!hasTitle &&
-            actionButtons && ( // always show action buttons if we have them
-              <LegendHeader
-                className="flex-no-shrink"
-                series={series._raw || series}
-                actionButtons={actionButtons}
-                onChangeCardAndRun={onChangeCardAndRun}
-              />
-            )}
-          <FunnelNormal {...this.props} className="flex-full" />
-        </div>
-      );
-    }
+        {component}
+      </div>
+    );
   }
 }
 

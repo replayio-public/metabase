@@ -1,6 +1,6 @@
 import { t } from "ttag";
 
-import { isNotNull } from "metabase/core/utils/types";
+import { isNotNull } from "metabase/lib/types";
 import { Icon } from "metabase/core/components/Icon";
 import Select from "metabase/core/components/Select";
 import PopoverWithTrigger from "metabase/components/PopoverWithTrigger";
@@ -12,7 +12,11 @@ import {
   getGroupColor,
   getGroupNameLocalized,
 } from "metabase/lib/groups";
-import { GroupIds, UserGroupType, UserGroupsType } from "metabase/admin/types";
+import type {
+  GroupIds,
+  UserGroupType,
+  UserGroupsType,
+} from "metabase/admin/types";
 import GroupSummary from "metabase/admin/people/components/GroupSummary";
 
 type GroupSelectProps = {

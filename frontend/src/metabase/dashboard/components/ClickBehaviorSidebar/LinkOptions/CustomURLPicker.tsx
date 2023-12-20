@@ -8,16 +8,16 @@ import ModalWithTrigger from "metabase/components/ModalWithTrigger";
 import type {
   ArbitraryCustomDestinationClickBehavior,
   ClickBehavior,
-  DashboardOrderedCard,
+  DashboardCard,
 } from "metabase-types/api";
 import { isTableDisplay } from "metabase/lib/click-behavior";
 import type { UiParameter } from "metabase-lib/parameters/types";
 import { clickBehaviorIsValid } from "metabase-lib/parameters/utils/click-behavior";
 
 import { SidebarItem } from "../SidebarItem";
-import CustomLinkText from "./CustomLinkText";
+import { CustomLinkText } from "./CustomLinkText";
 
-import ValuesYouCanReference from "./ValuesYouCanReference";
+import { ValuesYouCanReference } from "./ValuesYouCanReference";
 import {
   FormDescription,
   DoneButton,
@@ -26,13 +26,13 @@ import {
 } from "./CustomURLPicker.styled";
 
 interface Props {
-  dashcard: DashboardOrderedCard;
+  dashcard: DashboardCard;
   clickBehavior: ArbitraryCustomDestinationClickBehavior;
   parameters: UiParameter[];
   updateSettings: (settings: ClickBehavior) => void;
 }
 
-function CustomURLPicker({
+export function CustomURLPicker({
   clickBehavior,
   updateSettings,
   dashcard,
@@ -117,6 +117,3 @@ function CustomURLPicker({
     </ModalWithTrigger>
   );
 }
-
-// eslint-disable-next-line import/no-default-export -- deprecated usage
-export default CustomURLPicker;

@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useMemo, useState } from "react";
-import * as React from "react";
+import type * as React from "react";
 import _ from "underscore";
 import { connect } from "react-redux";
 import { replace } from "react-router-redux";
@@ -8,6 +8,7 @@ import type { Location, LocationDescriptor } from "history";
 
 import { NotFound } from "metabase/containers/ErrorPages";
 
+import { useSelector } from "metabase/lib/redux";
 import * as Urls from "metabase/lib/urls";
 
 import Actions from "metabase/entities/actions";
@@ -15,6 +16,7 @@ import Databases from "metabase/entities/databases";
 import Questions from "metabase/entities/questions";
 import Tables from "metabase/entities/tables";
 import title from "metabase/hoc/Title";
+import { getSetting } from "metabase/selectors/settings";
 
 import { loadMetadataForCard } from "metabase/questions/actions";
 
@@ -24,8 +26,8 @@ import QuestionMoveToast from "metabase/questions/components/QuestionMoveToast";
 import type { Card, Collection, WritebackAction } from "metabase-types/api";
 import type { State } from "metabase-types/store";
 
-import Question from "metabase-lib/Question";
-import Table from "metabase-lib/metadata/Table";
+import type Question from "metabase-lib/Question";
+import type Table from "metabase-lib/metadata/Table";
 
 type OwnProps = {
   location: Location;
@@ -84,13 +86,17 @@ function ModelDetailPage({
   onChangeLocation,
 }: Props) {
   const [hasFetchedTableMetadata, setHasFetchedTableMetadata] = useState(false);
+  const hasNestedQueriesEnabled = useSelector(state =>
+    getSetting(state, "enable-nested-queries"),
+  );
 
   const database = model.database();
   const hasDataPermissions = model.query().isEditable();
   const hasActions = actions.length > 0;
   const hasActionsEnabled = database != null && database.hasActionsEnabled();
   const hasActionsTab = hasActions || hasActionsEnabled;
-  const canRunActions = hasActionsEnabled && hasDataPermissions;
+  const supportsNestedQueries =
+    database != null && database.hasFeature("nested-queries");
 
   const mainTable = useMemo(
     () => (model.isStructured() ? model.query().sourceTable() : null),
@@ -112,7 +118,9 @@ function ModelDetailPage({
     const card = model.card();
     const isModel = model.isDataset();
     if (isModel) {
-      loadMetadataForCard(card);
+      if (model.database()) {
+        loadMetadataForCard(card);
+      }
     } else {
       onChangeLocation(Urls.question(card));
     }
@@ -175,8 +183,9 @@ function ModelDetailPage({
         mainTable={mainTable}
         tab={tab}
         hasDataPermissions={hasDataPermissions}
-        canRunActions={canRunActions}
         hasActionsTab={hasActionsTab}
+        hasNestedQueriesEnabled={hasNestedQueriesEnabled}
+        supportsNestedQueries={supportsNestedQueries}
         onChangeName={handleNameChange}
         onChangeDescription={handleDescriptionChange}
         onChangeCollection={handleCollectionChange}

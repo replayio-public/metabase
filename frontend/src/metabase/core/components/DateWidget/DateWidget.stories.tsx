@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Moment } from "moment-timezone";
+// eslint-disable-next-line no-restricted-imports -- deprecated usage
+import type { Moment } from "moment-timezone";
 import type { ComponentStory } from "@storybook/react";
 import DateWidget from "./DateWidget";
 

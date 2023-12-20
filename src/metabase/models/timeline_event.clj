@@ -5,8 +5,6 @@
    [metabase.util.date-2 :as u.date]
    [metabase.util.honey-sql-2 :as h2x]
    [methodical.core :as methodical]
-   [schema.core :as s]
-   [toucan.hydrate :refer [hydrate]]
    [toucan2.core :as t2]))
 
 (def TimelineEvent
@@ -24,10 +22,27 @@
 
 ;;;; schemas
 
-(def Sources
+(def default-icon
+  "The default icon for Timeline and TimelineEvents."
+  "star")
+
+(def Icon
+  "Schema for Timeline and TimelineEvents `icon`"
+  [:enum default-icon "cake" "mail" "warning" "bell" "cloud"])
+
+(def Source
   "Timeline Event Source Schema. For Snowplow Events, where the Event is created from is important.
   Events are added from one of three sources: `collections`, `questions` (cards in backend code), or directly with an API call. An API call is indicated by having no source key in the `timeline-event` request."
-  (s/enum "collections" "question"))
+  [:enum "collections" "question"])
+
+;;;; transforms
+
+(t2/define-after-select :model/TimelineEvent
+  [timeline-event]
+  ;; We used to have a "balloons" icon but we removed it.
+  ;; Use the default icon instead. (metabase#34586, metabase#35129)
+  (update timeline-event :icon (fn [icon]
+                                 (if (= icon "balloons") default-icon icon))))
 
 ;;;; permissions
 
@@ -72,7 +87,7 @@
                               [:<= (h2x/->date start) (h2x/->date :timestamp)])
                             (when end
                               [:<= (h2x/->date :timestamp) (h2x/->date end)])]])]}]
-    (hydrate (t2/select TimelineEvent clause) :creator)))
+    (t2/hydrate (t2/select TimelineEvent clause) :creator)))
 
 (defn include-events
   "Include events on `timelines` passed in. Options are optional and include whether to return unarchived events or all

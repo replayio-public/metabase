@@ -5,7 +5,7 @@ import { singularize } from "metabase/lib/formatting";
 import type { NormalizedTable } from "metabase-types/api";
 import { isVirtualCardId } from "metabase-lib/metadata/utils/saved-questions";
 import { getAggregationOperators } from "metabase-lib/operators/utils";
-import StructuredQuery from "metabase-lib/queries/StructuredQuery";
+import type StructuredQuery from "metabase-lib/queries/StructuredQuery";
 import type Metadata from "./Metadata";
 import type Schema from "./Schema";
 import type Field from "./Field";
@@ -49,6 +49,10 @@ class Table {
     return this.fields ?? [];
   }
 
+  getMetrics() {
+    return this.metrics ?? [];
+  }
+
   isVirtualCard() {
     return isVirtualCardId(this.id);
   }
@@ -74,10 +78,6 @@ class Table {
       tableId: this.id,
       metadata: this.metadata,
     });
-  }
-
-  isSavedQuestion() {
-    return this.savedQuestionId() !== null;
   }
 
   savedQuestionId() {
@@ -161,16 +161,6 @@ class Table {
       .filter(field => field.isFK() && field.fk_target_field_id)
       .map(field => this.metadata?.field(field.fk_target_field_id)?.table)
       .filter(Boolean) as Table[];
-  }
-
-  primaryKeys(): { field: Field; index: number }[] {
-    const pks: { field: Field; index: number }[] = [];
-    this.getFields().forEach((field, index) => {
-      if (field.isPK()) {
-        pks.push({ field, index });
-      }
-    });
-    return pks;
   }
 
   clone() {

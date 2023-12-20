@@ -7,15 +7,14 @@
    [clojurewerkz.quartzite.schedule.cron :as cron]
    [clojurewerkz.quartzite.triggers :as triggers]
    [metabase.driver :as driver]
-   [metabase.models :refer [PulseChannel PulseChannelRecipient]]
+   [metabase.models :refer [PulseChannel]]
    [metabase.models.pulse :as pulse]
    [metabase.models.pulse-channel :as pulse-channel]
    [metabase.models.task-history :as task-history]
    [metabase.pulse]
    [metabase.task :as task]
-   [metabase.util.i18n :refer [trs]]
    [metabase.util.log :as log]
-   [schema.core :as s]
+   [metabase.util.malli :as mu]
    [toucan2.core :as t2]))
 
 (set! *warn-on-reflection* true)
@@ -23,24 +22,21 @@
 ;;; ------------------------------------------------- PULSE SENDING --------------------------------------------------
 
 (defn- log-pulse-exception [pulse-id exception]
-  (log/error exception (trs "Error sending Pulse {0}" pulse-id)))
+  (log/errorf exception "Error sending Pulse %d" pulse-id))
 
 (def ^:private Hour
-  (s/constrained
-   s/Int
-   #(and (<= 0 %) (>= 23 %))
-   "valid hour"))
+  [:int {:min 0 :max 23}])
 
 (def ^:private Weekday
-  (s/pred pulse-channel/day-of-week? "valid day of week"))
+  [:fn pulse-channel/day-of-week?])
 
 (def ^:private MonthDay
-  (s/enum :first :last :mid :other))
+  [:enum :first :last :mid :other])
 
 (def ^:private MonthWeek
-  (s/enum :first :last :other))
+  [:enum :first :last :other])
 
-(s/defn ^:private send-pulses!
+(mu/defn ^:private send-pulses!
   "Send any `Pulses` which are scheduled to run in the current day/hour. We use the current time and determine the
   hour of the day and day of the week according to the defined reporting timezone, or UTC. We then find all `Pulses`
   that are scheduled to run and send them. The `on-error` function is called if an exception is thrown when sending
@@ -50,27 +46,32 @@
    (send-pulses! hour weekday monthday monthweek log-pulse-exception))
 
   ([hour :- Hour, weekday :- Weekday, monthday :- MonthDay, monthweek :- MonthWeek, on-error]
-   (log/info (trs "Sending scheduled pulses..."))
+   (log/info "Sending scheduled pulses...")
    (let [pulse-id->channels (group-by :pulse_id (pulse-channel/retrieve-scheduled-channels hour weekday monthday monthweek))]
      (doseq [[pulse-id channels] pulse-id->channels]
        (try
          (task-history/with-task-history {:task         "send-pulse"
                                           :task_details {:pulse-id pulse-id}}
-           (log/debug (trs "Starting Pulse Execution: {0}" pulse-id))
+           (log/debugf "Starting Pulse Execution: %d" pulse-id)
            (when-let [pulse (pulse/retrieve-notification pulse-id :archived false)]
              (metabase.pulse/send-pulse! pulse :channel-ids (map :id channels)))
-           (log/debug (trs "Finished Pulse Execution: {0}" pulse-id)))
+           (log/debugf "Finished Pulse Execution: %d" pulse-id))
          (catch Throwable e
            (on-error pulse-id e)))))))
 
-(s/defn ^:private clear-pulse-channels!
+; Clearing pulse channels is not done synchronously in order to support undoing feature.
+(defn- clear-pulse-channels!
   []
-  (doseq [channel (t2/select PulseChannel)]
-    (let [pulse-channel-id (:id channel)]
-      (when (and (nil? (get-in channel [:details :emails]))
-                 (nil? (get-in channel [:details :channel]))
-                 (zero? (t2/count PulseChannelRecipient :pulse_channel_id pulse-channel-id)))
-        (t2/delete! PulseChannel :id pulse-channel-id)))))
+  (when-let [ids-to-delete (seq
+                            (for [channel (t2/select [PulseChannel :id :details]
+                                                     :id [:not-in {:select   [[:pulse_channel_id :id]]
+                                                                   :from     :pulse_channel_recipient
+                                                                   :group-by [:pulse_channel_id]
+                                                                   :having   [:>= :%count.* [:raw 1]]}])]
+                              (when (and (empty? (get-in channel [:details :emails]))
+                                         (not (get-in channel [:details :channel])))
+                                (:id channel))))]
+    (t2/delete! PulseChannel :id [:in ids-to-delete])))
 
 ;;; ------------------------------------------------------ Task ------------------------------------------------------
 
@@ -109,7 +110,7 @@
         (send-pulses! curr-hour curr-weekday curr-monthday curr-monthweek))
       (clear-pulse-channels!))
     (catch Throwable e
-      (log/error e (trs "SendPulses task failed")))))
+      (log/error e "SendPulses task failed"))))
 
 (def ^:private send-pulses-job-key     "metabase.task.send-pulses.job")
 (def ^:private send-pulses-trigger-key "metabase.task.send-pulses.trigger")

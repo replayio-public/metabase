@@ -1,7 +1,8 @@
 import { Component } from "react";
 import { t } from "ttag";
 
-import Select, { SelectChangeEvent } from "metabase/core/components/Select";
+import type { SelectChangeEvent } from "metabase/core/components/Select";
+import Select from "metabase/core/components/Select";
 import { SegmentedControl } from "metabase/components/SegmentedControl";
 import { capitalize } from "metabase/lib/formatting/strings";
 import type {
@@ -17,6 +18,8 @@ import {
   MINUTE_OPTIONS,
   MONTH_DAY_OPTIONS,
 } from "metabase/lib/date-time";
+import { useSelector } from "metabase/lib/redux";
+import { getApplicationName } from "metabase/selectors/whitelabel";
 
 import {
   PickerRoot,
@@ -231,7 +234,7 @@ class SchedulePicker extends Component<SchedulePickerProps> {
         {textBeforeSendTime && (
           <ScheduleDescriptionContainer>
             {textBeforeSendTime} {hour === 0 ? 12 : hour}:00{" "}
-            {amPm ? "PM" : "AM"} {timezone}, {t`your Metabase timezone`}.
+            {amPm ? "PM" : "AM"} {timezone}, <MetabaseTimeZone />.
           </ScheduleDescriptionContainer>
         )}
       </>
@@ -271,6 +274,11 @@ class SchedulePicker extends Component<SchedulePickerProps> {
       </PickerRoot>
     );
   }
+}
+
+function MetabaseTimeZone() {
+  const applicationName = useSelector(getApplicationName);
+  return <>{t`your ${applicationName} timezone`}</>;
 }
 
 // eslint-disable-next-line import/no-default-export -- deprecated usage

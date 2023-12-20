@@ -1,8 +1,8 @@
-import { screen, waitForElementToBeRemoved } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { createMockRecentItem, createMockUser } from "metabase-types/api/mocks";
-import { renderWithProviders } from "__support__/ui";
+import { renderWithProviders, waitForLoaderToBeRemoved } from "__support__/ui";
 import { setupRecentViewsEndpoints } from "__support__/server-mocks";
-import { User } from "metabase-types/api";
+import type { User } from "metabase-types/api";
 import { HomeRecentSection } from "./HomeRecentSection";
 
 interface SetupOpts {
@@ -25,7 +25,7 @@ const setup = async ({ user = createMockUser() }: SetupOpts = {}) => {
     },
   });
 
-  await waitForElementToBeRemoved(() => screen.queryByText("Loading..."));
+  await waitForLoaderToBeRemoved();
 };
 
 describe("HomeRecentSection", () => {

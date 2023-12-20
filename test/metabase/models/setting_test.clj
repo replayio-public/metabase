@@ -8,13 +8,14 @@
    [metabase.models.serialization :as serdes]
    [metabase.models.setting :as setting :refer [defsetting Setting]]
    [metabase.models.setting.cache :as setting.cache]
+   [metabase.public-settings.premium-features-test
+    :as premium-features-test]
    [metabase.test :as mt]
    [metabase.test.fixtures :as fixtures]
    [metabase.test.util :as tu]
    [metabase.util :as u]
    [metabase.util.encryption-test :as encryption-test]
    [metabase.util.i18n :as i18n :refer [deferred-tru]]
-   [schema.core :as s]
    [toucan2.core :as t2]))
 
 (use-fixtures :once (fixtures/initialize :db))
@@ -80,6 +81,13 @@
   :type       :string
   :default    "setting-default"
   :enabled?   (fn [] *enabled?*))
+
+(defsetting test-feature-setting
+  "Setting to test the `:feature` property of settings. This only shows up in dev."
+  :visibility :internal
+  :type       :string
+  :default    "setting-default"
+  :feature    :test-feature)
 
 ;; ## HELPER FUNCTIONS
 
@@ -334,6 +342,26 @@
           (mt/with-user-locale "zz"
             (is (= "TEST SETTING - WITH I18N"
                    (description)))))))))
+
+(defsetting test-dynamic-i18n-setting
+  (deferred-tru "Test setting - with i18n: {0}" (test-i18n-setting)))
+
+(deftest dynamic-description-test
+  (testing "Descriptions with i18n string should update if it depends on another setting's value."
+    (mt/with-test-user :crowberto
+      (mt/with-mock-i18n-bundles {"zz" {:messages {"Test setting - with i18n: {0}" "TEST SETTING - WITH I18N: {0}"}}}
+        (letfn [(description []
+                  (some (fn [{:keys [key description]}]
+                          (when (= :test-dynamic-i18n-setting key)
+                            description))
+                        (setting/admin-writable-site-wide-settings)))]
+          (test-i18n-setting! "test-setting-value!")
+          (is (= "Test setting - with i18n: test-setting-value!"
+                 (description)))
+          (mt/with-user-locale "zz"
+            (is (= "TEST SETTING - WITH I18N: test-setting-value!"
+                   (description))))
+          (test-i18n-setting! nil))))))
 
 
 ;;; ------------------------------------------------ BOOLEAN SETTINGS ------------------------------------------------
@@ -866,20 +894,49 @@
   (testing "Settings can be disabled"
     (testing "With no default returns nil"
       (is (nil? (test-enabled-setting-no-default)))
-      (testing "Updating the value succeeds but still get nil because no default"
-        (test-enabled-setting-default! "a value")
-        (is (nil? (test-enabled-setting-no-default)))))
+      (testing "Updating the value throws an exception"
+        (is (thrown-with-msg?
+             clojure.lang.ExceptionInfo
+             #"Setting test-enabled-setting-no-default is not enabled"
+             (test-enabled-setting-no-default! "a value")))))
     (testing "Returns default value"
       (is (= "setting-default" (test-enabled-setting-default)))
-      (testing "Updating the value succeeds but still get default"
-        (test-enabled-setting-default! "non-default-value")
-        (is (= "setting-default" (test-enabled-setting-default))))))
-  (testing "When enabled get the value"
-    (test-enabled-setting-default! "custom")
-    (test-enabled-setting-no-default! "custom")
+      (testing "Updating the value throws an exception"
+        (is (thrown-with-msg?
+             clojure.lang.ExceptionInfo
+             #"Setting test-enabled-setting-default is not enabled"
+             (test-enabled-setting-default! "a value"))))))
+  (testing "When enabled, the setting can be read and written as normal"
     (binding [*enabled?* true]
+      (test-enabled-setting-default! "custom")
+      (test-enabled-setting-no-default! "custom")
       (is (= "custom" (test-enabled-setting-default)))
       (is (= "custom" (test-enabled-setting-no-default))))))
+
+(deftest feature-test
+  (testing "Settings can be assigned an Enterprise feature flag, required for them to be enabled"
+    (premium-features-test/with-premium-features #{:test-feature}
+      (test-feature-setting! "custom")
+      (is (= "custom" (test-feature-setting))))
+
+    (premium-features-test/with-premium-features #{}
+      (is (thrown-with-msg?
+           clojure.lang.ExceptionInfo
+           #"Setting test-feature-setting is not enabled because feature :test-feature is not available"
+           (test-feature-setting! "custom 2")))
+      (is (= "setting-default" (test-feature-setting)))))
+
+  (testing "A setting cannot have both the :enabled? and :feature options at once"
+    (is (thrown-with-msg?
+         clojure.lang.ExceptionInfo
+         #"Setting :test-enabled-and-feature uses both :enabled\? and :feature options, which are mutually exclusive"
+         (defsetting test-enabled-and-feature
+           "Setting with both :enabled? and :feature options"
+           :visibility :internal
+           :type       :string
+           :default    "setting-default"
+           :enabled?   (fn [] false)
+           :feature    :test-feature)))))
 
 
 ;;; ------------------------------------------------- Misc tests -------------------------------------------------------
@@ -921,17 +978,16 @@
            [metabase.util.i18n :as i18n :refer [deferred-tru]]))
         (defsetting foo (deferred-tru "A testing setting") :visibility :public)
         (catch Exception e
-          (is (schema= {:existing-setting
-                        {:description (s/eq (deferred-tru "A testing setting"))
-                         :name        (s/eq :foo)
-                         :munged-name (s/eq "foo")
-                         :type        (s/eq :string)
-                         :sensitive?  (s/eq false)
-                         :tag         (s/eq 'java.lang.String)
-                         :namespace   (s/eq current-ns)
-                         :visibility  (s/eq :public)
-                         s/Keyword s/Any}}
-                       (ex-data e)))
+          (is (=? {:existing-setting
+                   {:description (deferred-tru "A testing setting")
+                    :name        :foo
+                    :munged-name "foo"
+                    :type        :string
+                    :sensitive?  false
+                    :tag         'java.lang.String
+                    :namespace   current-ns
+                    :visibility  :public}}
+                  (ex-data e)))
           (is (= (str "Setting :foo already registered in " current-ns)
                  (ex-message e))))
         (finally (in-ns current-ns))))))
@@ -1024,7 +1080,7 @@
                  (validate tag value)))))))))
 
 (deftest validate-description-translation-test
-  (with-redefs [metabase.models.setting/in-test? (constantly false)]
+  (with-redefs [setting/in-test? (constantly false)]
     (testing "When not in a test, defsetting descriptions must be i18n'ed"
       (try
         (walk/macroexpand-all
@@ -1033,3 +1089,104 @@
         (catch Exception e
           (is (re-matches #"defsetting docstrings must be a \*deferred\* i18n form.*"
                           (:cause (Throwable->map e)))))))))
+
+(defsetting test-setting-audit-never
+ "Test setting with no auditing"
+  :audit :never)
+
+(defsetting test-setting-audit-raw-value
+  "Test setting with auditing raw values"
+  :type  :integer
+  :audit :raw-value)
+
+(defsetting test-setting-audit-getter
+  "Test setting with auditing values returned from getter"
+  :type   :string
+  :getter (constantly "GETTER VALUE")
+  :audit  :getter)
+
+(defsetting test-sensitive-setting-audit
+  "Test that a sensitive setting has its value obfuscated before being audited"
+  :type       :string
+  :sensitive? true
+  :audit      :getter)
+
+(deftest setting-audit-test
+  (premium-features-test/with-premium-features #{:audit-app}
+    (let [last-audit-event-fn #(t2/select-one [:model/AuditLog :topic :user_id :model :details]
+                                              :topic :setting-update
+                                              {:order-by [[:id :desc]]})]
+      (testing "Settings are audited by default without their value included"
+        (mt/with-test-user :rasta
+          (test-setting-1! "DON'T INCLUDE THIS VALUE"))
+        (is (= {:topic   :setting-update
+                :user_id  (mt/user->id :rasta)
+                :model   "Setting"
+                :details {:key "test-setting-1"}}
+               (last-audit-event-fn))))
+
+      (testing "Auditing can be disabled with `:audit :never`"
+        (test-setting-audit-never! "DON'T AUDIT")
+        (is (not= "test-setting-audit-never"
+                  (-> (last-audit-event-fn) :details :key))))
+
+      (testing "Raw values (as stored in the DB) can be logged with `:audit :raw-value`"
+        (mt/with-temporary-setting-values [test-setting-audit-raw-value 99]
+          (test-setting-audit-raw-value! 100)
+          (is (= {:topic   :setting-update
+                  :user_id  nil
+                  :model   "Setting"
+                  :details {:key            "test-setting-audit-raw-value"
+                            :previous-value "99"
+                            :new-value      "100"}}
+                 (last-audit-event-fn)))))
+
+      (testing "Values returned from the setting's getter can be logged with `:audit :getter`"
+        (mt/with-temporary-setting-values [test-setting-audit-getter "PREVIOUS VALUE"]
+          (test-setting-audit-getter! "NEW RAW VALUE")
+          (is (= {:topic   :setting-update
+                  :user_id  nil
+                  :model   "Setting"
+                  :details {:key            "test-setting-audit-getter"
+                            :previous-value "GETTER VALUE"
+                            :new-value      "GETTER VALUE"}}
+                 (last-audit-event-fn)))))
+
+      (testing "Sensitive settings have their values obfuscated automatically"
+        (mt/with-temporary-setting-values [test-sensitive-setting-audit nil]
+          (test-sensitive-setting-audit! "old password")
+          (test-sensitive-setting-audit! "new password")
+          (is (= {:topic   :setting-update
+                  :user_id  nil
+                  :model   "Setting"
+                  :details {:key            "test-sensitive-setting-audit"
+                            :previous-value "**********rd"
+                            :new-value      "**********rd"}}
+                 (last-audit-event-fn))))))))
+
+(defsetting test-user-local-only-audited-setting
+  (deferred-tru  "Audited user-local setting")
+  :visibility :authenticated
+  :user-local :only
+  :audit      :raw-value)
+
+(deftest user-local-settings-audit-test
+  (premium-features-test/with-premium-features #{:audit-app}
+    (testing "User-local settings are not audited by default"
+      (mt/with-test-user :rasta
+        (test-user-local-only-setting! "DON'T AUDIT"))
+      (is (not= "test-user-local-only-setting"
+                (-> (mt/latest-audit-log-entry :setting-update) :details :key))))
+
+    (testing "User-local settings can be audited"
+      (mt/with-test-user :rasta
+        (mt/with-temporary-setting-values [test-user-local-only-audited-setting nil]
+          (test-user-local-only-audited-setting! "AUDIT ME")
+          (is (= {:topic   :setting-update
+                  :user_id  (mt/user->id :rasta)
+                  :model_id nil
+                  :model   "Setting"
+                  :details {:key            "test-user-local-only-audited-setting"
+                            :previous-value nil
+                            :new-value      "AUDIT ME"}}
+                 (mt/latest-audit-log-entry :setting-update))))))))

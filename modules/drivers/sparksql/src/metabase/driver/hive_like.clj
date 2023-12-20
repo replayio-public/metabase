@@ -3,7 +3,7 @@
    [buddy.core.codecs :as codecs]
    [clojure.string :as str]
    [honey.sql :as sql]
-   [java-time :as t]
+   [java-time.api :as t]
    [metabase.driver :as driver]
    [metabase.driver.sql-jdbc.connection :as sql-jdbc.conn]
    [metabase.driver.sql-jdbc.execute :as sql-jdbc.execute]
@@ -73,10 +73,6 @@
     #"array.*"          :type/Array
     #"map"              :type/Dictionary
     #".*"               :type/*))
-
-(defmethod sql.qp/honey-sql-version :hive-like
-  [_driver]
-  2)
 
 (defmethod sql.qp/current-datetime-honeysql-form :hive-like
   [_]

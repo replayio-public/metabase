@@ -1,6 +1,7 @@
 (ns metabase.api.revision-test
   (:require
    [clojure.test :refer :all]
+   [metabase.config :as config]
    [metabase.models.card :refer [Card]]
    [metabase.models.collection :refer [Collection]]
    [metabase.models.dashboard :refer [Dashboard]]
@@ -13,7 +14,7 @@
    [toucan2.core :as t2]
    [toucan2.tools.with-temp :as t2.with-temp]))
 
-(use-fixtures :once (fixtures/initialize :db :test-users :web-server :events))
+(use-fixtures :once (fixtures/initialize :db :test-users :web-server))
 
 (def ^:private rasta-revision-info
   (delay
@@ -25,21 +26,21 @@
 
 (defn- create-card-revision! [card-id is-creation? user]
   (revision/push-revision!
-    :object       (t2/select-one Card :id card-id)
+   {:object       (t2/select-one Card :id card-id)
     :entity       Card
     :id           card-id
     :user-id      (test.users/user->id user)
-    :is-creation? is-creation?))
+    :is-creation? is-creation?}))
 
 (defn- create-dashboard-revision!
   "Fetch the latest version of a Dashboard and save a revision entry for it. Returns the fetched Dashboard."
   [dash-id is-creation? user]
   (revision/push-revision!
-   :object       (t2/select-one Dashboard :id dash-id)
-   :entity       Dashboard
-   :id           dash-id
-   :user-id      (test.users/user->id user)
-   :is-creation? is-creation?))
+   {:object       (t2/select-one Dashboard :id dash-id)
+    :entity       Dashboard
+    :id           dash-id
+    :user-id      (test.users/user->id user)
+    :is-creation? is-creation?}))
 
 ;;; # GET /revision
 
@@ -52,7 +53,7 @@
 (deftest no-revisions-test
   (testing "Loading revisions, where there are no revisions, should work"
     (t2.with-temp/with-temp [Card {:keys [id]}]
-      (is (= [{:user {}, :diff nil, :description nil, :has_multiple_changes false}]
+      (is (= [{:user {}, :diff nil, :description "modified this.", :has_multiple_changes false}]
              (get-revisions :card id))))))
 
 ;; case with single creation revision
@@ -60,14 +61,39 @@
   (testing "Loading a single revision works"
     (t2.with-temp/with-temp [Card {:keys [id] :as card}]
       (create-card-revision! (:id card) true :rasta)
-      (is (= [{:is_reversion         false
-               :is_creation          true
-               :message              nil
-               :user                 @rasta-revision-info
-               :diff                 nil
-               :has_multiple_changes false
-               :description          "created this."}]
-             (get-revisions :card id))))))
+      (is (=? [{:is_reversion         false
+                :is_creation          true
+                :message              nil
+                :user                 @rasta-revision-info
+                :metabase_version     config/mb-version-string
+                :diff                 nil
+                :has_multiple_changes false
+                :description          "created this."}]
+              (get-revisions :card id))))))
+
+(deftest get-revision-for-entity-with-revision-exceeds-max-revision-test
+  (t2.with-temp/with-temp [Card {:keys [id] :as card} {:name "A card"}]
+    (create-card-revision! (:id card) true :rasta)
+    (doseq [i (range (inc revision/max-revisions))]
+      (t2/update! :model/Card (:id card) {:name (format "New name %d" i)})
+      (create-card-revision! (:id card) false :rasta))
+
+    (is (= ["renamed this Card from \"New name 14\" to \"New name 15\"."
+            "renamed this Card from \"New name 13\" to \"New name 14\"."
+            "renamed this Card from \"New name 12\" to \"New name 13\"."
+            "renamed this Card from \"New name 11\" to \"New name 12\"."
+            "renamed this Card from \"New name 10\" to \"New name 11\"."
+            "renamed this Card from \"New name 9\" to \"New name 10\"."
+            "renamed this Card from \"New name 8\" to \"New name 9\"."
+            "renamed this Card from \"New name 7\" to \"New name 8\"."
+            "renamed this Card from \"New name 6\" to \"New name 7\"."
+            "renamed this Card from \"New name 5\" to \"New name 6\"."
+            "renamed this Card from \"New name 4\" to \"New name 5\"."
+            "renamed this Card from \"New name 3\" to \"New name 4\"."
+            "renamed this Card from \"New name 2\" to \"New name 3\"."
+            "renamed this Card from \"New name 1\" to \"New name 2\"."
+            "modified this."]
+           (map :description (get-revisions :card id))))))
 
 ;; case with multiple revisions, including reversion
 (deftest multiple-revisions-with-reversion-test
@@ -84,36 +110,51 @@
                   :message      "because i wanted to"
                   :is_creation  false
                   :is_reversion true)
-      (is (= [{:is_reversion         true
-               :is_creation          false
-               :message              "because i wanted to"
-               :user                 @rasta-revision-info
-               :diff                 {:before {:name "something else"}
-                                      :after  {:name name}}
-               :description          "reverted to an earlier version."
-               :has_multiple_changes false}
-              {:is_reversion         false
-               :is_creation          false
-               :message              nil
-               :user                 @rasta-revision-info
-               :diff                 {:before {:name name}
-                                      :after  {:name "something else"}}
-               :description          (format "renamed this Card from \"%s\" to \"something else\"." name)
-               :has_multiple_changes false}
-              {:is_reversion         false
-               :is_creation          true
-               :message              nil
-               :user                 @rasta-revision-info
-               :diff                 nil
-               :description          "created this."
-               :has_multiple_changes false}]
-             (get-revisions :card id))))))
+      (is (=? [{:is_reversion         true
+                :is_creation          false
+                :message              "because i wanted to"
+                :user                 @rasta-revision-info
+                :metabase_version     config/mb-version-string
+                :diff                 {:before {:name "something else"}
+                                       :after  {:name name}}
+                :description          "reverted to an earlier version."
+                :has_multiple_changes false}
+               {:is_reversion         false
+                :is_creation          false
+                :message              nil
+                :user                 @rasta-revision-info
+                :metabase_version     config/mb-version-string
+                :diff                 {:before {:name name}
+                                       :after  {:name "something else"}}
+                :description          (format "renamed this Card from \"%s\" to \"something else\"." name)
+                :has_multiple_changes false}
+               {:is_reversion         false
+                :is_creation          true
+                :message              nil
+                :metabase_version     config/mb-version-string
+                :user                 @rasta-revision-info
+                :diff                 nil
+                :description          "created this."
+                :has_multiple_changes false}]
+              (get-revisions :card id))))))
 
 ;;; # POST /revision/revert
 
 (defn- strip-ids
   [objects]
   (mapv #(dissoc % :id) objects))
+
+(def ^:private default-revision-card
+  {:size_x                 4
+   :size_y                 4
+   :row                    0
+   :col                    0
+   :card_id                nil
+   :series                 []
+   :dashboard_tab_id       nil
+   :action_id              nil
+   :parameter_mappings     []
+   :visualization_settings {}})
 
 (deftest revert-test
   (testing "Reverting through API works"
@@ -140,50 +181,53 @@
                   (mt/user-http-request :rasta :post 200 "revision/revert" {:entity      :dashboard
                                                                             :id          id
                                                                             :revision_id previous-revision-id})))))
-      (is (= [{:is_reversion         true
-               :is_creation          false
-               :message              nil
-               :user                 @rasta-revision-info
-               :diff                 {:before {:cards nil}
-                                      :after  {:cards [{:size_x 4 :size_y 4 :row 0 :col 0 :card_id card-id :series [] :dashboard_tab_id nil}]}}
-               :has_multiple_changes false
-               :description          "reverted to an earlier version."}
-              {:is_reversion         false
-               :is_creation          false
-               :message              nil
-               :user                 @rasta-revision-info
-               :diff                 {:before {:cards [{:size_x 4 :size_y 4 :row 0 :col 0 :card_id card-id :series [] :dashboard_tab_id nil}]}
-                                      :after  {:cards nil}}
-               :has_multiple_changes false
-               :description          "removed a card."}
-              {:is_reversion         false
-               :is_creation          false
-               :message              nil
-               :user                 @rasta-revision-info
-               :diff                 {:before {:cards nil}
-                                      :after  {:cards [{:size_x 4 :size_y 4 :row 0 :col 0 :card_id card-id :series [] :dashboard_tab_id nil}]}}
-               :has_multiple_changes false
-               :description          "added a card."}
-              {:is_reversion         false
-               :is_creation          true
-               :message              nil
-               :user                 @rasta-revision-info
-               :diff                 nil
-               :has_multiple_changes false
-               :description          "created this."}]
-             (->> (get-revisions :dashboard id)
-                  (mapv (fn [rev]
-                          (if-not (:diff rev)
-                            rev
-                            (if (get-in rev [:diff :before :cards])
-                              (update-in rev [:diff :before :cards] strip-ids)
-                              (update-in rev [:diff :after :cards] strip-ids)))))))))))
+      (is (=? [{:is_reversion         true
+                :is_creation          false
+                :message              nil
+                :user                 @rasta-revision-info
+                :metabase_version     config/mb-version-string
+                :diff                 {:before {:cards nil}
+                                       :after  {:cards [(merge default-revision-card {:card_id card-id :dashboard_id id})]}}
+                :has_multiple_changes false
+                :description          "reverted to an earlier version."}
+               {:is_reversion         false
+                :is_creation          false
+                :message              nil
+                :user                 @rasta-revision-info
+                :metabase_version     config/mb-version-string
+                :diff                 {:before {:cards [(merge default-revision-card {:card_id card-id :dashboard_id id})]}
+                                       :after  {:cards nil}}
+                :has_multiple_changes false
+                :description          "removed a card."}
+               {:is_reversion         false
+                :is_creation          false
+                :message              nil
+                :user                 @rasta-revision-info
+                :diff                 {:before {:cards nil}
+                                       :after  {:cards [(merge default-revision-card {:card_id card-id :dashboard_id id})]}}
+                :has_multiple_changes false
+                :description          "added a card."}
+               {:is_reversion         false
+                :is_creation          true
+                :message              nil
+                :user                 @rasta-revision-info
+                :metabase_version     config/mb-version-string
+                :diff                 nil
+                :has_multiple_changes false
+                :description          "created this."}]
+              (->> (get-revisions :dashboard id)
+                   (mapv (fn [rev]
+                           (if-not (:diff rev)
+                             rev
+                             (if (get-in rev [:diff :before :cards])
+                               (update-in rev [:diff :before :cards] strip-ids)
+                               (update-in rev [:diff :after :cards] strip-ids)))))))))))
 
 (deftest permission-check-on-revert-test
   (testing "Are permissions enforced by the revert action in the revision api?"
     (mt/with-non-admin-groups-no-root-collection-perms
-      (mt/with-temp* [Collection [collection {:name "Personal collection"}]
-                      Dashboard  [dashboard {:collection_id (u/the-id collection) :name "Personal dashboard"}]]
+      (mt/with-temp [Collection collection {:name "Personal collection"}
+                     Dashboard  dashboard {:collection_id (u/the-id collection) :name "Personal dashboard"}]
         (create-dashboard-revision! (:id dashboard) true :crowberto)
         ;; update so that the revision is accepted
         (t2/update! Dashboard :id (:id dashboard) {:name "Personal dashboard edited"})
@@ -245,7 +289,7 @@
 
       ;; 7. revert to an earlier revision
       (let [earlier-revision-id (t2/select-one-pk Revision :model "Dashboard" :model_id dashboard-id {:order-by [[:timestamp :desc]]})]
-        (revision/revert! :entity Dashboard :id dashboard-id :user-id (mt/user->id :crowberto) :revision-id earlier-revision-id))
+        (revision/revert! {:entity Dashboard :id dashboard-id :user-id (mt/user->id :crowberto) :revision-id earlier-revision-id}))
 
       (is (= [{:description          "reverted to an earlier version."
                :has_multiple_changes false}
@@ -265,7 +309,6 @@
                :has_multiple_changes false}]
              (map #(select-keys % [:description :has_multiple_changes])
                   (mt/user-http-request :crowberto :get 200 "revision" :entity "dashboard" :id dashboard-id)))))))
-
 
 (deftest card-revision-description-test
   (testing "revision description for card are generated correctly"
@@ -302,7 +345,7 @@
 
       ;; 6. revert to an earlier revision
       (let [earlier-revision-id (t2/select-one-pk Revision :model "Card" :model_id card-id {:order-by [[:timestamp :desc]]})]
-        (revision/revert! :entity Card :id card-id :user-id (mt/user->id :crowberto) :revision-id earlier-revision-id))
+        (revision/revert! {:entity Card :id card-id :user-id (mt/user->id :crowberto) :revision-id earlier-revision-id}))
 
       (is (= [{:description          "reverted to an earlier version.",
                :has_multiple_changes false}
@@ -348,7 +391,7 @@
 
           ;; 2. revert to an earlier revision
           (let [earlier-revision-id (t2/select-one-pk Revision :model "Card" :model_id card-id {:order-by [[:timestamp :desc]]})]
-            (revision/revert! :entity Card :id card-id :user-id (mt/user->id :crowberto) :revision-id earlier-revision-id))
+            (revision/revert! {:entity Card :id card-id :user-id (mt/user->id :crowberto) :revision-id earlier-revision-id}))
 
           (is (= [{:description          "est revenu à une version antérieure."
                    :has_multiple_changes false}
@@ -369,10 +412,10 @@
 
       ;; 1. add 2 cards
       (t2/insert-returning-pks! DashboardCard [{:dashboard_id dashboard-id
-                                                                   :size_x       4
-                                                                   :size_y       4
-                                                                   :col          1
-                                                                   :row          1}
+                                                :size_x       4
+                                                :size_y       4
+                                                :col          1
+                                                :row          1}
                                                {:dashboard_id dashboard-id
                                                 :size_x       4
                                                 :size_y       4
@@ -381,7 +424,7 @@
       (create-dashboard-revision! dashboard-id false :crowberto)
 
       (let [earlier-revision-id (t2/select-one-pk Revision :model "Dashboard" :model_id dashboard-id {:order-by [[:timestamp :desc]]})]
-        (revision/revert! :entity Dashboard :id dashboard-id :user-id (mt/user->id :crowberto) :revision-id earlier-revision-id))
+        (revision/revert! {:entity Dashboard :id dashboard-id :user-id (mt/user->id :crowberto) :revision-id earlier-revision-id}))
 
       (is (= [{:description          "reverted to an earlier version."
                :has_multiple_changes false}

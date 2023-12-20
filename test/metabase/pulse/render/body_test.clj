@@ -4,10 +4,9 @@
    [clojure.test :refer :all]
    [clojure.walk :as walk]
    [hiccup.core :refer [html]]
+   [metabase.formatter :as formatter]
    [metabase.pulse.render.body :as body]
-   [metabase.pulse.render.common :as common]
-   [metabase.pulse.render.test-util :as render.tu]
-   [schema.core :as s]))
+   [metabase.pulse.render.test-util :as render.tu]))
 
 (use-fixtures :each
   (fn warn-possible-rebuild
@@ -48,8 +47,8 @@
   (set (map (comp count :row) results)))
 
 (defn- number [num-str num-value]
-  (common/map->NumericWrapper {:num-str   (str num-str)
-                               :num-value num-value}))
+  (formatter/map->NumericWrapper {:num-str   (str num-str)
+                                  :num-value num-value}))
 
 (def ^:private default-header-result
   [{:row       [(number "ID" "ID") (number "Latitude" "Latitude") "Last Login" "Name"]
@@ -160,18 +159,18 @@
 
 ;; Basic test that result rows are formatted correctly (dates, floating point numbers etc)
 (deftest format-result-rows
-  (is (= [{:bar-width nil, :row [(number "1" 1) (number "34.1" 34.0996) "April 1, 2014" "Stout Burgers & Beers"]}
-          {:bar-width nil, :row [(number "2" 2) (number "34.04" 34.0406) "December 5, 2014" "The Apple Pan"]}
-          {:bar-width nil, :row [(number "3" 3) (number "34.05" 34.0474) "August 1, 2014" "The Gorbals"]}]
+  (is (= [{:bar-width nil, :row [(number "1" 1) (number "34.1" 34.0996) "April 1, 2014, 8:30 AM" "Stout Burgers & Beers"]}
+          {:bar-width nil, :row [(number "2" 2) (number "34.04" 34.0406) "December 5, 2014, 3:15 PM" "The Apple Pan"]}
+          {:bar-width nil, :row [(number "3" 3) (number "34.05" 34.0474) "August 1, 2014, 12:45 PM" "The Gorbals"]}]
          (rest (#'body/prep-for-html-rendering pacific-tz {} {:cols test-columns :rows test-data})))))
 
 ;; Testing the bar-column, which is the % of this row relative to the max of that column
 (deftest bar-column
-  (is (= [{:bar-width (float 85.249),  :row [(number "1" 1) (number "34.1" 34.0996) "April 1, 2014" "Stout Burgers & Beers"]}
-          {:bar-width (float 85.1015), :row [(number "2" 2) (number "34.04" 34.0406) "December 5, 2014" "The Apple Pan"]}
-          {:bar-width (float 85.1185), :row [(number "3" 3) (number "34.05" 34.0474) "August 1, 2014" "The Gorbals"]}]
+  (is (= [{:bar-width (float 85.249), :row [(number "1" 1) (number "34.1" 34.0996) "April 1, 2014, 8:30 AM" "Stout Burgers & Beers"]}
+          {:bar-width (float 85.1015), :row [(number "2" 2) (number "34.04" 34.0406) "December 5, 2014, 3:15 PM" "The Apple Pan"]}
+          {:bar-width (float 85.1185), :row [(number "3" 3) (number "34.05" 34.0474) "August 1, 2014, 12:45 PM" "The Gorbals"]}]
          (rest (#'body/prep-for-html-rendering pacific-tz {} {:cols test-columns :rows test-data}
-                                               {:bar-column second, :min-value 0, :max-value 40})))))
+                 {:bar-column second, :min-value 0, :max-value 40})))))
 
 (defn- add-rating
   "Injects `RATING-OR-COL` and `DESCRIPTION-OR-COL` into `COLUMNS-OR-ROW`"
@@ -210,12 +209,12 @@
 
 ;; Result rows should include only the remapped column value, not the original
 (deftest include-only-remapped-column-name
-  (is (= [[(number "1" 1) (number "34.1" 34.0996) "Bad" "April 1, 2014" "Stout Burgers & Beers"]
-          [(number "2" 2) (number "34.04" 34.0406) "Ok" "December 5, 2014" "The Apple Pan"]
-          [(number "3" 3) (number "34.05" 34.0474) "Good" "August 1, 2014" "The Gorbals"]]
-         (map :row (rest (#'body/prep-for-html-rendering  pacific-tz
-                                                          {}
-                                                          {:cols test-columns-with-remapping :rows test-data-with-remapping}))))))
+  (is (= [[(number "1" 1) (number "34.1" 34.0996) "Bad" "April 1, 2014, 8:30 AM" "Stout Burgers & Beers"]
+          [(number "2" 2) (number "34.04" 34.0406) "Ok" "December 5, 2014, 3:15 PM" "The Apple Pan"]
+          [(number "3" 3) (number "34.05" 34.0474) "Good" "August 1, 2014, 12:45 PM" "The Gorbals"]]
+         (map :row (rest (#'body/prep-for-html-rendering pacific-tz
+                           {}
+                           {:cols test-columns-with-remapping :rows test-data-with-remapping}))))))
 
 ;; There should be no truncation warning if the number of rows/cols is fewer than the row/column limit
 (deftest no-truncation-warnig
@@ -234,12 +233,12 @@
                                 :coercion_strategy :Coercion/ISO8601->DateTime}))
 
 (deftest cols-with-semantic-types
-  (is (= [{:bar-width nil, :row [(number "1" 1) (number "34.1" 34.0996) "April 1, 2014" "Stout Burgers & Beers"]}
-          {:bar-width nil, :row [(number "2" 2) (number "34.04" 34.0406) "December 5, 2014" "The Apple Pan"]}
-          {:bar-width nil, :row [(number "3" 3) (number "34.05" 34.0474) "August 1, 2014" "The Gorbals"]}]
+  (is (= [{:bar-width nil, :row [(number "1" 1) (number "34.1" 34.0996) "April 1, 2014, 8:30 AM" "Stout Burgers & Beers"]}
+          {:bar-width nil, :row [(number "2" 2) (number "34.04" 34.0406) "December 5, 2014, 3:15 PM" "The Apple Pan"]}
+          {:bar-width nil, :row [(number "3" 3) (number "34.05" 34.0474) "August 1, 2014, 12:45 PM" "The Gorbals"]}]
          (rest (#'body/prep-for-html-rendering pacific-tz
-                                               {}
-                                               {:cols test-columns-with-date-semantic-type :rows test-data})))))
+                 {}
+                 {:cols test-columns-with-date-semantic-type :rows test-data})))))
 
 (deftest error-test
   (testing "renders error"
@@ -277,7 +276,7 @@
                                          :semantic_type nil}]
                                  :rows [["foo"]]}))))
   (testing "renders date"
-    (is (= "April 1, 2014"
+    (is (= "April 1, 2014, 8:30 AM"
            (render-scalar-value {:cols [{:name         "date",
                                          :display_name "DATE",
                                          :base_type    :type/DateTime
@@ -292,12 +291,12 @@
                      :rows [["foo"]]}]
         (is (= "foo"
                (:render/text (body/render :scalar nil pacific-tz nil nil results))))
-        (is (schema= {:attachments (s/eq nil)
-                      :content     [(s/one (s/eq :div) "div tag")
-                                    (s/one {:style s/Str} "style map")
-                                    (s/one (s/eq "foo") "content")]
-                      :render/text (s/eq "foo")}
-                     (body/render :scalar nil pacific-tz nil nil results)))))
+        (is (=? {:attachments nil
+                 :content     [:div
+                               {:style string?}
+                               "foo"]
+                 :render/text "foo"}
+                (body/render :scalar nil pacific-tz nil nil results)))))
     (testing "for smartscalars"
       (let [cols    [{:name         "value",
                       :display_name "VALUE",
@@ -332,16 +331,16 @@
                                  :last-change nil
                                  :col "value"
                                  :last-value 20.0}]}]
-        (is (= "40\nUp 133.33%. Was 30 last month"
+        (is (= "40\nUp 133.33% vs. previous month: 30"
                (:render/text (body/render :smartscalar nil pacific-tz nil nil results))))
-        (is (= "40\nNo change. Was 40 last month"
+        (is (= "40\nNo change vs. previous month: 40"
                (:render/text (body/render :smartscalar nil pacific-tz nil nil sameres))))
         (is (= "20\nNothing to compare to."
                (:render/text (body/render :smartscalar nil pacific-tz nil nil dumbres))))
-        (is (schema= {:attachments (s/eq nil)
-                      :content     (s/pred vector? "hiccup vector")
-                      :render/text (s/eq "40\nUp 133.33%. Was 30 last month")}
-                     (body/render :smartscalar nil pacific-tz nil nil results)))))))
+        (is (=? {:attachments nil
+                 :content     vector?
+                 :render/text "40\nUp 133.33% vs. previous month: 30"}
+                (body/render :smartscalar nil pacific-tz nil nil results)))))))
 
 (defn- replace-style-maps [hiccup-map]
   (walk/postwalk (fn [maybe-map]
@@ -421,11 +420,15 @@
          (render-bar-graph {:cols         default-columns
                             :rows         [[10.0 1] [5.0 10] [2.50 20] [1.25 nil]]
                             :viz-settings {:graph.metrics ["NumPurchased"]}}))))
-  (testing "Check to make sure we allow nil values for the y-axis"
-    (is (has-inline-image?
-         (render-bar-graph {:cols         default-columns
-                            :rows         [[10.0 1] [5.0 10] [2.50 20] [nil 30]]
-                            :viz-settings {:graph.metrics ["NumPurchased"]}}))))
+  (testing "Check to make sure we allow nil values for the x-axis"
+    (let [graph (render-bar-graph {:cols         default-columns
+                                   :rows         [[10.0 1] [5.0 10] [2.50 20] [nil 30]]
+                                   :viz-settings {:graph.metrics ["NumPurchased"]}})]
+      (is (has-inline-image? graph))
+      (is (= graph
+             (render-bar-graph {:cols         default-columns
+                                :rows         [[10.0 1] [5.0 10] [2.50 20] ["(empty)" 30]]
+                                :viz-settings {:graph.metrics ["NumPurchased"]}})))))
   (testing "Check to make sure we allow nil values for both x and y on different rows"
     (is (has-inline-image?
          (render-bar-graph {:cols         default-columns
@@ -576,15 +579,16 @@
                                     x))
                                 html-tree))]
     (testing "Renders without error"
-      (let [rendered-info (render [["Doohickey" 75] ["Widget" 25]] {:show_values true})]
+      (let [rendered-info (render [[nil 10] ["Doohickey" 65] ["Widget" 25]] {:show_values true})]
         (is (has-inline-image? rendered-info))))
     (testing "Includes percentages"
       (is (= [:div
               [:img]
               [:table
-               [:tr [:td [:span "•"]] [:td "Doohickey"] [:td "75%"]]
+               [:tr [:td [:span "•"]] [:td "(empty)"] [:td "10%"]]
+               [:tr [:td [:span "•"]] [:td "Doohickey"] [:td "65%"]]
                [:tr [:td [:span "•"]] [:td "Widget"] [:td "25%"]]]]
-             (prune (:content (render [["Doohickey" 75] ["Widget" 25]]))))))))
+             (prune (:content (render [[nil 10] ["Doohickey" 65] ["Widget" 25]]))))))))
 
 (deftest render-progress
   (let [col [{:name          "NumPurchased",

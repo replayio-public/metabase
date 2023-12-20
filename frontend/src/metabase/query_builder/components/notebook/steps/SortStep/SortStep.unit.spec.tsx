@@ -22,6 +22,7 @@ function setup(step = createMockNotebookStep()) {
     <SortStep
       step={step}
       query={step.query}
+      stageIndex={step.stageIndex}
       topLevelQuery={step.topLevelQuery}
       color="brand"
       isLastOpened={false}
@@ -99,6 +100,17 @@ describe("SortStep", () => {
     const orderBy = gerRecentOrderByClause();
     expect(orderBy.displayName).toBe("Created At");
     expect(orderBy.direction).toBe("asc");
+  });
+
+  it("shouldn't show already used columns when adding a new order-by", () => {
+    const { query, columnInfo } = createQueryWithOrderBy();
+    setup(createMockNotebookStep({ topLevelQuery: query }));
+
+    userEvent.click(getIcon("add"));
+
+    expect(
+      screen.queryByRole("option", { name: columnInfo.displayName }),
+    ).not.toBeInTheDocument();
   });
 
   it("should toggle an order by direction", () => {

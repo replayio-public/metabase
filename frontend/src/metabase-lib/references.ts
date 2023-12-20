@@ -1,5 +1,5 @@
 import _ from "underscore";
-import {
+import type {
   AggregateFieldReference,
   DimensionReference,
   DimensionReferenceWithOptions,
@@ -82,7 +82,7 @@ export const getNormalizedDimensionReference = (
   return mbql;
 };
 
-export const getDimensionReferenceWithoutOptions = (
+const getDimensionReferenceWithoutOptions = (
   mbql: DimensionReferenceWithOptions,
   optionsKeysToOmit: string[],
 ): DimensionReferenceWithOptions => {

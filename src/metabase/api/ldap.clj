@@ -8,7 +8,6 @@
    [metabase.models.setting :as setting :refer [defsetting]]
    [metabase.util.i18n :refer [deferred-tru tru]]
    [metabase.util.log :as log]
-   [metabase.util.schema :as su]
    [toucan2.core :as t2]))
 
 (set! *warn-on-reflection* true)
@@ -88,7 +87,8 @@
                         (throw (ex-info (tru "Unable to connect to LDAP server with current settings")
                                         (humanize-error-messages result))))))
                   (setting/set-value-of-type! :boolean :ldap-enabled new-value)))
-  :default    false)
+  :default    false
+  :audit      :getter)
 
 (defn- update-password-if-needed
   "Do not update password if `new-password` is an obfuscated value of the current password."
@@ -98,11 +98,10 @@
       current-password
       new-password)))
 
-#_{:clj-kondo/ignore [:deprecated-var]}
-(api/defendpoint-schema PUT "/settings"
+(api/defendpoint PUT "/settings"
   "Update LDAP related settings. You must be a superuser to do this."
   [:as {settings :body}]
-  {settings su/Map}
+  {settings :map}
   (api/check-superuser)
   (let [ldap-settings (-> settings
                           (select-keys (keys ldap/mb-settings->ldap-details))

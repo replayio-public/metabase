@@ -3,14 +3,14 @@ import { t } from "ttag";
 import _ from "underscore";
 
 import type {
-  DashboardOrderedCard,
+  DashboardCard,
   ClickBehavior,
   ClickBehaviorType,
   DatasetColumn,
 } from "metabase-types/api";
 
 import { hasActionsMenu } from "metabase/lib/click-behavior";
-import Column from "./Column";
+import { Column } from "./Column";
 
 const COLUMN_SORTING_ORDER_BY_CLICK_BEHAVIOR_TYPE = [
   "link",
@@ -20,7 +20,7 @@ const COLUMN_SORTING_ORDER_BY_CLICK_BEHAVIOR_TYPE = [
 
 function explainClickBehaviorType(
   type: ClickBehaviorType,
-  dashcard: DashboardOrderedCard,
+  dashcard: DashboardCard,
 ) {
   return {
     action: t`Execute an action`,
@@ -34,14 +34,14 @@ function explainClickBehaviorType(
 
 interface Props {
   columns: DatasetColumn[];
-  dashcard: DashboardOrderedCard;
+  dashcard: DashboardCard;
   getClickBehaviorForColumn: (
     column: DatasetColumn,
   ) => ClickBehavior | undefined;
   onColumnClick: (column: DatasetColumn) => void;
 }
 
-function TableClickBehaviorView({
+export function TableClickBehaviorView({
   columns,
   dashcard,
   getClickBehaviorForColumn,
@@ -96,6 +96,3 @@ function TableClickBehaviorView({
 
   return <>{groupedColumns.map(renderColumnGroup)}</>;
 }
-
-// eslint-disable-next-line import/no-default-export -- deprecated usage
-export default TableClickBehaviorView;

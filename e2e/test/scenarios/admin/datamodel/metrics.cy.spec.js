@@ -5,8 +5,11 @@ import {
   openOrdersTable,
   visualize,
   summarize,
+  filter,
+  filterField,
 } from "e2e/support/helpers";
 import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
+import { createMetric } from "e2e/support/helpers/e2e-table-metadata-helpers";
 
 const { ORDERS, ORDERS_ID } = SAMPLE_DATABASE;
 
@@ -18,7 +21,7 @@ describe("scenarios > admin > datamodel > metrics", () => {
   });
 
   it("should be possible to sort by metric (metabase#8283)", () => {
-    cy.request("POST", "/api/metric", {
+    createMetric({
       name: "Revenue",
       description: "Sum of orders subtotal",
       table_id: ORDERS_ID,
@@ -81,6 +84,16 @@ describe("scenarios > admin > datamodel > metrics", () => {
       );
     });
 
+    it("should show how to create metrics", () => {
+      cy.visit("/reference/metrics");
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText(
+        "Metrics are the official numbers that your team cares about",
+      );
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText("Learn how to create metrics");
+    });
+
     it("custom expression aggregation should work in metrics (metabase#22700)", () => {
       cy.intercept("POST", "/api/dataset").as("dataset");
 
@@ -94,8 +107,7 @@ describe("scenarios > admin > datamodel > metrics", () => {
       // `data`, `filtered by` and `view`
       cy.wait(["@dataset", "@dataset", "@dataset"]);
 
-      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-      cy.findByText("Count").click();
+      cy.get(".GuiBuilder").findByText("Count").click();
       popover().contains("Custom Expression").click();
 
       cy.get(".ace_text-input")
@@ -107,15 +119,16 @@ describe("scenarios > admin > datamodel > metrics", () => {
       cy.findByPlaceholderText("Something nice and descriptive").type("Foo");
 
       cy.button("Done").click();
+
       cy.wait("@dataset");
 
-      // The test should fail on this step first
-      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-      cy.findByText("Result: 93.8");
+      // verify popover is closed, otherwise its state will reset
+      cy.findByRole("grid").should("not.exist");
+
+      cy.get(".GuiBuilder").findByText("Result: 93.8");
 
       // Let's make sure the custom expression is still preserved
-      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-      cy.findByText("Foo").click();
+      cy.get(".GuiBuilder").findByText("Foo").click();
       cy.get(".ace_content").should("contain", customExpression);
     });
   });
@@ -123,7 +136,7 @@ describe("scenarios > admin > datamodel > metrics", () => {
   describe("with metrics", () => {
     beforeEach(() => {
       // CREATE METRIC
-      cy.request("POST", "/api/metric", {
+      createMetric({
         definition: {
           aggregation: ["count"],
           filter: ["<", ["field", ORDERS.TOTAL, null], 100],
@@ -133,6 +146,48 @@ describe("scenarios > admin > datamodel > metrics", () => {
         description: "Count of orders with a total under $100.",
         table_id: ORDERS_ID,
       });
+    });
+
+    it("should show no questions based on a new metric", () => {
+      cy.visit("/reference/metrics/1/questions");
+      cy.findAllByText("Questions about orders < 100");
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText("Loading...");
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText("Loading...").should("not.exist");
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText(
+        "Questions about this metric will appear here as they're added",
+      );
+    });
+
+    it("should see a newly asked question in its questions list", () => {
+      // Ask a new qustion
+      cy.visit("/reference/metrics/1/questions");
+      cy.get(".full").find(".Button").click();
+
+      filter();
+      filterField("Total", {
+        placeholder: "Min",
+        value: "50",
+      });
+
+      cy.findByTestId("apply-filters").click();
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText("Save").click();
+      cy.findAllByText("Save").last().click();
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText("Not now").click();
+
+      // Check the list
+      cy.visit("/reference/metrics/1/questions");
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText("Our analysis").should("not.exist");
+      cy.findAllByText("Questions about orders < 100");
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText(
+        "Orders, orders < 100, Filtered by Total is greater than or equal to 50",
+      );
     });
 
     it("should show the metric detail view for a specific id", () => {
@@ -146,7 +201,7 @@ describe("scenarios > admin > datamodel > metrics", () => {
     it("should update that metric", () => {
       cy.visit("/admin");
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-      cy.contains("Data Model").click();
+      cy.contains("Table Metadata").click();
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.contains("Metrics").click();
 
@@ -206,7 +261,7 @@ describe("scenarios > admin > datamodel > metrics", () => {
 
   describe("custom metrics", () => {
     it("should save the metric using custom expressions (metabase#13022)", () => {
-      cy.request("POST", "/api/metric", {
+      createMetric({
         name: "13022_Metric",
         desription: "desc",
         table_id: ORDERS_ID,
@@ -268,17 +323,7 @@ describe("scenarios > admin > datamodel > metrics", () => {
   });
 });
 
-// Ugly hack to prevent failures that started after https://github.com/metabase/metabase/pull/24682 has been merged.
-// For unknon reasons, popover doesn't open with expanded list of all Sample Database tables. Rather. it shows
-// Sample Database (collapsed) only. We need to click on it to expand it.
-// This conditional mechanism prevents failures even if that popover opens expanded in the future.
 function selectTable(tableName) {
   cy.findByText("Select a table").click();
-
-  cy.get(".List-section").then($list => {
-    if ($list.length !== 5) {
-      cy.findByText("Sample Database").click();
-    }
-    cy.findByText(tableName).click();
-  });
+  popover().findByText(tableName).click();
 }

@@ -1,6 +1,6 @@
 import { Group } from "@visx/group";
 import { LinePath } from "@visx/shape";
-import { PositionScale } from "@visx/shape/lib/types";
+import type { PositionScale } from "@visx/shape/lib/types";
 import { getY } from "metabase/static-viz/components/XYChart/utils";
 
 import type {
@@ -23,7 +23,7 @@ export const LineSeries = ({
 }: LineSeriesProps) => {
   return (
     <Group>
-      {multipleSeries.map((series, seriesIndex) => {
+      {multipleSeries.map(series => {
         const yScale =
           series.yAxisPosition === "left" ? yScaleLeft : yScaleRight;
         if (!yScale) {

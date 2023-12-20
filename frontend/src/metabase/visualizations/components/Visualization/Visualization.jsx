@@ -5,11 +5,12 @@ import { t } from "ttag";
 import { assoc } from "icepick";
 import _ from "underscore";
 
+import { Mode } from "metabase/visualizations/click-actions/Mode";
 import ExplicitSize from "metabase/components/ExplicitSize";
 
 import * as MetabaseAnalytics from "metabase/lib/analytics";
 import { formatNumber } from "metabase/lib/formatting";
-import Utils from "metabase/lib/utils";
+import { equals } from "metabase/lib/utils";
 
 import {
   getVisualizationTransformed,
@@ -17,7 +18,7 @@ import {
 } from "metabase/visualizations";
 import ChartCaption from "metabase/visualizations/components/ChartCaption";
 import ChartTooltip from "metabase/visualizations/components/ChartTooltip";
-import { ConnectedChartClickActions } from "metabase/visualizations/components/ChartClickActions";
+import { ConnectedClickActionsPopover } from "metabase/visualizations/components/ClickActions";
 
 import { performDefaultAction } from "metabase/visualizations/lib/action";
 import {
@@ -27,18 +28,18 @@ import {
 import { getComputedSettingsForSeries } from "metabase/visualizations/lib/settings/visualization";
 import { isSameSeries, getCardKey } from "metabase/visualizations/lib/utils";
 
-import { getMode } from "metabase/modes/lib/modes";
+import { getMode } from "metabase/visualizations/click-actions/lib/modes";
 import { getFont } from "metabase/styled-components/selectors";
+import { getIsShowingRawTable } from "metabase/query_builder/selectors";
 
 import ErrorBoundary from "metabase/ErrorBoundary";
-import { isRegularClickAction } from "metabase/modes/types";
+import { isRegularClickAction } from "metabase/visualizations/types";
 import Question from "metabase-lib/Question";
-import Mode from "metabase-lib/Mode";
 import { datasetContainsNoResults } from "metabase-lib/queries/utils/dataset";
 import { memoizeClass } from "metabase-lib/utils";
 
 import ChartSettingsErrorButton from "./ChartSettingsErrorButton";
-import ErrorView from "./ErrorView";
+import { ErrorView } from "./ErrorView";
 import LoadingView from "./LoadingView";
 import NoResultsView from "./NoResultsView";
 import {
@@ -49,6 +50,7 @@ import {
 } from "./Visualization.styled";
 
 const defaultProps = {
+  errorMessageOverride: undefined,
   showTitle: false,
   isDashboard: false,
   isEditing: false,
@@ -63,6 +65,7 @@ const defaultProps = {
 
 const mapStateToProps = state => ({
   fontFamily: getFont(state),
+  isRawTable: getIsShowingRawTable(state),
 });
 
 class Visualization extends PureComponent {
@@ -84,9 +87,9 @@ class Visualization extends PureComponent {
   UNSAFE_componentWillReceiveProps(newProps) {
     if (
       !isSameSeries(newProps.rawSeries, this.props.rawSeries) ||
-      !Utils.equals(newProps.settings, this.props.settings) ||
-      !Utils.equals(newProps.timelineEvents, this.props.timelineEvents) ||
-      !Utils.equals(
+      !equals(newProps.settings, this.props.settings) ||
+      !equals(newProps.timelineEvents, this.props.timelineEvents) ||
+      !equals(
         newProps.selectedTimelineEventIds,
         this.props.selectedTimelineEventIds,
       )
@@ -100,9 +103,7 @@ class Visualization extends PureComponent {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (
-      !Utils.equals(this.getWarnings(prevProps, prevState), this.getWarnings())
-    ) {
+    if (!equals(this.getWarnings(prevProps, prevState), this.getWarnings())) {
       this.updateWarnings();
     }
   }
@@ -228,7 +229,11 @@ class Visualization extends PureComponent {
     if (!clicked) {
       return [];
     }
-    const { metadata, getExtraDataForClick = () => ({}) } = this.props;
+    const {
+      metadata,
+      isRawTable,
+      getExtraDataForClick = () => ({}),
+    } = this.props;
 
     const seriesIndex = clicked.seriesIndex || 0;
     const card = this.state.series[seriesIndex].card;
@@ -237,8 +242,14 @@ class Visualization extends PureComponent {
 
     return mode
       ? mode.actionsForClick(
-          { ...clicked, extraData: getExtraDataForClick(clicked) },
-          {},
+          {
+            ...clicked,
+            extraData: {
+              ...getExtraDataForClick(clicked),
+              isRawTable,
+            },
+          },
+          this.state.computedSettings,
         )
       : [];
   }
@@ -322,6 +333,7 @@ class Visualization extends PureComponent {
       actionButtons,
       className,
       dashcard,
+      errorMessageOverride,
       showTitle,
       isDashboard,
       width,
@@ -454,7 +466,11 @@ class Visualization extends PureComponent {
 
     return (
       <ErrorBoundary>
-        <VisualizationRoot className={className} style={style}>
+        <VisualizationRoot
+          className={className}
+          style={style}
+          data-testid="visualization-root"
+        >
           {!!hasHeader && (
             <VisualizationHeader>
               <ChartCaption
@@ -462,6 +478,7 @@ class Visualization extends PureComponent {
                 settings={settings}
                 icon={headerIcon}
                 actionButtons={extra}
+                width={width}
                 onChangeCardAndRun={
                   this.props.onChangeCardAndRun && !replacementContent
                     ? this.handleOnChangeCardAndRun
@@ -476,7 +493,7 @@ class Visualization extends PureComponent {
             <NoResultsView isSmall={small} />
           ) : error ? (
             <ErrorView
-              error={error}
+              error={errorMessageOverride ?? error}
               icon={errorIcon}
               isSmall={small}
               isDashboard={isDashboard}
@@ -493,6 +510,7 @@ class Visualization extends PureComponent {
                 // NOTE: CardVisualization class used to target ExplicitSize HOC
                 className="CardVisualization flex-full flex-basis-none"
                 isPlaceholder={isPlaceholder}
+                isMobile={isMobile}
                 series={series}
                 settings={settings}
                 card={series[0].card} // convenience for single-series visualizations
@@ -517,7 +535,7 @@ class Visualization extends PureComponent {
           )}
           <ChartTooltip series={series} hovered={hovered} settings={settings} />
           {this.props.onChangeCardAndRun && (
-            <ConnectedChartClickActions
+            <ConnectedClickActionsPopover
               clicked={clicked}
               clickActions={regularClickActions}
               onChangeCardAndRun={this.handleOnChangeCardAndRun}
@@ -537,7 +555,7 @@ Visualization.defaultProps = defaultProps;
 export default _.compose(
   ExplicitSize({
     selector: ".CardVisualization",
-    refreshMode: props => (props.isVisible ? "throttle" : "debounce"),
+    refreshMode: props => (props.isVisible ? "throttle" : "debounceLeading"),
   }),
   connect(mapStateToProps),
   memoizeClass("_getQuestionForCardCached"),

@@ -1,39 +1,34 @@
-import {
-  ChangeEvent,
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useState,
-} from "react";
+import type { ChangeEvent } from "react";
+import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import { connect } from "react-redux";
 import { t } from "ttag";
 import _ from "underscore";
 import Button from "metabase/core/components/Button";
-import Radio, { RadioOption } from "metabase/core/components/Radio";
-import Select, {
-  Option,
-  SelectChangeEvent,
-} from "metabase/core/components/Select";
+import type { RadioOption } from "metabase/core/components/Radio";
+import Radio from "metabase/core/components/Radio";
+import type { SelectChangeEvent } from "metabase/core/components/Select";
+import Select, { Option } from "metabase/core/components/Select";
 import SelectButton from "metabase/core/components/SelectButton";
 import ModalContent from "metabase/components/ModalContent";
 import { useSafeAsyncFunction } from "metabase/hooks/use-safe-async-function";
 import Tables from "metabase/entities/tables";
 import Questions from "metabase/entities/questions";
-import {
+import type {
   ValuesSourceConfig,
   ValuesSourceType,
   Parameter,
   ParameterValues,
   ParameterValue,
 } from "metabase-types/api";
-import { State } from "metabase-types/store";
-import Question from "metabase-lib/Question";
-import Field from "metabase-lib/metadata/Field";
+import type { State } from "metabase-types/store";
+import type Question from "metabase-lib/Question";
+import type Field from "metabase-lib/metadata/Field";
 import { getQuestionVirtualTableId } from "metabase-lib/metadata/utils/saved-questions";
-import { getFields } from "metabase-lib/parameters/utils/parameter-fields";
 import { isValidSourceConfig } from "metabase-lib/parameters/utils/parameter-source";
-import { ParameterWithTemplateTagTarget } from "metabase-lib/parameters/types";
-import { fetchParameterValues, FetchParameterValuesOpts } from "../../actions";
+import type { UiParameter } from "metabase-lib/parameters/types";
+import { hasFields } from "metabase-lib/parameters/utils/parameter-fields";
+import type { FetchParameterValuesOpts } from "../../actions";
+import { fetchParameterValues } from "../../actions";
 import { ModalLoadingAndErrorWrapper } from "./ValuesSourceModal.styled";
 import {
   ModalHelpMessage,
@@ -50,7 +45,7 @@ import {
 const NEW_LINE = "\n";
 
 interface ModalOwnProps {
-  parameter: ParameterWithTemplateTagTarget;
+  parameter: UiParameter;
   sourceType: ValuesSourceType;
   sourceConfig: ValuesSourceConfig;
   onChangeSourceType: (sourceType: ValuesSourceType) => void;
@@ -99,6 +94,7 @@ const ValuesSourceTypeModal = ({
     >
       {sourceType === null ? (
         <FieldSourceModal
+          // if sourceType === null the parameter must have fields
           parameter={parameter}
           sourceType={sourceType}
           sourceConfig={sourceConfig}
@@ -131,7 +127,7 @@ const ValuesSourceTypeModal = ({
 };
 
 interface SourceTypeOptionsProps {
-  parameter: Parameter;
+  parameter: UiParameter;
   parameterValues?: ParameterValue[];
   sourceType: ValuesSourceType;
   sourceConfig: ValuesSourceConfig;
@@ -174,7 +170,7 @@ const SourceTypeOptions = ({
 };
 
 interface FieldSourceModalProps {
-  parameter: Parameter;
+  parameter: UiParameter;
   sourceType: ValuesSourceType;
   sourceConfig: ValuesSourceConfig;
   onFetchParameterValues: (
@@ -204,7 +200,6 @@ const FieldSourceModal = ({
     [values],
   );
 
-  const hasFields = getFields(parameter).length > 0;
   const hasEmptyValues = !isLoading && values.length === 0;
 
   return (
@@ -223,11 +218,7 @@ const FieldSourceModal = ({
         </ModalSection>
       </ModalPane>
       <ModalMain>
-        {!hasFields ? (
-          <ModalEmptyState>
-            {t`You haven’t connected a field to this filter yet, so there aren’t any values.`}
-          </ModalEmptyState>
-        ) : hasEmptyValues ? (
+        {hasEmptyValues ? (
           <ModalEmptyState>
             {t`We don’t have any cached values for the connected fields. Try one of the other options, or change this widget to a search box.`}
           </ModalEmptyState>
@@ -427,13 +418,17 @@ const getSupportedFields = (question: Question) => {
   return fields.filter(field => field.isString());
 };
 
+/**
+ * if !hasFields(parameter) then exclude the option to set the source type to
+ * "From connected fields" i.e. values_source_type=null
+ */
 const getSourceTypeOptions = (
-  parameter: ParameterWithTemplateTagTarget,
+  parameter: UiParameter,
 ): RadioOption<ValuesSourceType>[] => {
   return [
-    ...(parameter.hasVariableTemplateTagTarget
-      ? []
-      : [{ name: t`From connected fields`, value: null }]),
+    ...(hasFields(parameter)
+      ? [{ name: t`From connected fields`, value: null }]
+      : []),
     { name: t`From another model or question`, value: "card" },
     { name: t`Custom list`, value: "static-list" },
   ];

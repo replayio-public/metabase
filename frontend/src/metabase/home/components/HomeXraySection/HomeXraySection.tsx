@@ -1,4 +1,5 @@
-import { ChangeEvent, useCallback, useMemo, useState } from "react";
+import type { ChangeEvent } from "react";
+import { useCallback, useMemo, useState } from "react";
 import _ from "underscore";
 import { t } from "ttag";
 import * as Urls from "metabase/lib/urls";
@@ -9,8 +10,10 @@ import {
   useDatabaseCandidateListQuery,
   useDatabaseListQuery,
 } from "metabase/common/hooks";
-import { DatabaseCandidate } from "metabase-types/api";
-import Database from "metabase-lib/metadata/Database";
+import type { DatabaseCandidate } from "metabase-types/api";
+import { useSelector } from "metabase/lib/redux";
+import { getApplicationName } from "metabase/selectors/whitelabel";
+import type Database from "metabase-lib/metadata/Database";
 import { HomeCaption } from "../HomeCaption";
 import { HomeHelpCard } from "../HomeHelpCard";
 import { HomeXrayCard } from "../HomeXrayCard";
@@ -60,12 +63,13 @@ const HomeXrayView = ({ database, candidates = [] }: HomeXrayViewProps) => {
   const tableCount = candidate ? candidate.tables.length : 0;
   const tableMessages = useMemo(() => getMessages(tableCount), [tableCount]);
   const canSelectSchema = schemas.length > 1;
+  const applicationName = useSelector(getApplicationName);
 
   return (
     <div>
       {isSample ? (
         <HomeCaption primary>
-          {t`Try out these sample x-rays to see what Metabase can do.`}
+          {t`Try out these sample x-rays to see what ${applicationName} can do.`}
         </HomeCaption>
       ) : canSelectSchema ? (
         <HomeCaption primary>

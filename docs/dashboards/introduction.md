@@ -22,7 +22,13 @@ You can make as many dashboards as you want. Go nuts.
 
 In the top right of the screen, click the **+** icon to open the **Create** menu, and select **New Dashboard**. Give your new dashboard a name and a description, choose which [collections](../exploration-and-organization/collections.md) the dashboard should go in, then click **Create**, and Metabase will take you to your shiny new dashboard.
 
-![Create Dashboard](images/create.png)
+## Dashboard tabs
+
+You can add multiple tabs to a dashboard to keep your cards organized.
+
+![Dashboard tabs](./images/dashboard-tabs.png)
+
+Currently, you can't drag cards from tab to tab. If you want to move a card from one tab to the other, you'll need to remove the card from one tab, and then add the card to the other tab.
 
 ## Duplicating a dashboard
 
@@ -30,7 +36,7 @@ If you don't want to build a dashboard from scratch, or want to experiment by ma
 
 To duplicate a dashboard, click on the **...** menu in the upper right of the dashboard, and select **Duplicate**.
 
-By default, Metabase will create a new dashboard, with copies of the questions in the original dashboard, and save everything to the collection you specify.
+By default, Metabase will create a new dashboard, with copies of the questions in the original dashboard (including the dashboard's tabs), and save everything to the collection you specify.
 
 If you don't wish to copy the dashboard's underlying questions, check the box that says **Only duplicate the dashboard**. Metabase will copy the dashboard and refer to the original questions.
 
@@ -40,9 +46,10 @@ In both cases, duplication only includes the dashboard, its card layout, filters
 
 There are two ways to add questions to a dashboard: from the dashboard, or from the question you want to add.
 
-**From a question**: you can add a newly saved question to a dashboard directly from the window that pops up after you save the question for the first time. You can also add a question to a dashboard by clicking on the **pencil** icon next to the name of the question, and selecting **Add to dashboard**.
+- **From a question**: You can add a newly saved question to a dashboard directly from the modal that pops up after you save the question for the first time. You can also add a question to a dashboard by clicking on the ellipsis (**...**) at the top right of a question and selecting **Add to dashboard**.
+- **From a dashboard**: Click on the **pencil** icon to **edit the dashboard**. Then click the **+** icon in the top right of the dashboard editing interface (not the **+** in the main navigation bar) to add any of your saved questions to the dashboard, regardless of which collection the questions are in.
 
-**From a dashboard**: Click on the **pencil** icon to **edit the dashboard**. Then click the **+** icon in the top right of the dashboard editing interface (not the **+** in the main navigation bar) to add any of your saved questions to the dashboard, regardless of which collection the questions are in.
+> If your question is saved to your personal collection, you'll only be able to add that question to dashboards in your personal collection. If you want to add the question to a dashboard in a public collection, you'll need to move your question to that collection (or any other public collection).
 
 Once you add a question to your dashboard, it’ll look something like this:
 
@@ -50,19 +57,22 @@ Once you add a question to your dashboard, it’ll look something like this:
 
 ## Adding headings or descriptions with text cards
 
-Another neat thing you can do is add text cards to your dashboards. Text cards allow you to include descriptions, explanations, notes, or even images and GIFs to your dashboards. You can also use text cards to create separations between sections of charts in your dashboards, or include links to other dashboards, questions, or websites.
+Another neat thing you can do is add heading and text cards to your dashboards. Text cards allow you to include descriptions, explanations, notes, or even images and GIFs to your dashboards. You can also use text cards to create separations between sections of charts in your dashboards, or include links to other dashboards, questions, or websites.
 
-To add a new text card, create a new dashboard (or edit an existing one) and click on the text card button, **Aa**, in the top-right:
+To add a new text card, create a new dashboard (or edit an existing one) and click on the text card button, **T**, in the top-right:
 
 ![Text card button](images/text-card-button.png)
 
-Your new, empty text card will appear. It has two modes: writing and previewing. Toggle between the modes by clicking the **eye** to preview the card, or the **document with pencil** icon to edit the card.
+You have two options:
 
-You can use [Markdown](http://commonmark.org/help/) to format the text in your text card, create inline tables or code snippets, or even embed linked images (easy on the GIFs, friends).
+- **Heading**: a preformatted heading text card that spans the width of the dashboard.
+- **Text**: a customizable text card that will render Markdown-formatted text.
+
+Each text card has two modes: writing and previewing. When you click to focus on the card, the card will enter editing mode. When you click away from the card, Metabase will render the card to show you what it will look like on the live dashboard.
 
 ![Markdown](images/markdown.png)
 
-Click the **eye** icon to see what your formatted Markdown will look like when you save the card:
+You can use [Markdown](http://commonmark.org/help/) to format the text in your text card, create inline tables or code snippets, or even embed linked images (easy on the GIFs, friends). To preview the rendered card, just click away from the card.
 
 ![Result](images/result.png)
 
@@ -70,7 +80,7 @@ To learn more, see [Fun with Markdown in your dashboards](https://www.metabase.c
 
 ### Including variables in text cards
 
-You can include a variable in a text card, then wire that variable up to a dashboard filter. All you need to do to create a variable is to wrap a word in double braces,% `{% raw %}{{{% endraw %}` and `{% raw %}}}{%endraw%}` (the variable can't contain any spaces). For example, you could add a text card with the following text:
+You can include a variable in a text card, then wire that variable up to a dashboard filter. All you need to do to create a variable is to wrap a word in double braces, `{% raw %}{{{% endraw %}` and `{% raw %}}}{%endraw%}` (the variable can't contain any spaces). For example, you could add a text card with the following text:
 
 ```
 {% raw %}
@@ -122,6 +132,17 @@ Click on the **pencil** icon to enter dashboard edit mode, hover over the questi
 
 ![Visualization settings](images/visualization-settings.png)
 
+### Hiding a card when it doesn't return results
+
+One neat thing to call out: if you have a question card that rarely returns results, but you still want to include it in your dashboard because you want to know when it _does_ return results, you can tell Metabase to hide the card unless it returns at least one row of data.
+
+When in dashboard edit mode, click on the **Visualization settings** for the card.
+
+- If the card displays a table, the option is in the **Columns** tab.
+- If the card displays a chart, the option is in the **Display** tab.
+
+Toggle the option **Hide this card if there are no results**. When you turn on this option, the query will still run in the background, but the dashboard won't display the card. If the query returns results, the dashboard will display the card, moving the other cards around to make room for it according to how you've arranged the cards in dashboard edit mode.
+
 ## Resetting a card's visualization settings
 
 If you want to revert a dashboard card to its original visualization settings (i.e., the settings on the question when it was _first_ saved to your dashboard):
@@ -166,6 +187,10 @@ If your Metabase administrator has enabled [public sharing](../questions/sharing
 ![Share icon](./images/share-icon.png)
 
 Public links can be viewed by anyone, even if they don't have access to Metabase. You can also use the public embedding code to embed your question or dashboard in a simple web page or blog post. Check out examples of simple apps with embedded dashboards in our [embedding-reference-apps repository](https://github.com/metabase/embedding-reference-apps). To learn more about [embedding](../embedding/introduction.md), check out our article on [How to use Metabase to deliver analytics to your customers](https://www.metabase.com/blog/external-facing-analytics), as well as an article on how to combine branding, Single Sign-On, full app embedding, and data sandboxing to deliver [multi-tenant, self-service analytics](https://www.metabase.com/blog/embedding).
+
+## Exporting dashboards as PDFs
+
+To export a dashboard as a PDF, wait until the dashboard is finished loading, then click on the three dot menu (**...**) in the upper right and select **Export as PDF**.
 
 ## Configuring a dashboard through its URL
 

@@ -2,7 +2,7 @@
   (:require
    [clojure.string :as str]
    [clojure.tools.trace :as trace]
-   [java-time :as t]
+   [java-time.api :as t]
    [metabase.analytics.prometheus :as prometheus]
    [metabase.config :as config]
    [metabase.core.config-from-file :as config-from-file]
@@ -13,7 +13,6 @@
    [metabase.driver.postgres]
    [metabase.events :as events]
    [metabase.logger :as mb.logger]
-   [metabase.models.user :refer [User]]
    [metabase.plugins :as plugins]
    [metabase.plugins.classloader :as classloader]
    [metabase.public-settings :as public-settings]
@@ -26,8 +25,7 @@
    [metabase.troubleshooting :as troubleshooting]
    [metabase.util :as u]
    [metabase.util.i18n :refer [deferred-trs trs]]
-   [metabase.util.log :as log]
-   [toucan2.core :as t2])
+   [metabase.util.log :as log])
   (:import
    (java.lang.management ManagementFactory)))
 
@@ -117,21 +115,18 @@
     (log/info (trs "Setting up prometheus metrics"))
     (prometheus/setup!)
     (init-status/set-progress! 0.6))
-  ;; initialize Metabase from an `config.yml` file if present (Enterprise Edition™ only)
-  (config-from-file/init-from-file-if-code-available!)
-  (init-status/set-progress! 0.65)
-  ;; Bootstrap the event system
-  (events/initialize-events!)
-  (init-status/set-progress! 0.7)
   ;; run a very quick check to see if we are doing a first time installation
   ;; the test we are using is if there is at least 1 User in the database
-  (let [new-install? (not (t2/exists? User))]
+  (let [new-install? (not (setup/has-user-setup))]
+    ;; initialize Metabase from an `config.yml` file if present (Enterprise Edition™ only)
+    (config-from-file/init-from-file-if-code-available!)
+    (init-status/set-progress! 0.7)
     (when new-install?
       (log/info (trs "Looks like this is a new installation ... preparing setup wizard"))
       ;; create setup token
       (create-setup-token-and-log-setup-url!)
       ;; publish install event
-      (events/publish-event! :install {}))
+      (events/publish-event! :event/install {}))
     (init-status/set-progress! 0.8)
     ;; deal with our sample database as needed
     (if new-install?
@@ -140,7 +135,10 @@
       ;; otherwise update if appropriate
       (sample-data/update-sample-database-if-needed!))
     (init-status/set-progress! 0.9))
+
   (ensure-audit-db-installed!)
+  (init-status/set-progress! 0.95)
+
   ;; start scheduler at end of init!
   (task/start-scheduler!)
   (init-status/set-complete!)
@@ -192,8 +190,8 @@
 
 ;;; ------------------------------------------------ App Entry Point -------------------------------------------------
 
-(defn -main
-  "Launch Metabase in standalone mode."
+(defn entrypoint
+  "Launch Metabase in standalone mode. (Main application entrypoint is [[metabase.bootstrap/-main]].)"
   [& [cmd & args]]
   (maybe-enable-tracing)
   (if cmd

@@ -35,10 +35,12 @@ describe("ActionCreator > Query Actions", () => {
 
     it("should show clickable data reference icon", async () => {
       await setup();
-      getIcon("reference", "button").click();
+      userEvent.click(getIcon("reference"));
 
-      expect(screen.getByText("Data Reference")).toBeInTheDocument();
-      expect(screen.getByText("Database")).toBeInTheDocument();
+      expect(screen.getAllByText("Data Reference")).toHaveLength(2);
+      expect(
+        within(screen.getByTestId("sidebar-content")).getByText("Database"),
+      ).toBeInTheDocument();
     });
 
     it("should show action settings button", async () => {

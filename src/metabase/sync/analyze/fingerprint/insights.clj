@@ -1,7 +1,7 @@
 (ns metabase.sync.analyze.fingerprint.insights
   "Deeper statistical analysis of results."
   (:require
-   [java-time :as t]
+   [java-time.api :as t]
    [kixi.stats.core :as stats]
    [kixi.stats.math :as math]
    [kixi.stats.protocols :as p]
@@ -13,7 +13,6 @@
    [metabase.sync.util :as sync-util]
    [metabase.util :as u]
    [metabase.util.date-2 :as u.date]
-   [metabase.util.i18n :refer [trs]]
    [redux.core :as redux])
   (:import
    (java.time Instant LocalDate LocalDateTime LocalTime OffsetDateTime OffsetTime ZonedDateTime)))
@@ -224,8 +223,8 @@
                      :best-fit       best-fit-equation
                      :col            (:name number-col)
                      :unit           unit))))))
-      (trs "Error generating timeseries insight keyed by: {0}"
-           (sync-util/name-for-logging (mi/instance Field datetime))))))
+      (format "Error generating timeseries insight keyed by: %s"
+              (sync-util/name-for-logging (mi/instance Field datetime))))))
 
 (defn insights
   "Based on the shape of returned data construct a transducer to statistically analyize data."

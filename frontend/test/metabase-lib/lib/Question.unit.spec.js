@@ -2,7 +2,11 @@ import { assoc, dissoc, assocIn } from "icepick";
 import { parse } from "url";
 import { createMockMetadata } from "__support__/metadata";
 import { deserializeCardFromUrl } from "metabase/lib/card";
-import { createMockMetric } from "metabase-types/api/mocks";
+import {
+  createMockColumn,
+  createMockDatasetData,
+  createMockMetric,
+} from "metabase-types/api/mocks";
 import {
   createOrdersTable,
   createPeopleTable,
@@ -26,6 +30,7 @@ import {
 } from "metabase-types/api/mocks/presets";
 import { TYPE as SEMANTIC_TYPE } from "cljs/metabase.types";
 import Question from "metabase-lib/Question";
+import * as ML_Urls from "metabase-lib/urls";
 import StructuredQuery from "metabase-lib/queries/StructuredQuery";
 import NativeQuery from "metabase-lib/queries/NativeQuery";
 
@@ -41,6 +46,31 @@ const metadata = createMockMetadata({
         aggregation: [["sum", ["field", ORDERS.TOTAL, null]]],
         "source-table": ORDERS_ID,
       },
+    }),
+  ],
+});
+
+const metadata_without_order_pk = createMockMetadata({
+  databases: [
+    createSampleDatabase({
+      tables: [
+        createProductsTable(),
+        createPeopleTable(),
+        createReviewsTable(),
+        createOrdersTable({
+          fields: [
+            createOrdersIdField({ semantic_type: "type/Integer" }),
+            createOrdersUserIdField(),
+            createOrdersProductIdField(),
+            createOrdersSubtotalField(),
+            createOrdersTaxField(),
+            createOrdersTotalField(),
+            createOrdersDiscountField(),
+            createOrdersCreatedAtField(),
+            createOrdersQuantityField(),
+          ],
+        }),
+      ],
     }),
   ],
 });
@@ -74,6 +104,30 @@ const orders_raw_card = {
 };
 const orders_raw_question = new Question(orders_raw_card, metadata);
 
+const orders_card_without_pk = {
+  id: 1,
+  name: "Orders Model",
+  display: "table",
+  visualization_settings: {},
+  can_write: true,
+  dataset: true,
+  database_id: SAMPLE_DB_ID,
+  table_id: ORDERS_ID,
+  dataset_query: {
+    type: "query",
+    database: SAMPLE_DB_ID,
+    query: {
+      "source-table": ORDERS_ID,
+    },
+  },
+  result_metadata: [
+    createOrdersIdField({
+      semantic_type: "type/Integer",
+      field_ref: ["field", 11, null],
+    }),
+  ],
+};
+
 const orders_count_card = {
   id: 2,
   name: "# orders data",
@@ -89,44 +143,29 @@ const orders_count_card = {
   },
 };
 const orders_count_question = new Question(orders_count_card, metadata);
+const ordersCountData = createMockDatasetData({
+  cols: [
+    createMockColumn({
+      name: "count",
+      display_name: "Count",
+      base_type: "type/BigInteger",
+      semantic_type: "type/Quantity",
+      effective_type: "type/BigInteger",
+    }),
+  ],
+  rows: [[1]],
+});
 
-const orders_count_where_card = {
-  id: 2,
-  name: "# orders data",
-  display: "table",
-  visualization_settings: {},
-  dataset_query: {
-    type: "query",
-    database: SAMPLE_DB_ID,
-    query: {
-      "source-table": ORDERS_ID,
-      aggregation: [["count-where", [">", ORDERS.TOTAL, 50]]],
-    },
-  },
-};
-const orders_count_where_question = new Question(
-  orders_count_where_card,
-  metadata,
-);
-
-const orders_metric_filter_card = {
-  id: 2,
-  name: "# orders data",
-  display: "table",
-  visualization_settings: {},
-  dataset_query: {
-    type: "query",
-    database: SAMPLE_DB_ID,
-    query: {
-      "source-table": ORDERS_ID,
-      aggregation: [["metric", 2]],
-    },
-  },
-};
-const orders_metric_filter_question = new Question(
-  orders_metric_filter_card,
-  metadata,
-);
+const multipleRowsData = createMockDatasetData({
+  cols: [
+    createMockColumn({ display_name: "foo" }),
+    createMockColumn({ display_name: "bar" }),
+  ],
+  rows: [
+    [10, 20],
+    [100, 200],
+  ],
+});
 
 const orders_filter_card = {
   id: 2,
@@ -199,10 +238,6 @@ const orders_multi_stage_card = {
     },
   },
 };
-const orders_multi_stage_question = new Question(
-  orders_multi_stage_card,
-  metadata,
-);
 
 const native_orders_count_card = {
   id: 3,
@@ -222,24 +257,6 @@ const native_orders_count_question = new Question(
   metadata,
 );
 
-const invalid_orders_count_card = {
-  id: 2,
-  name: "# orders data",
-  display: "table",
-  visualization_settings: {},
-  dataset_query: {
-    type: "nosuchqueryprocessor",
-    database: SAMPLE_DB_ID,
-    query: {
-      query: "SELECT count(*) FROM orders",
-    },
-  },
-};
-const invalid_orders_count_question = new Question(
-  invalid_orders_count_card,
-  metadata,
-);
-
 const orders_count_by_id_card = {
   id: 2,
   name: "# orders data",
@@ -256,6 +273,7 @@ const orders_count_by_id_card = {
     },
   },
 };
+
 const orders_count_by_id_question = new Question(
   orders_count_by_id_card,
   metadata,
@@ -334,9 +352,6 @@ describe("Question", () => {
         const query = native_orders_count_question.query();
         expect(query instanceof NativeQuery).toBe(true);
       });
-      it("throws an error for invalid queries", () => {
-        expect(invalid_orders_count_question.query).toThrow();
-      });
     });
     describe("setQuery(query)", () => {
       it("updates the dataset_query of card", () => {
@@ -375,7 +390,7 @@ describe("Question", () => {
     describe("display()", () => {
       it("returns the card's visualization type", () => {
         // This forces a table view.
-        const tableQuestion = orders_raw_question.toUnderlyingData();
+        const tableQuestion = orders_raw_question.setDisplay("table");
         // Not sure I'm a huge fan of magic strings here.
         expect(tableQuestion.display()).toBe("table");
       });
@@ -394,12 +409,35 @@ describe("Question", () => {
         expect(question.display()).toBe("scalar");
       });
 
-      it("should not set the display to scalar if table was selected", () => {
+      it("should not set the display to scalar if table was selected and display is locked", () => {
         const question = orders_count_question
           .setDisplay("table")
           .lockDisplay()
-          .maybeUnlockDisplay(["table", "scalar"])
-          .setDefaultDisplay();
+          .maybeResetDisplay(ordersCountData, ["table", "scalar"]);
+
+        expect(question.display()).toBe("table");
+      });
+
+      it("should set the display to scalar if a non-scalar was selected and display is locked", () => {
+        const question = base_question
+          .setDisplay("table")
+          .maybeResetDisplay(ordersCountData, ["table", "scalar"]);
+
+        expect(question.display()).toBe("scalar");
+      });
+
+      it("should not set the display to scalar if another scalar display was selected and display is locked", () => {
+        const question = base_question
+          .setDisplay("gauge")
+          .maybeResetDisplay(ordersCountData, ["table", "scalar", "gauge"]);
+
+        expect(question.display()).toBe("gauge");
+      });
+
+      it("switch to table view if we had a scalar and now have more than 1x1 data", () => {
+        const question = base_question
+          .setDisplay("scalar")
+          .maybeResetDisplay(multipleRowsData, ["table"]);
 
         expect(question.display()).toBe("table");
       });
@@ -408,34 +446,105 @@ describe("Question", () => {
         const question = orders_count_question
           .setDisplay("funnel")
           .lockDisplay()
-          .maybeUnlockDisplay(["table", "scalar"])
-          .setDefaultDisplay();
+          .maybeResetDisplay(ordersCountData, ["table", "scalar"]);
 
         expect(question.display()).toBe("scalar");
       });
     });
 
-    describe("maybeUnlockDisplay", () => {
-      it("should keep display locked when it was locked with nonsense display", () => {
+    describe("maybeResetDisplay", () => {
+      it("should do nothing when it was locked with sensible display", () => {
+        const sensibleDisplays = ["table", "scalar"];
+        const previousSensibleDisplays = sensibleDisplays;
+        const question = new Question(orders_count_card, metadata)
+          .setDisplay("scalar")
+          .lockDisplay()
+          .maybeResetDisplay(
+            ordersCountData,
+            sensibleDisplays,
+            previousSensibleDisplays,
+          );
+
+        expect(question.displayIsLocked()).toBe(true);
+        expect(question.display()).toBe("scalar");
+      });
+
+      it("should do nothing when it was locked with nonsense display", () => {
         const sensibleDisplays = ["table", "scalar"];
         const previousSensibleDisplays = sensibleDisplays;
         const question = new Question(orders_count_card, metadata)
           .setDisplay("funnel")
           .lockDisplay()
-          .maybeUnlockDisplay(sensibleDisplays, previousSensibleDisplays);
+          .maybeResetDisplay(
+            ordersCountData,
+            sensibleDisplays,
+            previousSensibleDisplays,
+          );
 
         expect(question.displayIsLocked()).toBe(true);
+        expect(question.display()).toBe("funnel");
       });
 
-      it("should unlock display it was locked with sensible display which has become unsensible", () => {
+      it("should use default display when nonsense display is used and was not locked", () => {
+        const sensibleDisplays = ["table", "scalar"];
+        const question = base_question
+          .setDisplay("funnel")
+          .maybeResetDisplay(
+            multipleRowsData,
+            sensibleDisplays,
+            sensibleDisplays,
+          );
+
+        expect(question.display()).not.toBe("funnel");
+        expect(question.display()).toBe("table");
+      });
+
+      it("should unlock and use new sensible display when it was locked with sensible display which has become not sensible", () => {
         const previousSensibleDisplays = ["funnel"];
         const sensibleDisplays = ["table", "scalar"];
         const question = orders_count_question
           .setDisplay("funnel")
           .lockDisplay()
-          .maybeUnlockDisplay(sensibleDisplays, previousSensibleDisplays);
+          .maybeResetDisplay(
+            ordersCountData,
+            sensibleDisplays,
+            previousSensibleDisplays,
+          );
 
         expect(question.displayIsLocked()).toBe(false);
+        expect(question.display()).not.toBe("funnel");
+        expect(sensibleDisplays).toContain(question.display());
+      });
+
+      it("should keep any sensible display when display was locked", () => {
+        const sensibleDisplays = ["table", "scalar"];
+        const question = base_question
+          .setDisplay("scalar")
+          .lockDisplay()
+          .maybeResetDisplay(multipleRowsData, sensibleDisplays);
+
+        expect(question.display()).not.toBe("table");
+        expect(question.display()).toBe("scalar");
+      });
+
+      it("should keep any sensible display when display was not locked (metabase#32075)", () => {
+        const sensibleDisplays = ["table", "scalar"];
+        const question = base_question
+          .setDisplay("scalar")
+          .maybeResetDisplay(multipleRowsData, sensibleDisplays);
+
+        expect(question.display()).not.toBe("table");
+        expect(question.display()).toBe("scalar");
+      });
+
+      it("should switch to scalar display for 1x1 data", () => {
+        const sensibleDisplays = ["table", "scalar"];
+        const question = orders_count_question
+          .setDisplay("table")
+          .maybeResetDisplay(ordersCountData, sensibleDisplays);
+
+        expect(question.display()).not.toBe("table");
+        expect(question.display()).toBe("scalar");
       });
     });
   });
@@ -498,52 +607,6 @@ describe("Question", () => {
           },
         });
 
-        // Make sure we haven't mutated the underlying query
-        expect(orders_count_card.dataset_query.query).toEqual({
-          "source-table": ORDERS_ID,
-          aggregation: [["count"]],
-        });
-      });
-    });
-
-    describe("pivot(...)", () => {
-      it("works with a datetime dimension", () => {
-        const pivoted = orders_count_question.pivot([
-          ["field", ORDERS.CREATED_AT, null],
-        ]);
-        expect(pivoted.canRun()).toBe(true);
-
-        expect(pivoted.datasetQuery()).toEqual({
-          type: "query",
-          database: SAMPLE_DB_ID,
-          query: {
-            "source-table": ORDERS_ID,
-            aggregation: [["count"]],
-            breakout: [["field", ORDERS.CREATED_AT, null]],
-          },
-        });
-        // Make sure we haven't mutated the underlying query
-        expect(orders_count_card.dataset_query.query).toEqual({
-          "source-table": ORDERS_ID,
-          aggregation: [["count"]],
-        });
-      });
-      it("works with PK dimension", () => {
-        const pivoted = orders_count_question.pivot([
-          ["field", ORDERS.ID, null],
-        ]);
-        expect(pivoted.canRun()).toBe(true);
-
-        // if I actually call the .query() method below, this blows up garbage collection =/
-        expect(pivoted.datasetQuery()).toEqual({
-          type: "query",
-          database: SAMPLE_DB_ID,
-          query: {
-            "source-table": ORDERS_ID,
-            aggregation: [["count"]],
-            breakout: [["field", ORDERS.ID, null]],
-          },
-        });
         // Make sure we haven't mutated the underlying query
         expect(orders_count_card.dataset_query.query).toEqual({
           "source-table": ORDERS_ID,
@@ -617,255 +680,6 @@ describe("Question", () => {
         });
       });
     });
-
-    describe("drillUnderlyingRecords(...)", () => {
-      it("applies a filter to a given query", () => {
-        const ordersId = metadata.field(ORDERS.ID);
-        const dimensions = [{ value: 1, column: ordersId.column() }];
-
-        const newQuestion =
-          orders_count_by_id_question.drillUnderlyingRecords(dimensions);
-
-        expect(newQuestion.datasetQuery()).toEqual({
-          type: "query",
-          database: SAMPLE_DB_ID,
-          query: {
-            "source-table": ORDERS_ID,
-            filter: ["=", ["field", ORDERS.ID, null], 1],
-          },
-        });
-      });
-
-      it("applies a filter from an aggregation to a given query", () => {
-        const ordersId = metadata.field(ORDERS.ID);
-        const dimensions = [{ value: 1, column: ordersId.column() }];
-        const column = { field_ref: ["aggregation", 0] };
-
-        const newQuestion = orders_count_where_question.drillUnderlyingRecords(
-          dimensions,
-          column,
-        );
-
-        expect(newQuestion.canRun()).toBe(true);
-        expect(newQuestion.datasetQuery()).toEqual({
-          type: "query",
-          database: SAMPLE_DB_ID,
-          query: {
-            "source-table": ORDERS_ID,
-            filter: [
-              "and",
-              ["=", ["field", ORDERS.ID, null], 1],
-              [">", ["field", ORDERS.TOTAL, null], 50],
-            ],
-          },
-        });
-      });
-
-      it("applies a filter from a metric to a given query", () => {
-        const ordersId = metadata.field(ORDERS.ID);
-        const dimensions = [{ value: 1, column: ordersId.column() }];
-        const column = { field_ref: ["aggregation", 0] };
-
-        const newQuestion =
-          orders_metric_filter_question.drillUnderlyingRecords(
-            dimensions,
-            column,
-          );
-
-        expect(newQuestion.canRun()).toBe(true);
-        expect(newQuestion.datasetQuery()).toEqual({
-          type: "query",
-          database: SAMPLE_DB_ID,
-          query: {
-            "source-table": ORDERS_ID,
-            filter: [
-              "and",
-              ["=", ["field", ORDERS.ID, null], 1],
-              [">", ["field", ORDERS.TOTAL, null], 20],
-            ],
-          },
-        });
-      });
-
-      it("removes post-aggregation filters from a given query", () => {
-        const ordersId = metadata.field(ORDERS.ID);
-        const dimensions = [{ value: 1, column: ordersId.column() }];
-
-        const newQuestion = orders_multi_stage_question
-          .topLevelQuestion()
-          .drillUnderlyingRecords(dimensions);
-
-        expect(newQuestion.datasetQuery()).toEqual({
-          type: "query",
-          database: SAMPLE_DB_ID,
-          query: {
-            "source-table": ORDERS_ID,
-            filter: [
-              "and",
-              [">", ["field", ORDERS.TOTAL, null], 10],
-              ["=", ["field", ORDERS.ID, null], 1],
-            ],
-          },
-        });
-      });
-    });
-
-    describe("toUnderlyingRecords(...)", () => {
-      it("returns underlying records correctly for a raw data query", () => {
-        const underlyingRecordsQuestion =
-          orders_raw_question.toUnderlyingRecords();
-
-        expect(underlyingRecordsQuestion.canRun()).toBe(true);
-        // if I actually call the .query() method below, this blows up garbage collection =/
-        expect(underlyingRecordsQuestion.datasetQuery()).toEqual(
-          orders_raw_card.dataset_query,
-        );
-
-        // Make sure we haven't mutated the underlying query
-        expect(orders_raw_card.dataset_query.query).toEqual({
-          "source-table": ORDERS_ID,
-        });
-      });
-      it("returns underlying records correctly for a broken out query", () => {
-        const underlyingRecordsQuestion =
-          orders_count_question.toUnderlyingRecords();
-
-        expect(underlyingRecordsQuestion.canRun()).toBe(true);
-        // if I actually call the .query() method below, this blows up garbage collection =/
-        expect(underlyingRecordsQuestion.datasetQuery()).toEqual(
-          orders_raw_card.dataset_query,
-        );
-
-        // Make sure we haven't mutated the underlying query
-        expect(orders_raw_card.dataset_query.query).toEqual({
-          "source-table": ORDERS_ID,
-        });
-      });
-    });
-
-    describe("toUnderlyingData()", () => {
-      it("returns underlying data correctly for table query", () => {
-        const underlyingDataQuestion = orders_count_question
-          .setDisplay("table")
-          .toUnderlyingData();
-
-        expect(underlyingDataQuestion.display()).toBe("table");
-      });
-      it("returns underlying data correctly for line chart", () => {
-        const underlyingDataQuestion = orders_count_question
-          .setDisplay("line")
-          .toUnderlyingData();
-
-        expect(underlyingDataQuestion.display()).toBe("table");
-      });
-    });
-
-    describe("drillPK(...)", () => {
-      it("returns the correct query for a PK detail drill-through", () => {
-        const ordersId = metadata.field(ORDERS.ID);
-        const drilledQuestion = orders_raw_question.drillPK(ordersId, 1);
-
-        expect(drilledQuestion.canRun()).toBe(true);
-
-        // if I actually call the .query() method below, this blows up garbage collection =/
-        expect(drilledQuestion.datasetQuery()).toEqual({
-          type: "query",
-          database: SAMPLE_DB_ID,
-          query: {
-            "source-table": ORDERS_ID,
-            filter: ["=", ["field", ORDERS.ID, null], 1],
-          },
-        });
-      });
-
-      describe("with composite PK", () => {
-        // Making TOTAL a PK column in addition to ID
-        const metadata = createMockMetadata({
-          databases: [
-            createSampleDatabase({
-              tables: [
-                createProductsTable(),
-                createPeopleTable(),
-                createReviewsTable(),
-                createOrdersTable({
-                  fields: [
-                    createOrdersIdField(),
-                    createOrdersUserIdField(),
-                    createOrdersProductIdField(),
-                    createOrdersSubtotalField(),
-                    createOrdersTaxField(),
-                    createOrdersTotalField({ semantic_type: "type/PK" }),
-                    createOrdersDiscountField(),
-                    createOrdersCreatedAtField(),
-                    createOrdersQuantityField(),
-                  ],
-                }),
-              ],
-            }),
-          ],
-        });
-
-        // Note: This is not orders_raw_question because we want the different metadata.
-        const question = new Question(orders_raw_card, metadata);
-
-        it("when drills to one column of a composite key returns equals filter by the column", () => {
-          const ordersId = metadata.field(ORDERS.ID);
-          const drilledQuestion = question.drillPK(ordersId, 1);
-
-          expect(drilledQuestion.canRun()).toBe(true);
-          expect(drilledQuestion.datasetQuery()).toEqual({
-            type: "query",
-            database: SAMPLE_DB_ID,
-            query: {
-              "source-table": ORDERS_ID,
-              filter: ["=", ["field", ORDERS.ID, null], 1],
-            },
-          });
-        });
-
-        it("when drills to both columns of a composite key returns query with equality filter by both PKs", () => {
-          const ordersId = metadata.field(ORDERS.ID);
-          const ordersTotal = metadata.field(ORDERS.TOTAL);
-
-          const drilledQuestion = question
-            .drillPK(ordersId, 1)
-            .drillPK(ordersTotal, 1);
-
-          expect(drilledQuestion.canRun()).toBe(true);
-          expect(drilledQuestion.datasetQuery()).toEqual({
-            type: "query",
-            database: SAMPLE_DB_ID,
-            query: {
-              "source-table": ORDERS_ID,
-              filter: [
-                "and",
-                ["=", ["field", ORDERS.TOTAL, null], 1],
-                ["=", ["field", ORDERS.ID, null], 1],
-              ],
-            },
-          });
-        });
-
-        it("when drills to other table PK removes the previous table PK filters", () => {
-          const ordersId = metadata.field(ORDERS.ID);
-          const productsId = metadata.field(PRODUCTS.ID);
-
-          const drilledQuestion = question
-            .drillPK(ordersId, 1)
-            .drillPK(productsId, 1);
-
-          expect(drilledQuestion.canRun()).toBe(true);
-          expect(drilledQuestion.datasetQuery()).toEqual({
-            type: "query",
-            database: SAMPLE_DB_ID,
-            query: {
-              "source-table": PRODUCTS_ID,
-              filter: ["=", ["field", PRODUCTS.ID, null], 1],
-            },
-          });
-        });
-      });
-    });
   });
 
   describe("COMPARISON TO OTHER QUESTIONS", () => {
@@ -875,8 +689,9 @@ describe("Question", () => {
         expect(newQuestion.isDirtyComparedTo(orders_raw_question)).toBe(true);
       });
       it("Changing vis settings makes the question dirty", () => {
-        const underlyingDataQuestion =
-          orders_count_question.toUnderlyingRecords();
+        const underlyingDataQuestion = orders_count_question.setSettings({
+          "table.pivot": false,
+        });
         expect(
           underlyingDataQuestion.isDirtyComparedTo(orders_count_question),
         ).toBe(true);
@@ -896,11 +711,11 @@ describe("Question", () => {
           assoc(orders_raw_card, "id", 1),
           metadata,
         );
-        expect(question.getUrl()).toBe("/question/1-raw-orders-data");
+        expect(ML_Urls.getUrl(question)).toBe("/question/1-raw-orders-data");
       });
       it("returns a URL with hash for an unsaved question", () => {
         const question = new Question(dissoc(orders_raw_card, "id"), metadata);
-        expect(question.getUrl()).toBe(adhocUrl);
+        expect(ML_Urls.getUrl(question)).toBe(adhocUrl);
       });
     });
 
@@ -910,7 +725,7 @@ describe("Question", () => {
         metadata,
       );
 
-      expect(question.getUrl()).toBe(adhocUrl);
+      expect(ML_Urls.getUrl(question)).toBe(adhocUrl);
     });
   });
 
@@ -1188,6 +1003,7 @@ describe("Question", () => {
                 "display-name": "Bar",
                 id: "aaa",
                 type: "text",
+                value: null,
               },
             },
           },
@@ -1209,6 +1025,7 @@ describe("Question", () => {
           slug: "foo",
           target: ["dimension", ["template-tag", "foo"]],
           type: "category",
+          value: null,
         },
         {
           default: undefined,
@@ -1218,6 +1035,7 @@ describe("Question", () => {
           slug: "bar",
           target: ["variable", ["template-tag", "bar"]],
           type: "category",
+          value: null,
         },
       ]);
     });
@@ -1260,6 +1078,7 @@ describe("Question", () => {
           name: "bar",
           id: "bar_id",
           hasVariableTemplateTagTarget: true,
+          value: null,
         },
       ]);
     });
@@ -1305,7 +1124,7 @@ describe("Question", () => {
     });
   });
 
-  describe("Question.prototype.getUrlWithParameters", () => {
+  describe("getUrlWithParameters", () => {
     const parameters = [
       {
         id: 1,
@@ -1357,7 +1176,11 @@ describe("Question", () => {
         const parameters = [];
         const parameterValues = {};
 
-        const url = question.getUrlWithParameters(parameters, parameterValues);
+        const url = ML_Urls.getUrlWithParameters(
+          question,
+          parameters,
+          parameterValues,
+        );
 
         expect(parseUrl(url)).toEqual({
           pathname: "/question/1",
@@ -1367,7 +1190,9 @@ describe("Question", () => {
       });
 
       it("should return question URL with string MBQL filter added", () => {
-        const url = question.getUrlWithParameters(parameters, { 1: "bar" });
+        const url = ML_Urls.getUrlWithParameters(question, parameters, {
+          1: "bar",
+        });
 
         const deserializedCard = {
           ...assocIn(
@@ -1386,7 +1211,9 @@ describe("Question", () => {
       });
 
       it("should return question URL with number MBQL filter added", () => {
-        const url = question.getUrlWithParameters(parameters, { 5: 123 });
+        const url = ML_Urls.getUrlWithParameters(question, parameters, {
+          5: 123,
+        });
 
         expect(parseUrl(url)).toEqual({
           pathname: "/question",
@@ -1403,7 +1230,7 @@ describe("Question", () => {
       });
 
       it("should return question URL with date MBQL filter added", () => {
-        const url = question.getUrlWithParameters(parameters, {
+        const url = ML_Urls.getUrlWithParameters(question, parameters, {
           3: "2017-05",
         });
 
@@ -1423,7 +1250,8 @@ describe("Question", () => {
 
       it("should include objectId in a URL", () => {
         const OBJECT_ID = "5";
-        const url = question.getUrlWithParameters(
+        const url = ML_Urls.getUrlWithParameters(
+          question,
           parameters,
           { 1: "bar" },
           { objectId: OBJECT_ID },
@@ -1441,7 +1269,9 @@ describe("Question", () => {
       const question = new Question(card);
 
       it("should return a card with attached parameters and parameter values as query params", () => {
-        const url = question.getUrlWithParameters(parameters, { 1: "bar" });
+        const url = ML_Urls.getUrlWithParameters(question, parameters, {
+          1: "bar",
+        });
 
         const deserializedCard = {
           ...card,
@@ -1453,6 +1283,10 @@ describe("Question", () => {
         expect(parseUrl(url)).toEqual({
           pathname: "/question",
           query: {
+            param_date: "",
+            param_fk: "",
+            param_number: "",
+            param_operator: "",
             param_string: "bar",
           },
           card: deserializedCard,
@@ -1460,7 +1294,8 @@ describe("Question", () => {
       });
 
       it("should not include objectId in a URL", () => {
-        const url = question.getUrlWithParameters(
+        const url = ML_Urls.getUrlWithParameters(
+          question,
           parameters,
           { 1: "bar" },
           { objectId: 5 },
@@ -1509,7 +1344,7 @@ describe("Question", () => {
       const question = new Question(cardWithTextFilter, metadata);
 
       it("should return question URL when there are no parameters", () => {
-        const url = question.getUrlWithParameters([], {});
+        const url = ML_Urls.getUrlWithParameters(question, [], {});
         expect(parseUrl(url)).toEqual({
           pathname: "/question/1",
           query: {},
@@ -1518,9 +1353,13 @@ describe("Question", () => {
       });
 
       it("should return question URL with query string parameter when there is a value for a parameter mapped to the question's variable", () => {
-        const url = question.getUrlWithParameters(parametersForNativeQ, {
-          1: "bar",
-        });
+        const url = ML_Urls.getUrlWithParameters(
+          question,
+          parametersForNativeQ,
+          {
+            1: "bar",
+          },
+        );
 
         expect(parseUrl(url)).toEqual({
           pathname: "/question/1",
@@ -1531,9 +1370,13 @@ describe("Question", () => {
 
       it("should return question URL with query string parameter when there is a value for a parameter mapped to the question's field filter", () => {
         const question = new Question(cardWithFieldFilter, metadata);
-        const url = question.getUrlWithParameters(parametersForNativeQ, {
-          5: "111",
-        });
+        const url = ML_Urls.getUrlWithParameters(
+          question,
+          parametersForNativeQ,
+          {
+            5: "111",
+          },
+        );
 
         expect(parseUrl(url)).toEqual({
           pathname: "/question/2",
@@ -1543,9 +1386,13 @@ describe("Question", () => {
       });
 
       it("should not include objectId in a URL", () => {
-        const url = question.getUrlWithParameters(parametersForNativeQ, {
-          1: "bar",
-        });
+        const url = ML_Urls.getUrlWithParameters(
+          question,
+          parametersForNativeQ,
+          {
+            1: "bar",
+          },
+        );
         expect(parseUrl(url).query.objectId).toBeUndefined();
       });
     });
@@ -1609,6 +1456,27 @@ describe("Question", () => {
 
     it("should not allow to create implicit actions for a model with filters", () => {
       const question = new Question(orders_filter_card, metadata);
+      expect(question.supportsImplicitActions()).toBeFalsy();
+    });
+
+    it("should allow to create implicit actions where the underlying table has a primary key but the model does not", () => {
+      const orders_question_without_pk = new Question(
+        orders_card_without_pk,
+        metadata,
+      );
+      expect(orders_question_without_pk.supportsImplicitActions()).toBeTruthy();
+    });
+
+    it("should not allow to create implicit actions where the underlying table has no primary key", () => {
+      const question = new Question(orders_raw_card, metadata_without_order_pk);
+      expect(question.supportsImplicitActions()).toBeFalsy();
+    });
+
+    it("should not allow to create implicit actions where the model has a primary key, but the underlying table does not", () => {
+      const question = new Question(
+        orders_card_without_pk,
+        metadata_without_order_pk,
+      );
       expect(question.supportsImplicitActions()).toBeFalsy();
     });
 
