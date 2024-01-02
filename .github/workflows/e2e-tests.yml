@@ -1,4 +1,7 @@
 name: E2E Tests (aggregate)
+run-name: >-
+  ${{ (github.event.inputs.runId && format('E2E Tests (aggregate) - run id {0}', github.event.inputs.runId))
+      || '' }}
 
 env:
   REPLAY_API_KEY: rwk_7frgQcd87zppwAc0kq16rIG1rDG2ymaT9paTpQP3z5F
@@ -16,6 +19,8 @@ on:
       chromium-build-id:
         description: "Chromium Build ID to download and use. Defaults to latest release"
         type: string
+      runId:
+        description: "Test Run ID, chosen by workflow dispatcher, to make it possible to find the correct run from the api"
       folders:
         description: "Folders to run"
         type: string
