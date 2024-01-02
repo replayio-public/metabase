@@ -51,8 +51,6 @@ jobs:
       INTERACTIVE: false
     steps:
       - uses: actions/checkout@v3
-        with:
-          ref: 9b1a5c2d5899f1abe1ac70b799fca98edfdd8a0a
       - name: Prepare front-end environment
         uses: ./.github/actions/prepare-frontend
       - name: Prepare back-end environment
@@ -149,9 +147,6 @@ jobs:
           echo "DEBUG=cypress:launcher:browsers,replay:cypress:plugin:*,-replay:cypress:plugin:reporter:steps,-replay:cypress:plugin:task,replay:test-utils:reporter" >> "$GITHUB_ENV"
           echo "RECORD_REPLAY_VERBOSE=1" >> "$GITHUB_ENV"
       - uses: actions/checkout@v3
-        with:
-          # 1220-merge: we might not need this
-          ref: 9b1a5c2d5899f1abe1ac70b799fca98edfdd8a0a
       - name: Prepare front-end environment
         uses: ./.github/actions/prepare-frontend
       - name: Prepare JDK ${{ matrix.java-version }}
