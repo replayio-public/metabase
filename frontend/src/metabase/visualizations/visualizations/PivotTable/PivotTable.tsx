@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useCallback, useRef, useState } from "react";
-import type * as React from "react";
+import * as React from "react";
 import { t } from "ttag";
 import _ from "underscore";
 import { Grid, Collection, ScrollSync, AutoSizer } from "react-virtualized";
@@ -11,7 +11,7 @@ import { usePrevious, useMount } from "react-use";
 import { getScrollBarSize } from "metabase/lib/dom";
 import { getSetting } from "metabase/selectors/settings";
 
-import { sumArray } from "metabase/lib/arrays";
+import { sumArray } from "metabase/core/utils/arrays";
 
 import {
   COLUMN_SHOW_TOTALS,
@@ -22,10 +22,6 @@ import {
 import type { DatasetData, VisualizationSettings } from "metabase-types/api";
 import type { State } from "metabase-types/store";
 
-import {
-  getDefaultSize,
-  getMinSize,
-} from "metabase/visualizations/shared/utils/sizes";
 import type { PivotTableClicked, HeaderWidthType } from "./types";
 
 import { RowToggleIcon } from "./RowToggleIcon";
@@ -452,17 +448,10 @@ function PivotTable({
                         return sumArray(subColumnWidths);
                       }}
                       estimatedColumnSize={DEFAULT_CELL_WIDTH}
-                      cellRenderer={({
-                        rowIndex,
-                        columnIndex,
-                        key,
-                        style,
-                        isScrolling,
-                      }) => (
+                      cellRenderer={({ rowIndex, columnIndex, key, style }) => (
                         <BodyCell
                           key={key}
                           style={style}
-                          showTooltip={!isScrolling}
                           rowSection={getRowSection(columnIndex, rowIndex)}
                           isNightMode={isNightMode}
                           getCellClickHandler={getCellClickHandler}
@@ -496,8 +485,6 @@ export default Object.assign(connect(mapStateToProps)(PivotTable), {
   uiName: t`Pivot Table`,
   identifier: "pivot",
   iconName: "pivot_table",
-  minSize: getMinSize("pivot"),
-  defaultSize: getDefaultSize("pivot"),
   canSavePng: false,
   databaseSupportsPivotTables,
   isSensible,

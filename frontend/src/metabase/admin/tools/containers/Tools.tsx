@@ -1,12 +1,12 @@
-import type * as React from "react";
+import * as React from "react";
 import { t } from "ttag";
-import type { Location } from "history";
+import { Location } from "history";
 import { connect } from "react-redux";
 import { push } from "react-router-redux";
 
 import Radio from "metabase/core/components/Radio";
 
-import type { State } from "metabase-types/store";
+import { State } from "metabase-types/store";
 
 import { getSetting } from "metabase/selectors/settings";
 

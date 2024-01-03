@@ -10,16 +10,11 @@ import {
   visitQuestion,
   visitDashboard,
   popover,
-  setTokenFeatures,
 } from "e2e/support/helpers";
 
 import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
 
 import { SAMPLE_DB_ID, USER_GROUPS } from "e2e/support/cypress_data";
-import {
-  ORDERS_DASHBOARD_ID,
-  ORDERS_QUESTION_ID,
-} from "e2e/support/cypress_sample_instance_data";
 
 const { ALL_USERS_GROUP } = USER_GROUPS;
 
@@ -41,7 +36,6 @@ describeEE("scenarios > admin > permissions > data > downloads", () => {
   beforeEach(() => {
     restore();
     cy.signInAsAdmin();
-    setTokenFeatures("all");
   });
 
   it("setting downloads permission UI flow should work", () => {
@@ -102,7 +96,7 @@ describeEE("scenarios > admin > permissions > data > downloads", () => {
     // They both have restricted downloads so this user shouldn't have the right to download anything.
     cy.signIn("normal");
 
-    visitQuestion(ORDERS_QUESTION_ID);
+    visitQuestion("1");
 
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
     cy.findByText("Showing first 2,000 rows");
@@ -121,13 +115,13 @@ describeEE("scenarios > admin > permissions > data > downloads", () => {
 
     cy.signInAsNormalUser();
 
-    visitQuestion(ORDERS_QUESTION_ID);
+    visitQuestion("1");
 
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
     cy.findByText("Showing first 2,000 rows");
     cy.icon("download").should("not.exist");
 
-    visitDashboard(ORDERS_DASHBOARD_ID);
+    visitDashboard("1");
 
     cy.findByTestId("dashcard").within(() => {
       cy.findByTestId("legend-caption").realHover();
@@ -141,6 +135,8 @@ describeEE("scenarios > admin > permissions > data > downloads", () => {
   });
 
   it("limits users from downloading all results", () => {
+    const questionId = 1;
+
     // Restrict downloads for All Users
     cy.updatePermissionsGraph({
       [ALL_USERS_GROUP]: {
@@ -151,12 +147,12 @@ describeEE("scenarios > admin > permissions > data > downloads", () => {
     });
 
     cy.signInAsNormalUser();
-    visitQuestion(ORDERS_QUESTION_ID);
+    visitQuestion(questionId);
 
     cy.icon("download").click();
 
     downloadAndAssert(
-      { fileType: "xlsx", questionId: ORDERS_QUESTION_ID },
+      { fileType: "xlsx", questionId },
       assertSheetRowsCount(10000),
     );
   });

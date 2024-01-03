@@ -4,17 +4,16 @@ import { useMount } from "react-use";
 import Radio from "metabase/core/components/Radio";
 import Fields from "metabase/entities/fields";
 
-import type { State } from "metabase-types/store";
-import type Field from "metabase-lib/metadata/Field";
+import { State } from "metabase-types/store";
 
-import type { CategoryWidgetProps as CategoryWidgetOwnProps } from "./types";
+import { CategoryWidgetProps as CategoryWidgetOwnProps } from "./types";
 
 interface CategoryWidgetStateProps {
   fieldValues: unknown[][];
 }
 
 interface CategoryWidgetDispatchProps {
-  fetchFieldValues: (field: Field) => void;
+  fetchFieldValues: (opts: { id: number }) => void;
 }
 
 interface CategoryWidgetProps
@@ -44,7 +43,7 @@ function CategoryRadioPicker({
 }: CategoryWidgetProps) {
   useMount(() => {
     if (typeof field.id === "number") {
-      fetchFieldValues(field);
+      fetchFieldValues({ id: field.id });
     }
   });
 

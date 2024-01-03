@@ -182,14 +182,7 @@ function formatNumberCompact(value: number, options: FormatNumberOptionsType) {
       const { value: currency } = nf
         .formatToParts(value)
         .find((p: any) => p.type === "currency");
-
-      const valueSign = value < 0 ? "-" : "";
-
-      return (
-        valueSign +
-        currency +
-        formatNumberCompactWithoutOptions(Math.abs(value))
-      );
+      return currency + formatNumberCompactWithoutOptions(value);
     } catch (e) {
       // Intl.NumberFormat failed, so we fall back to a non-currency number
       return formatNumberCompactWithoutOptions(value);

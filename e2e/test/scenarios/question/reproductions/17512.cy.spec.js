@@ -22,8 +22,6 @@ describe("issue 17512", () => {
       "CE",
     );
 
-    cy.findByTestId("aggregate-step").contains("CE").should("exist");
-
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
     cy.findByText("Pick a column to group by").click();
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
@@ -35,8 +33,10 @@ describe("issue 17512", () => {
       expect(body.error).to.not.exist;
     });
 
-    cy.findAllByTestId("header-cell").contains("CE").should("exist");
-    cy.findAllByTestId("header-cell").contains("CC").should("exist");
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("CE");
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("CC");
   });
 });
 

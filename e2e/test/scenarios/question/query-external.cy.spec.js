@@ -1,5 +1,4 @@
-import { WRITABLE_DB_ID } from "e2e/support/cypress_data";
-import { openTable, restore, visualize } from "e2e/support/helpers";
+import { restore, startNewQuestion, visualize } from "e2e/support/helpers";
 
 const supportedDatabases = [
   {
@@ -21,21 +20,14 @@ supportedDatabases.forEach(({ database, snapshotName, dbName }) => {
 
       restore(snapshotName);
       cy.signInAsAdmin();
-
-      cy.request(`/api/database/${WRITABLE_DB_ID}/schema/`).as("schema");
     });
 
     it(`can query ${database} database`, () => {
-      cy.get("@schema").then(({ body }) => {
-        const tabelId = body.find(
-          table => table.name.toLowerCase() === "orders",
-        ).id;
-        openTable({
-          database: WRITABLE_DB_ID,
-          table: tabelId,
-          mode: "notebook",
-        });
-      });
+      startNewQuestion();
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText(dbName).click();
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText("Orders").click();
 
       visualize();
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage

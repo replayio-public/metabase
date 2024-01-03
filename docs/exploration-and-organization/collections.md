@@ -6,7 +6,7 @@ redirect_from:
 
 # Collections
 
-After your team has been using Metabase for a while, you’ll probably end up with lots of saved questions and dashboards.
+ After your team has been using Metabase for a while, you’ll probably end up with lots of saved questions and dashboards.
 
 ![Our analytics](./images/our-analytics-page.png)
 
@@ -24,15 +24,9 @@ They're like file-system folders. You can put stuff in them.
 
 ![Official collections](./images/official-collection.png)
 
-Metabase admins can designate collections as "official" with the following effects:
+Metabase admins can designate collections as "official". These collections have a yellow badge to let people know that the items in the collection are the ones people should be looking at (or whatever "official" means to you). Questions and dashboards in official collections are also more likely to show up at the top of search results. Pairing Official badges with [verified items](./exploration.md#verified-items) can help everyone in your Metabase sort out which questions people can trust.
 
-- These collections have a yellow badge to let people know that the items in the collection are the ones people should be looking at (or whatever "official" means to you).
-- Questions in Official collections added to Dashboards that are not in Official collections will show an Official badge next to their name on the Dashboard.
-- Questions and dashboards in Official collections are also more likely to show up at the top of search results.
-
-Pairing Official badges with [verified items](./exploration.md#verified-items) can help everyone in your Metabase sort out which questions people can trust.
-
-To add an Official badge to a collection, an admin can visit the collection and click on the dot dot dot menu (**...**) and select **Make collection official**. Admins can also remove an Official badge in the same menu. Admins can also mark a collection as Official or not when they first create the collection.
+To add an official badge to a collection, an admin can visit the collection and click on the dot dot dot menu (**...**) and select **Make collection official**. Admins can also remove an official badge in the same menu. Admins can also mark a collection as official or not when they first create the collection.
 
 ## Collection permissions
 
@@ -47,8 +41,6 @@ To add an Official badge to a collection, an admin can visit the collection and 
 In addition to the collections you and your teammates have made, you'll also always have your own personal collection that only you and administrators can see. To find it, click on the "browse all items" button on the homepage and click on "my personal collection" in the list of collections.
 
 You can use your personal collection as a scratch space to put experiments and explorations that you don't think would be particularly interesting to the rest of your team, or as a work-in-progress space where you can work on things and then move them to a shared place once they're ready.
-
-To share items in your personal collection, for example to add a question in your personal collection to a dashboard in a public collection, you'll first need to move that item to a public collection.
 
 ## Pinned items
 
@@ -72,16 +64,6 @@ Note that you have to have Curate permission for the collection that you're movi
 
 You can add events to collections, and organize those events into timelines. See [Events and timelines](events-and-timelines.md).
 
-## Uploading data
-
-You can upload CSV data by clicking on the **Upload** icon in the top right of the collection page.
-
-![Upload CSV data](../databases/images/upload-icon.png).
-
-Metabase will create a [model](../data-modeling/models.md) that contains that CSV data, as well as the model's underlying table.
-
-Uploads will only be available if your admin has enabled uploads for your Metabase, and you're in a group with Unrestricted access to the schema used to store those uploads. See [Uploading data](../databases/uploads.md).
-
 ## Further reading
 
 - [Keeping your analytics organized](https://www.metabase.com/learn/administration/same-page)
@@ -89,3 +71,4 @@ Uploads will only be available if your admin has enabled uploads for your Metaba
 
 [dashboards]: ../dashboards/introduction.md
 [models]: ../data-modeling/models.md
+

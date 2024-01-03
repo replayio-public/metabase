@@ -1,12 +1,12 @@
 import type {
   Dashboard,
   DashboardId,
-  DashboardCard,
+  DashboardOrderedCard,
   DashCardId,
   DashCardDataMap,
   ParameterId,
   ParameterValueOrArray,
-  DashboardTab,
+  DashboardOrderedTab,
   DashboardTabId,
 } from "metabase-types/api";
 
@@ -18,16 +18,19 @@ export type DashboardSidebarName =
   | "sharing"
   | "info";
 
-export type StoreDashboardTab = DashboardTab & {
+export type StoreDashboardTab = DashboardOrderedTab & {
   isRemoved?: boolean;
 };
 
-export type StoreDashboard = Omit<Dashboard, "dashcards" | "tabs"> & {
-  dashcards: DashCardId[];
-  tabs?: StoreDashboardTab[];
+export type StoreDashboard = Omit<
+  Dashboard,
+  "ordered_cards" | "ordered_tabs"
+> & {
+  ordered_cards: DashCardId[];
+  ordered_tabs?: StoreDashboardTab[];
 };
 
-export type StoreDashcard = DashboardCard & {
+export type StoreDashcard = DashboardOrderedCard & {
   isDirty?: boolean;
   isRemoved?: boolean;
 };
@@ -53,6 +56,7 @@ export interface DashboardState {
   parameterValues: Record<ParameterId, ParameterValueOrArray>;
 
   loadingDashCards: {
+    dashcardIds: DashCardId[];
     loadingIds: DashCardId[];
     loadingStatus: "idle" | "running" | "complete";
     startTime: number | null;

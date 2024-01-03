@@ -9,8 +9,6 @@
    (java.time LocalDate)
    (java.time.format DateTimeFormatter)))
 
-(set! *warn-on-reflection* true)
-
 (defn- make-version-map [version released patch highlights enterprise?]
   {:version    (format "v%d.%s" (if enterprise? 1 0) version)
    :released   released

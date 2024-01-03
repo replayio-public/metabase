@@ -4,7 +4,7 @@
    [clojurewerkz.quartzite.jobs :as jobs]
    [clojurewerkz.quartzite.schedule.cron :as cron]
    [clojurewerkz.quartzite.triggers :as triggers]
-   [java-time.api :as t]
+   [java-time :as t]
    [metabase.email :as email]
    [metabase.email.messages :as messages]
    [metabase.models.setting :as setting]
@@ -26,8 +26,7 @@
   "Have we sent a follow up email to the instance admin?"
   :type       :boolean
   :default    false
-  :visibility :internal
-  :audit      :never)
+  :visibility :internal)
 
 (defn- send-follow-up-email!
   "Send an email to the instance admin following up on their experience with Metabase thus far."

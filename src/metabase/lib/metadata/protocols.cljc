@@ -1,7 +1,6 @@
 (ns metabase.lib.metadata.protocols
   (:require
-   [metabase.util :as u]
-   #?@(:clj [[potemkin :as p]])))
+   #?@(:clj ([potemkin :as p]))))
 
 (#?(:clj p/defprotocol+ :cljs defprotocol) MetadataProvider
   "Protocol for something that we can get information about Tables and Fields from. This can be provided in various ways
@@ -62,18 +61,7 @@
 
   (fields [metadata-provider table-id]
     "Return a sequence of Fields associated with a Table with the given `table-id`. Fields should satisfy
-  the [[metabase.lib.metadata/ColumnMetadata]] schema. If no such Table exists, this should error.")
-
-  (metrics [metadata-provider table-id]
-    "Return a sequence of legacy Metrics associated with a Table with the given `table-id`. Metrics should satisfy
-  the [[metabase.lib.metadata/MetricMetadata]] schema. If no such Table exists, this should error.")
-
-  (segments [metadata-provider table-id]
-    "Return a sequence of legacy Segments associated with a Table with the given `table-id`. Segments should satisfy
-  the [[metabase.lib.metadata/SegmentMetadata]] schema. If no Table with ID `table-id` exists, this should error.")
-
-  (setting [metadata-provider setting-name]
-    "Return the value of the given Metabase setting, a keyword."))
+  the [[metabase.lib.metadata/ColumnMetadata]] schema. If no such Table exists, this should error."))
 
 (defn metadata-provider?
   "Whether `x` is a valid [[MetadataProvider]]."
@@ -108,4 +96,4 @@
   "Convenience. Store several metadata maps at once."
   [cached-metadata-provider metadata-type metadatas]
   (doseq [metadata metadatas]
-    (store-metadata! cached-metadata-provider metadata-type (u/the-id metadata) metadata)))
+    (store-metadata! cached-metadata-provider metadata-type (:id metadata) metadata)))

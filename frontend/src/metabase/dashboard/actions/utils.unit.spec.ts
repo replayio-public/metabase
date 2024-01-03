@@ -1,13 +1,8 @@
 import {
   createMockDashboard,
-  createMockDashboardCard,
+  createMockDashboardOrderedCard,
 } from "metabase-types/api/mocks";
-import { createMockCard } from "./../../../metabase-types/api/mocks/card";
-import {
-  getDashCardMoveToTabUndoMessage,
-  hasDashboardChanged,
-  haveDashboardCardsChanged,
-} from "./utils";
+import { hasDashboardChanged, haveDashboardCardsChanged } from "./utils";
 
 describe("dashboard > actions > utils", () => {
   describe("hasDashboardChanged", () => {
@@ -60,7 +55,7 @@ describe("dashboard > actions > utils", () => {
       const oldDash = createMockDashboard({
         id: 1,
         name: "old name",
-        dashcards: [createMockDashboardCard()],
+        ordered_cards: [createMockDashboardOrderedCard()],
       });
       const newDash = createMockDashboard({ id: 1, name: "old name" });
 
@@ -71,12 +66,12 @@ describe("dashboard > actions > utils", () => {
       const oldDash = createMockDashboard({
         id: 1,
         name: "old name",
-        dashcards: [createMockDashboardCard({ id: 1 })],
+        ordered_cards: [createMockDashboardOrderedCard({ id: 1 })],
       });
       const newDash = createMockDashboard({
         id: 1,
         name: "old name",
-        dashcards: [createMockDashboardCard({ id: 2 })],
+        ordered_cards: [createMockDashboardOrderedCard({ id: 2 })],
       });
 
       expect(hasDashboardChanged(newDash, oldDash)).toBe(false);
@@ -86,12 +81,12 @@ describe("dashboard > actions > utils", () => {
   describe("haveDashboardCardsChanged", () => {
     it("should return true if a card changed", () => {
       const oldCards = [
-        createMockDashboardCard({ id: 1 }),
-        createMockDashboardCard({ id: 2 }),
+        createMockDashboardOrderedCard({ id: 1 }),
+        createMockDashboardOrderedCard({ id: 2 }),
       ];
       const newCards = [
-        createMockDashboardCard({ id: 2 }),
-        createMockDashboardCard({ id: 3 }),
+        createMockDashboardOrderedCard({ id: 2 }),
+        createMockDashboardOrderedCard({ id: 3 }),
       ];
 
       expect(haveDashboardCardsChanged(newCards, oldCards)).toBe(true);
@@ -99,13 +94,13 @@ describe("dashboard > actions > utils", () => {
 
     it("should return true if a card was added", () => {
       const oldCards = [
-        createMockDashboardCard({ id: 1 }),
-        createMockDashboardCard({ id: 2 }),
+        createMockDashboardOrderedCard({ id: 1 }),
+        createMockDashboardOrderedCard({ id: 2 }),
       ];
       const newCards = [
-        createMockDashboardCard({ id: 1 }),
-        createMockDashboardCard({ id: 2 }),
-        createMockDashboardCard({ id: 3 }),
+        createMockDashboardOrderedCard({ id: 1 }),
+        createMockDashboardOrderedCard({ id: 2 }),
+        createMockDashboardOrderedCard({ id: 3 }),
       ];
 
       expect(haveDashboardCardsChanged(newCards, oldCards)).toBe(true);
@@ -113,14 +108,14 @@ describe("dashboard > actions > utils", () => {
 
     it("should return true if a card was added and deleted", () => {
       const oldCards = [
-        createMockDashboardCard({ id: 1 }),
-        createMockDashboardCard({ id: 2 }),
-        createMockDashboardCard({ id: 3 }),
+        createMockDashboardOrderedCard({ id: 1 }),
+        createMockDashboardOrderedCard({ id: 2 }),
+        createMockDashboardOrderedCard({ id: 3 }),
       ];
       const newCards = [
-        createMockDashboardCard({ id: 1 }),
-        createMockDashboardCard({ id: 2 }),
-        createMockDashboardCard({ id: 4 }),
+        createMockDashboardOrderedCard({ id: 1 }),
+        createMockDashboardOrderedCard({ id: 2 }),
+        createMockDashboardOrderedCard({ id: 4 }),
       ];
 
       expect(haveDashboardCardsChanged(newCards, oldCards)).toBe(true);
@@ -128,28 +123,28 @@ describe("dashboard > actions > utils", () => {
 
     it("should return true if a card was removed", () => {
       const oldCards = [
-        createMockDashboardCard({ id: 1 }),
-        createMockDashboardCard({ id: 2 }),
+        createMockDashboardOrderedCard({ id: 1 }),
+        createMockDashboardOrderedCard({ id: 2 }),
       ];
-      const newCards = [createMockDashboardCard({ id: 1 })];
+      const newCards = [createMockDashboardOrderedCard({ id: 1 })];
 
       expect(haveDashboardCardsChanged(newCards, oldCards)).toBe(true);
     });
 
     it("should return true if deeply nested properties change", () => {
       const oldCards = [
-        createMockDashboardCard({
+        createMockDashboardOrderedCard({
           id: 1,
           visualization_settings: { foo: { bar: { baz: 21 } } },
         }),
-        createMockDashboardCard({ id: 2 }),
+        createMockDashboardOrderedCard({ id: 2 }),
       ];
       const newCards = [
-        createMockDashboardCard({
+        createMockDashboardOrderedCard({
           id: 1,
           visualization_settings: { foo: { bar: { baz: 22 } } },
         }),
-        createMockDashboardCard({ id: 2 }),
+        createMockDashboardOrderedCard({ id: 2 }),
       ];
 
       expect(haveDashboardCardsChanged(newCards, oldCards)).toBe(true);
@@ -157,12 +152,12 @@ describe("dashboard > actions > utils", () => {
 
     it("should return false if the dashboard cards have not changed", () => {
       const oldCards = [
-        createMockDashboardCard({ id: 1 }),
-        createMockDashboardCard({ id: 2 }),
+        createMockDashboardOrderedCard({ id: 1 }),
+        createMockDashboardOrderedCard({ id: 2 }),
       ];
       const newCards = [
-        createMockDashboardCard({ id: 1 }),
-        createMockDashboardCard({ id: 2 }),
+        createMockDashboardOrderedCard({ id: 1 }),
+        createMockDashboardOrderedCard({ id: 2 }),
       ];
 
       expect(haveDashboardCardsChanged(newCards, oldCards)).toBe(false);
@@ -170,12 +165,12 @@ describe("dashboard > actions > utils", () => {
 
     it("should return false if the dashboard cards have only changed order", () => {
       const oldCards = [
-        createMockDashboardCard({ id: 1 }),
-        createMockDashboardCard({ id: 2 }),
+        createMockDashboardOrderedCard({ id: 1 }),
+        createMockDashboardOrderedCard({ id: 2 }),
       ];
       const newCards = [
-        createMockDashboardCard({ id: 2 }),
-        createMockDashboardCard({ id: 1 }),
+        createMockDashboardOrderedCard({ id: 2 }),
+        createMockDashboardOrderedCard({ id: 1 }),
       ];
 
       expect(haveDashboardCardsChanged(newCards, oldCards)).toBe(false);
@@ -185,7 +180,7 @@ describe("dashboard > actions > utils", () => {
       const oldCards = Array(1000)
         .fill("")
         .map(index =>
-          createMockDashboardCard({
+          createMockDashboardOrderedCard({
             id: index,
             visualization_settings: { foo: { bar: { baz: index * 10 } } },
           }),
@@ -193,7 +188,7 @@ describe("dashboard > actions > utils", () => {
       const newCards = Array(1000)
         .fill("")
         .map(index =>
-          createMockDashboardCard({
+          createMockDashboardOrderedCard({
             id: index,
             visualization_settings: { foo: { bar: { baz: index * 10 } } },
           }),
@@ -204,51 +199,6 @@ describe("dashboard > actions > utils", () => {
       const endTime = performance.now();
 
       expect(endTime - startTime).toBeLessThan(100); // 100 ms (locally this was 6 ms)
-    });
-  });
-
-  describe("getDashCardMoveToTabUndoMessage", () => {
-    it("should return the correct message for dashCard with a name", () => {
-      const dashCard = createMockDashboardCard({
-        card: createMockCard({ name: "foo" }),
-      });
-      expect(getDashCardMoveToTabUndoMessage(dashCard)).toBe("Card moved: foo");
-    });
-
-    it("should return the correct message for a link dashCard", () => {
-      const dashCard = createMockDashboardCard({
-        card: createMockCard({ name: undefined }),
-        visualization_settings: { virtual_card: { display: "link" } },
-      });
-      expect(getDashCardMoveToTabUndoMessage(dashCard)).toBe("Link card moved");
-    });
-
-    it("should return the correct message for an action dashCard", () => {
-      const dashCard = createMockDashboardCard({
-        card: createMockCard({ name: undefined }),
-        visualization_settings: { virtual_card: { display: "action" } },
-      });
-      expect(getDashCardMoveToTabUndoMessage(dashCard)).toBe(
-        "Action card moved",
-      );
-    });
-
-    it("should return the correct message for a text dashCard", () => {
-      const dashCard = createMockDashboardCard({
-        card: createMockCard({ name: undefined }),
-        visualization_settings: { virtual_card: { display: "text" } },
-      });
-      expect(getDashCardMoveToTabUndoMessage(dashCard)).toBe("Text card moved");
-    });
-
-    it("should return the correct message for a heading dashCard", () => {
-      const dashCard = createMockDashboardCard({
-        card: createMockCard({ name: undefined }),
-        visualization_settings: { virtual_card: { display: "heading" } },
-      });
-      expect(getDashCardMoveToTabUndoMessage(dashCard)).toBe(
-        "Heading card moved",
-      );
     });
   });
 });

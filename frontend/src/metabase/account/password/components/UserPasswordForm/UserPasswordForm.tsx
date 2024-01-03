@@ -2,31 +2,28 @@ import { useCallback, useMemo } from "react";
 import { t } from "ttag";
 import _ from "underscore";
 import * as Yup from "yup";
-import {
-  Form,
-  FormProvider,
-  FormTextInput,
-  FormSubmitButton,
-  FormErrorMessage,
-  requiredErrorMessage,
-} from "metabase/forms";
-import { Group, Stack } from "metabase/ui";
-import type { User } from "metabase-types/api";
-import type { UserPasswordData } from "../../types";
+import Form from "metabase/core/components/Form";
+import FormProvider from "metabase/core/components/FormProvider";
+import FormInput from "metabase/core/components/FormInput";
+import FormSubmitButton from "metabase/core/components/FormSubmitButton";
+import FormErrorMessage from "metabase/core/components/FormErrorMessage";
+import * as Errors from "metabase/core/utils/errors";
+import { User } from "metabase-types/api";
+import { UserPasswordData } from "../../types";
 
 const USER_PASSWORD_SCHEMA = Yup.object({
-  old_password: Yup.string().default("").required(requiredErrorMessage),
+  old_password: Yup.string().default("").required(Errors.required),
   password: Yup.string()
     .default("")
-    .required(requiredErrorMessage)
+    .required(Errors.required)
     .test(async (value = "", context) => {
       const error = await context.options.context?.onValidatePassword(value);
       return error ? context.createError({ message: error }) : true;
     }),
   password_confirm: Yup.string()
     .default("")
-    .required(requiredErrorMessage)
-    .oneOf([Yup.ref("password")], t`Passwords do not match`),
+    .required(Errors.required)
+    .oneOf([Yup.ref("password")], t`passwords do not match`),
 });
 
 export interface UserPasswordFormProps {
@@ -35,7 +32,7 @@ export interface UserPasswordFormProps {
   onSubmit: (user: User, data: UserPasswordData) => void;
 }
 
-export const UserPasswordForm = ({
+const UserPasswordForm = ({
   user,
   onValidatePassword,
   onSubmit,
@@ -64,34 +61,33 @@ export const UserPasswordForm = ({
       onSubmit={handleSubmit}
     >
       <Form>
-        <Stack>
-          <FormTextInput
-            name="old_password"
-            type="password"
-            label={t`Current password`}
-            placeholder={t`Shhh...`}
-            autoComplete="current-password"
-          />
-          <FormTextInput
-            name="password"
-            type="password"
-            label={t`Create a password`}
-            placeholder={t`Shhh...`}
-            autoComplete="new-password"
-          />
-          <FormTextInput
-            name="password_confirm"
-            type="password"
-            label={t`Confirm your password`}
-            placeholder={t`Shhh... but one more time so we get it right`}
-            autoComplete="new-password"
-          />
-          <Group>
-            <FormSubmitButton label={t`Save`} variant="filled" />
-          </Group>
-          <FormErrorMessage />
-        </Stack>
+        <FormInput
+          name="old_password"
+          type="password"
+          title={t`Current password`}
+          placeholder={t`Shhh...`}
+          autoComplete="current-password"
+        />
+        <FormInput
+          name="password"
+          type="password"
+          title={t`Create a password`}
+          placeholder={t`Shhh...`}
+          autoComplete="new-password"
+        />
+        <FormInput
+          name="password_confirm"
+          type="password"
+          title={t`Confirm your password`}
+          placeholder={t`Shhh... but one more time so we get it right`}
+          autoComplete="new-password"
+        />
+        <FormSubmitButton title={t`Save`} primary />
+        <FormErrorMessage />
       </Form>
     </FormProvider>
   );
 };
+
+// eslint-disable-next-line import/no-default-export -- deprecated usage
+export default UserPasswordForm;

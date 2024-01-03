@@ -6,7 +6,6 @@ import {
   saveDashboard,
   visitDashboard,
   setFilter,
-  getDashboardCard,
 } from "e2e/support/helpers";
 
 import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
@@ -17,13 +16,9 @@ describe("scenarios > dashboard > filters > nested questions", () => {
   beforeEach(() => {
     restore();
     cy.signInAsAdmin();
-    cy.intercept("POST", "/api/dataset").as("dataset");
-    cy.intercept("POST", "/api/dashboard/*/dashcard/*/card/*/query").as(
-      "dashcardQuery",
-    );
   });
 
-  it("dashboard filters should work on nested question (metabase#12614, metabase#13186, metabase#18113, metabase#32126)", () => {
+  it("dashboard filters should work on nested question (metabase#12614, metabase#13186, metabase#18113)", () => {
     const filter = {
       name: "Text Filter",
       slug: "text",
@@ -78,13 +73,11 @@ describe("scenarios > dashboard > filters > nested questions", () => {
 
     // Add multiple values (metabase#18113)
     filterWidget().click();
-    popover().within(() => {
-      cy.findByText("Gizmo").click();
-      cy.findByText("Gadget").click();
-    });
-
+    cy.findByPlaceholderText("Enter some text").type(
+      "Gizmo{enter}Gadget{enter}",
+    );
     cy.button("Add filter").click();
-    cy.wait("@dashcardQuery");
+    cy.wait("@dashcardQuery2");
 
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
     cy.findByText("2 selections");
@@ -94,7 +87,7 @@ describe("scenarios > dashboard > filters > nested questions", () => {
     cy.findByText("Doohickey").should("not.exist");
 
     cy.reload();
-    cy.wait("@dashcardQuery");
+    cy.wait("@dashcardQuery2");
 
     cy.location("search").should("eq", "?text=Gizmo&text=Gadget");
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
@@ -103,11 +96,11 @@ describe("scenarios > dashboard > filters > nested questions", () => {
     editDashboard();
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
     cy.findByText(filter.name).find(".Icon-gear").click();
-
-    getDashboardCard().within(() => {
-      cy.findByText("Column to filter on");
-      cy.findByText("18113 Source.CATEGORY").click();
-    });
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Column to filter on")
+      .parent()
+      .contains(/Category/i)
+      .click();
 
     // This part reproduces metabase#12614
     popover().within(() => {

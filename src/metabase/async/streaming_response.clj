@@ -226,6 +226,7 @@
   (send* [this request respond* _]
     (respond* (compojure.response/render this request))))
 
+;; TODO -- don't think any of this is needed any mo
 (defn- render [^StreamingResponse streaming-response gzip?]
   (let [{:keys [headers content-type], :as options} (.options streaming-response)]
     (assoc (response/response (if gzip?
@@ -235,7 +236,7 @@
                                 streaming-response))
            :headers      (cond-> (assoc headers "Content-Type" content-type)
                            gzip? (assoc "Content-Encoding" "gzip"))
-           :status       (or (:status options) 202))))
+           :status       202)))
 
 (defn finished-chan
   "Fetch a promise channel that will get a message when a `StreamingResponse` is completely finished. Provided primarily

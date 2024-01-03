@@ -2,7 +2,7 @@
   "Tests for /api/ee/logs endpoints"
   (:require
    [clojure.test :refer :all]
-   [java-time.api :as t]
+   [java-time :as t]
    [metabase-enterprise.advanced-config.api.logs :as ee.api.logs]
    [metabase.models.query-execution :refer [QueryExecution]]
    [metabase.public-settings.premium-features-test :as premium-features.test]
@@ -26,13 +26,13 @@
       ;; QueryExecution is an unbounded mega table and query it could result in a full table scan :( (See: #29103)
       ;; Run the test in an empty database to make querying less intense.
       (mt/with-empty-h2-app-db
-        (mt/with-temp [QueryExecution qe-a (merge query-execution-defaults {}
-                                                  {:executor_id user-id
-                                                   :started_at  (t/minus now (t/days 2))})
-                       QueryExecution qe-b (merge query-execution-defaults {}
-                                                  {:executor_id user-id
-                                                   :started_at  (t/minus now (t/days 32))})]
-          (premium-features.test/with-premium-features #{:audit-app}
+        (mt/with-temp* [QueryExecution [qe-a (merge query-execution-defaults
+                                                    {:executor_id user-id
+                                                     :started_at  (t/minus now (t/days 2))})]
+                        QueryExecution [qe-b (merge query-execution-defaults
+                                                    {:executor_id user-id
+                                                     :started_at  (t/minus now (t/days 32))})]]
+          (premium-features.test/with-premium-features #{:advanced-config}
             (testing "Query Executions within `:yyyy-mm` are returned."
               (is (= [(select-keys qe-a [:started_at :id])]
                      ;; we're calling the function directly instead of calling the API
@@ -46,10 +46,10 @@
 
     (testing "permission tests"
       (testing "require admins"
-        (premium-features.test/with-premium-features #{:audit-app}
+        (premium-features.test/with-premium-features #{:advanced-config}
           (is (= "You don't have permissions to do that."
                  (mt/user-http-request :rasta :get 403 "ee/logs/query_execution/2023-02")))))
-      (testing "only works when `:audit-app` feature is available."
+      (testing "only works when `:advanced-config` feature is available."
         (premium-features.test/with-premium-features #{}
-          (is (= "Audit app is a paid feature not currently available to your instance. Please upgrade to use it. Learn more at metabase.com/upgrade/"
+          (is (= "This API endpoint is only enabled if you have a premium token with the :advanced-config feature."
                  (mt/user-http-request :crowberto :get 402 "ee/logs/query_execution/2023-02"))))))))

@@ -5,20 +5,22 @@
 import { useMemo } from "react";
 import { t } from "ttag";
 
+import { Icon } from "metabase/core/components/Icon";
 import Tooltip from "metabase/core/components/Tooltip";
-import { Ellipsified } from "metabase/core/components/Ellipsified";
+import Ellipsified from "metabase/core/components/Ellipsified";
 import Markdown from "metabase/core/components/Markdown";
 import {
   ScalarRoot,
   ScalarValueWrapper,
   ScalarTitleContainer,
   ScalarDescriptionContainer,
-  ScalarDescriptionIcon,
   ScalarDescriptionPlaceholder,
   ScalarTitleContent,
 } from "./ScalarValue.styled";
 
 import { findSize, getMaxFontSize } from "./utils";
+
+const HORIZONTAL_PADDING = 32;
 
 export const ScalarWrapper = ({ children }) => (
   <ScalarRoot>{children}</ScalarRoot>
@@ -26,7 +28,6 @@ export const ScalarWrapper = ({ children }) => (
 
 const ScalarValue = ({
   value,
-  height,
   width,
   gridSize,
   totalNumGridCols,
@@ -36,8 +37,7 @@ const ScalarValue = ({
     () =>
       findSize({
         text: value,
-        targetHeight: height,
-        targetWidth: width,
+        targetWidth: width - HORIZONTAL_PADDING,
         fontFamily: fontFamily ?? "Lato",
         fontWeight: 900,
         unit: "rem",
@@ -45,7 +45,7 @@ const ScalarValue = ({
         min: 1,
         max: gridSize ? getMaxFontSize(gridSize.width, totalNumGridCols) : 4,
       }),
-    [fontFamily, gridSize, height, totalNumGridCols, value, width],
+    [fontFamily, gridSize, totalNumGridCols, value, width],
   );
 
   return (
@@ -59,8 +59,8 @@ const ScalarValue = ({
   );
 };
 
-export const ScalarTitle = ({ lines = 2, title, description, onClick }) => (
-  <ScalarTitleContainer data-testid="scalar-title" lines={lines}>
+export const ScalarTitle = ({ title, description, onClick }) => (
+  <ScalarTitleContainer>
     {/*
       This is a hacky spacer so that the h3 is centered correctly.
       It needs match the width of the tooltip icon on the other side.
@@ -68,23 +68,24 @@ export const ScalarTitle = ({ lines = 2, title, description, onClick }) => (
     {description && description.length > 0 && <ScalarDescriptionPlaceholder />}
     <ScalarTitleContent
       className="fullscreen-normal-text fullscreen-night-text"
+      data-testid="scalar-title"
       onClick={onClick}
     >
-      <Ellipsified tooltip={title} lines={lines} placement="bottom">
+      <Ellipsified tooltip={title} lines={2} placement="bottom">
         {title}
       </Ellipsified>
     </ScalarTitleContent>
     {description && description.length > 0 && (
-      <ScalarDescriptionContainer data-testid="scalar-description">
+      <ScalarDescriptionContainer className="hover-child">
         <Tooltip
           tooltip={
-            <Markdown dark disallowHeading unstyleLinks>
+            <Markdown disallowHeading unstyleLinks>
               {description}
             </Markdown>
           }
           maxWidth="22em"
         >
-          <ScalarDescriptionIcon name="info_filled" />
+          <Icon name="info_outline" />
         </Tooltip>
       </ScalarDescriptionContainer>
     )}

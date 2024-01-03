@@ -1,13 +1,13 @@
 import { t } from "ttag";
 import * as Yup from "yup";
 
-import * as Errors from "metabase/lib/errors";
+import * as Errors from "metabase/core/utils/errors";
 
 import type {
   ActionDashboardCard,
   ActionFormOption,
   ActionFormSettings,
-  BaseDashboardCard,
+  BaseDashboardOrderedCard,
   Card,
   FieldType,
   FieldSettings,
@@ -22,7 +22,7 @@ import type {
 } from "metabase-types/api";
 
 import { TYPE } from "metabase-lib/types/constants";
-import type Field from "metabase-lib/metadata/Field";
+import Field from "metabase-lib/metadata/Field";
 
 import type {
   ActionFormProps,
@@ -72,10 +72,7 @@ const AUTOMATIC_DATE_TIME_FIELDS = [
 ];
 
 const isAutomaticDateTimeField = (field: Field) => {
-  return (
-    field.semantic_type !== null &&
-    AUTOMATIC_DATE_TIME_FIELDS.includes(field.semantic_type)
-  );
+  return AUTOMATIC_DATE_TIME_FIELDS.includes(field.semantic_type);
 };
 
 const isEditableField = (field: Field, parameter: Parameter) => {
@@ -155,7 +152,7 @@ export function isSavedAction(
 }
 
 export function isActionDashCard(
-  dashCard: BaseDashboardCard,
+  dashCard: BaseDashboardOrderedCard,
 ): dashCard is ActionDashboardCard {
   const virtualCard = dashCard?.visualization_settings?.virtual_card;
   return isActionCard(virtualCard as Card);
@@ -214,7 +211,10 @@ const getFormField = (
   parameter: Parameter,
   fieldSettings: LocalFieldSettings,
 ) => {
-  if (fieldSettings.field && !isEditableField(fieldSettings.field, parameter)) {
+  if (
+    fieldSettings.field &&
+    !isEditableField(fieldSettings.field, parameter as Parameter)
+  ) {
     return undefined;
   }
 
@@ -229,9 +229,7 @@ const getFormField = (
       parameter.id,
     description: fieldSettings.description ?? "",
     placeholder: fieldSettings?.placeholder,
-    // fieldSettings for implicit actions contain only `hidden` and `id`
-    // in this case we rely on required settings of parameter
-    optional: fieldSettings.required === false || parameter.required === false,
+    optional: !fieldSettings.required,
     field: fieldSettings.field,
   };
 
@@ -253,7 +251,7 @@ export const getForm = (
   );
   return {
     fields: sortedParams
-      .map(param => getFormField(param, fieldSettings[param.id] ?? {}))
+      ?.map(param => getFormField(param, fieldSettings[param.id] ?? {}))
       .filter(Boolean) as ActionFormFieldProps[],
   };
 };
@@ -306,7 +304,7 @@ export const getFormValidationSchema = (
 };
 
 export const getSubmitButtonColor = (action: WritebackAction): string => {
-  if (isImplicitDeleteAction(action)) {
+  if (action.type === "implicit" && action.kind === "row/delete") {
     return "danger";
   }
   return action.visualization_settings?.submitButtonColor ?? "primary";
@@ -333,13 +331,3 @@ export const getSubmitButtonLabel = (action: WritebackAction): string => {
 
   return action.name;
 };
-
-export const isActionPublic = (action: Partial<WritebackAction>) => {
-  return action.public_uuid != null;
-};
-
-export const isImplicitDeleteAction = (action: WritebackAction): boolean =>
-  action.type === "implicit" && action.kind === "row/delete";
-
-export const isImplicitUpdateAction = (action: WritebackAction): boolean =>
-  action.type === "implicit" && action.kind === "row/update";

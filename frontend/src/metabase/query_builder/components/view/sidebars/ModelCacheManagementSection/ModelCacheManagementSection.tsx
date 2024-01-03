@@ -1,12 +1,11 @@
 import { t } from "ttag";
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
 import moment from "moment-timezone";
 import { connect } from "react-redux";
 
 import PersistedModels from "metabase/entities/persisted-models";
 
-import type { ModelCacheRefreshStatus } from "metabase-types/api";
-import type Question from "metabase-lib/Question";
+import { ModelCacheRefreshStatus } from "metabase-types/api";
+import Question from "metabase-lib/Question";
 
 import { checkCanRefreshModelCache } from "metabase-lib/metadata/utils/models";
 import {

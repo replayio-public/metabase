@@ -1,6 +1,5 @@
 import { useCallback } from "react";
 import { t } from "ttag";
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
 import moment from "moment-timezone";
 import { connect } from "react-redux";
 
@@ -17,7 +16,7 @@ import * as Urls from "metabase/lib/urls";
 
 import { usePagination } from "metabase/hooks/use-pagination";
 
-import type { ModelCacheRefreshStatus } from "metabase-types/api";
+import { ModelCacheRefreshStatus } from "metabase-types/api";
 
 import NoResults from "assets/img/no_results.svg";
 

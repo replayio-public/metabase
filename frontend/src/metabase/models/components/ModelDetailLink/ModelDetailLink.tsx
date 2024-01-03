@@ -1,7 +1,6 @@
 import { t } from "ttag";
 
-import type { ButtonProps } from "metabase/core/components/Button";
-import Button from "metabase/core/components/Button";
+import Button, { ButtonProps } from "metabase/core/components/Button";
 import Link from "metabase/core/components/Link";
 
 import * as Urls from "metabase/lib/urls";

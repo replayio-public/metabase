@@ -22,15 +22,12 @@ interface NotebookStepsProps {
 
 function getInitialOpenSteps(question: Question, readOnly: boolean): OpenSteps {
   const isNew = !readOnly && !question.table();
-
-  if (isNew) {
-    return {
-      "0:filter": true,
-      "0:summarize": true,
-    };
-  }
-
-  return {};
+  return isNew
+    ? {
+        "0:filter": true,
+        "0:summarize": true,
+      }
+    : {};
 }
 
 function NotebookSteps({

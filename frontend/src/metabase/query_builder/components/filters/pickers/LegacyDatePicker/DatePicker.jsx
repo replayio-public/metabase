@@ -3,7 +3,6 @@ import { Component } from "react";
 import PropTypes from "prop-types";
 import { t } from "ttag";
 import cx from "classnames";
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
 import moment from "moment-timezone";
 import _ from "underscore";
 
@@ -177,7 +176,7 @@ function getDateTimeFieldAndValues(filter, count) {
 
 const ALL_TIME_OPERATOR = {
   name: "all",
-  displayName: t`All time`,
+  displayName: t`All Time`,
   init: () => null,
   test: op => op === null,
 };
@@ -314,7 +313,7 @@ export default class DatePicker extends Component {
       if (filter) {
         onFilterChange(operator.init(filter));
       } else {
-        // from All time (null filter)
+        // from All Time (null filter)
         const { dimension } = this.props;
         onFilterChange(operator.init(["time-interval", dimension?.mbql()]));
       }

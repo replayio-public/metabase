@@ -29,13 +29,7 @@ describe("issue 23421", () => {
     cy.findByText("Edit query definition").click();
 
     cy.get(".ace_content").should("contain", query);
-    // This test used to check for the presense of 4 cell data elements, implying that we should generate a default
-    // value for table.columns. However, as of #33841, having an empty table.columns setting is valid, so the
-    // assertion in this test has changed
-    cy.findByTestId("visualization-root").should(
-      "contain.text",
-      "Every field is hidden right now",
-    );
+    cy.get(".cellData").should("have.length", 4);
 
     cy.button("Save changes").should("be.disabled");
   });

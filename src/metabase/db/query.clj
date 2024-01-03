@@ -23,18 +23,49 @@
    [clojure.string :as str]
    [honey.sql :as sql]
    [metabase.db.connection :as mdb.connection]
-   [metabase.driver :as driver]
+   [metabase.driver.impl :as driver.impl]
    [metabase.plugins.classloader :as classloader]
    [metabase.util.log :as log]
    [toucan2.core :as t2]
-   [toucan2.jdbc.options :as t2.jdbc.options]))
+   [toucan2.jdbc :as t2.jdbc])
+  (:import
+   (com.github.vertical_blank.sqlformatter SqlFormatter)
+   (com.github.vertical_blank.sqlformatter.languages Dialect)))
 
 (set! *warn-on-reflection* true)
 
-(defn format-sql
-  "Return a nicely-formatted version of a `query` string with the current application db driver formatting."
+(defn- format-sql*
+  "Return a nicely-formatted version of a generic `sql` string.
+  Note that it will not play well with Metabase parameters."
+  (^String [sql]
+   (format-sql* sql (mdb.connection/db-type)))
+
+  (^String [^String sql db-type]
+   (when sql
+     (if (isa? driver.impl/hierarchy db-type :sql)
+       (let [formatter (SqlFormatter/of (case db-type
+                                          :mysql Dialect/MySql
+                                          :postgres Dialect/PostgreSql
+                                          :redshift Dialect/Redshift
+                                          :sparksql Dialect/SparkSql
+                                          :sqlserver Dialect/TSql
+                                          :oracle Dialect/PlSql
+                                          :bigquery-cloud-sdk Dialect/MySql
+                                          Dialect/StandardSql))]
+         (.format formatter sql))
+       sql))))
+
+(defn- fix-sql-params
+  "format-sql* will expand parameterized values (e.g. {{#123}} -> { { # 123 } }).
+  This function fixes that by removing whitespace from matching double-curly brace substrings."
   [sql]
-  (driver/prettify-native-form (mdb.connection/db-type) sql))
+  (when sql
+    (let [rgx #"\{\s*\{\s*[^\}]+\s*\}\s*\}"]
+      (str/replace sql rgx (fn [match] (str/replace match #"\s*" ""))))))
+
+(def ^{:arglists '([sql] [sql db-type])} format-sql
+  "Return a nicely-formatted version of a `sql` string."
+  (comp fix-sql-params format-sql*))
 
 (defmulti compile
   "Compile a `query` (e.g. a Honey SQL map) to `[sql & args]`."
@@ -68,7 +99,6 @@
                 (pr-str (rest sql-args)))
     sql-args))
 
-;;; TODO -- we should mark this deprecated and tell people to use [[toucan2.core/query]] directly instead
 (defn query
   "Replacement for [[toucan.db/query]] -- uses Honey SQL 2 instead of Honey SQL 1, to ease the transition to the
   former (and to Toucan 2).
@@ -84,7 +114,7 @@
     ;; will help with debugging stuff. This should mostly be dev-facing because we should hopefully not be committing
     ;; any busted code into the repo
     (try
-      (binding [t2.jdbc.options/*options* (merge t2.jdbc.options/*options* jdbc-options)]
+      (binding [t2.jdbc/*options* (merge t2.jdbc/*options* jdbc-options)]
         (t2/query sql-args))
       (catch Throwable e
         (let [formatted-sql (format-sql (first sql-args))]
@@ -112,5 +142,5 @@
     ;; until we actually reduce it
     (reify clojure.lang.IReduceInit
       (reduce [_this rf init]
-        (binding [t2.jdbc.options/*options* (merge t2.jdbc.options/*options* jdbc-options)]
+        (binding [t2.jdbc/*options* (merge t2.jdbc/*options* jdbc-options)]
           (reduce rf init (t2/reducible-query sql-args)))))))

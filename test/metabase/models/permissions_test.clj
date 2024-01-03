@@ -9,7 +9,6 @@
     :as perms-group
     :refer [PermissionsGroup]]
    [metabase.models.table :refer [Table]]
-   [metabase.models.user :as user]
    [metabase.test :as mt]
    [metabase.test.fixtures :as fixtures]
    [metabase.util :as u]
@@ -76,7 +75,7 @@
    ;; my/schema should get escaped to my\/schema
    "/db/1/schema/my\\/schema/table/1/"])
 
-(deftest ^:parallel valid-path-test
+(deftest valid-path-test
   (testing "valid paths"
     (doseq [path valid-paths]
       (testing (pr-str path)
@@ -202,7 +201,7 @@
             (is (= false
                    (perms/valid-path? path)))))))))
 
-(deftest ^:parallel valid-path-backslashes-test
+(deftest valid-path-backslashes-test
   (testing "Only even numbers of backslashes should be valid (backslash must be escaped by another backslash)"
     (doseq [[_num-backslashes expected schema-name] [[0 true "PUBLIC"]
                                                      [0 true  "my_schema"]
@@ -216,75 +215,84 @@
           (is (= expected
                  (perms/valid-path? path))))))))
 
-(deftest ^:parallel valid-path-format-test
+(deftest valid-path-format-test
   (testing "known valid paths"
     (doseq [path (concat valid-paths valid-paths-with-slashes)]
       (testing (pr-str path)
-        (is (perms/valid-path-format? path)))))
+        (is (= true
+               (perms/valid-path-format? path))))))
+
   (testing "unknown paths with valid path format"
-    (are [path] (perms/valid-path-format? path)
-      "/asdf/"
-      "/asdf/ghjk/"
-      "/asdf-ghjk/"
-      "/adsf//"
-      "/asdf/1/ghkl/"
-      "/asdf\\/ghkl/"
-      "/asdf\\\\ghkl/"))
+    (doseq [path ["/asdf/"
+                  "/asdf/ghjk/"
+                  "/asdf-ghjk/"
+                  "/adsf//"
+                  "/asdf/1/ghkl/"
+                  "/asdf\\/ghkl/"
+                  "/asdf\\\\ghkl/"]]
+      (testing (pr-str path)
+        (is (= true
+               (perms/valid-path-format? path))))))
+
   (testing "invalid paths"
-    (are [path] (not (perms/valid-path-format? path))
-      ""
-      "/asdf"
-      "asdf/"
-      "123"
-      nil
-      ;; these trigger Kondo warnings because the function expects a string or nil, but we should probably test behavior
-      ;; anyway for cases where you're passing in a local and Kondo can't infer the type
-      #_:clj-kondo/ignore {}
-      #_:clj-kondo/ignore []
-      #_:clj-kondo/ignore true
-      #_:clj-kondo/ignore false
-      #_:clj-kondo/ignore (keyword "/asdf/")
-      #_:clj-kondo/ignore 1234)))
+    (doseq [path
+            [""
+             "/asdf"
+             "asdf/"
+             "123"
+             nil
+             {}
+             []
+             true
+             false
+             (keyword "/asdf/")
+             1234]]
+      (testing (pr-str path)
+        (is (= false
+               (perms/valid-path-format? path)))))))
 
 
 ;;; -------------------------------------------------- data-perms-path ---------------------------------------------------
 
-(deftest ^:parallel data-perms-path-test
+(deftest data-perms-path-test
   (testing "valid paths"
-    (are [expected args] (= expected
-                            (apply perms/data-perms-path args))
-      "/db/1/"                       [1]
-      "/db/1/schema/public/"         [1 "public"]
-      "/db/1/schema/public/table/2/" [1 "public" 2]))
+    (doseq [[expected args] {"/db/1/"                       [1]
+                             "/db/1/schema/public/"         [1 "public"]
+                             "/db/1/schema/public/table/2/" [1 "public" 2]}]
+      (testing (pr-str (cons 'perms/data-perms-path args))
+        (is (= expected
+               (apply perms/data-perms-path args))))))
+
   (testing "invalid paths"
     (testing "invalid input should throw an exception"
-      (are [args] (thrown?
-                   Exception
-                   (apply perms/data-perms-path args))
-        []
-        [1 "public" 2 3]
-        [nil]
-        ["sales"]
-        [:sales]
-        [true]
-        [false]
-        [{}]
-        [[]]
-        [:sales]
-        [1 true]
-        [1 false]
-        [1 {}]
-        [1 []]
-        [1 :sales]
-        [1 "public" nil]
-        [1 "public" "sales"]
-        [1 "public" :sales]
-        [1 "public" true]
-        [1 "public" false]
-        [1 "public" {}]
-        [1 "public" []]))))
+      (doseq [args [[]
+                    [1 "public" 2 3]
+                    [nil]
+                    ["sales"]
+                    [:sales]
+                    [true]
+                    [false]
+                    [{}]
+                    [[]]
+                    [:sales]
+                    [1 true]
+                    [1 false]
+                    [1 {}]
+                    [1 []]
+                    [1 :sales]
+                    [1 "public" nil]
+                    [1 "public" "sales"]
+                    [1 "public" :sales]
+                    [1 "public" true]
+                    [1 "public" false]
+                    [1 "public" {}]
+                    [1 "public" []]]]
+        (testing (pr-str (cons 'perms/data-perms-path args))
+          (is (thrown?
+               Exception
+               (apply perms/data-perms-path args))))))))
 
-(deftest ^:parallel data-perms-path-escape-slashes-test
+(deftest data-perms-path-escape-slashes-test
   (doseq [{:keys [slash-direction schema-name expected-escaped]} [{:slash-direction  "back (#8693)"
                                                                    :schema-name      "my\\schema"
                                                                    :expected-escaped "my\\\\schema"}
@@ -315,7 +323,7 @@
 
 ;;; ---------------------------------- Generating permissions paths for Collections ----------------------------------
 
-(deftest ^:parallel collection-path-test
+(deftest collection-path-test
   (doseq [[perms-type f-symb] {:read      'collection-read-path
                                :readwrite 'collection-readwrite-path}
           :let                [f (ns-resolve 'metabase.models.permissions f-symb)]]
@@ -336,41 +344,65 @@
       (testing (pr-str (list f-symb input))
         (is (= expected
                (f input)))))
+
     (doseq [input [{} nil "1"]]
       (testing (pr-str (list f-symb input))
         (is (thrown?
              Exception
              (f input)))))))
 
-(deftest ^:parallel is-permissions-for-object?-test
-  (are [perms-path] (perms/is-permissions-for-object? perms-path "/db/1/schema/PUBLIC/table/1/")
-    "/"
-    "/db/"
-    "/db/1/"
-    "/db/1/schema/"
-    "/db/1/schema/PUBLIC/"
-    "/db/1/schema/PUBLIC/table/1/")
-  (are [perms-path] (not (perms/is-permissions-for-object? perms-path "/db/1/schema/PUBLIC/table/1/"))
-    "/db/2/"
-    "/db/2/native/"
-    "/db/1/schema/public/"
-    "/db/1/schema/private/"
-    "/db/1/schema/PUBLIC/table/2/"))
 
-(deftest ^:parallel is-partial-permissions-for-object?-test
-  (are [perms-path] (perms/is-partial-permissions-for-object? perms-path "/db/1/")
-    "/"
-    "/db/"
-    "/db/1/"
-    "/db/1/schema/"
-    "/db/1/schema/PUBLIC/"
-    "/db/1/schema/PUBLIC/table/"
-    "/db/1/schema/PUBLIC/table/1/"
-    "/db/1/schema/PUBLIC/table/1/field/"
-    "/db/1/schema/PUBLIC/table/1/field/2/")
-  (are [perms-path] (not (perms/is-partial-permissions-for-object? perms-path "/db/1/"))
-    "/db/2/"
-    "/db/2/native/"))
+;;; ------------------------------------------- is-permissions-for-object? -------------------------------------------
+
+(deftest is-permissions-for-object?-test
+  (doseq [[expected inputs]
+          {true
+           ["/"
+            "/db/"
+            "/db/1/"
+            "/db/1/schema/"
+            "/db/1/schema/PUBLIC/"
+            "/db/1/schema/PUBLIC/table/1/"]
+
+           false
+           ["/db/2/"
+            "/db/2/native/"
+            "/db/1/schema/public/"
+            "/db/1/schema/private/"
+            "/db/1/schema/PUBLIC/table/2/"]}
+
+          perms-path inputs]
+    (testing (pr-str (list 'is-permissions-for-object? perms-path "/db/1/schema/PUBLIC/table/1/"))
+      (is (= expected
+             (perms/is-permissions-for-object? perms-path "/db/1/schema/PUBLIC/table/1/"))))))
+
+
+;;; --------------------------------------- is-partial-permissions-for-object? ---------------------------------------
+
+(deftest is-partial-permissions-for-object?-test
+  (doseq [[expected inputs]
+          {true
+           ["/"
+            "/db/"
+            "/db/1/"
+            "/db/1/schema/"
+            "/db/1/schema/PUBLIC/"
+            "/db/1/schema/PUBLIC/table/"
+            "/db/1/schema/PUBLIC/table/1/"
+            "/db/1/schema/PUBLIC/table/1/field/"
+            "/db/1/schema/PUBLIC/table/1/field/2/"]
+
+           false
+           ["/db/2/"
+            "/db/2/native/"]}
+
+          perms-path inputs]
+    (testing (pr-str (list 'is-partial-permissions-for-object? perms-path "/db/1/"))
+      (is (= expected
+             (perms/is-partial-permissions-for-object? perms-path "/db/1/"))))))
+
+
+;;; ---------------------------------------------- is-permissions-set? -----------------------------------------------
 
 ;;; This originally lived in [[metabase.models.permissions]] but it is only used in tests these days so I moved it here.
 (defn is-permissions-set?
@@ -382,50 +414,70 @@
                      (perms/valid-path? path)))
                permissions-set)))
 
-(deftest ^:parallel is-permissions-set?-test
+(deftest is-permissions-set?-test
   (testing "valid permissions sets"
-    (are [perms-set] (is-permissions-set? perms-set)
-      #{}
-      #{"/"}
-      #{"/db/1/"}
-      #{"/db/1/"}
-      #{"/db/1/schema/"}
-      #{"/db/1/schema/public/"}
-      #{"/db/1/schema/public/table/1/"}
-      #{"/" "/db/2/"}
-      #{"/db/1/" "/db/2/schema/"}
-      #{"/db/1/schema/" "/db/2/schema/public/"}
-      #{"/db/1/schema/public/" "/db/2/schema/public/table/3/"}
-      #{"/db/1/schema/public/table/2/" "/db/3/schema/public/table/4/"}))
-  (testing "invalid permissions sets"
-    (testing "things that aren't sets"
-      (are [perms-set] (not (is-permissions-set? perms-set))
-        nil {} [] true false "" 1234 :wow))
-    (testing "things that contain invalid paths"
-      (are [perms-set] (not (is-permissions-set? perms-set))
-        #{"/" "/toucans/"}
-        #{"/db/1/" "//"}
-        #{"/db/1/" "/db/1/table/2/"}
-        #{"/db/1/native/schema/"}
-        #{"/db/1/schema/public/" "/parroty/"}
-        #{"/db/1/schema/public/table/1/" "/ocean/"}))))
+    (doseq [perms-set [#{}
+                       #{"/"}
+                       #{"/db/1/"}
+                       #{"/db/1/"}
+                       #{"/db/1/schema/"}
+                       #{"/db/1/schema/public/"}
+                       #{"/db/1/schema/public/table/1/"}
+                       #{"/" "/db/2/"}
+                       #{"/db/1/" "/db/2/schema/"}
+                       #{"/db/1/schema/" "/db/2/schema/public/"}
+                       #{"/db/1/schema/public/" "/db/2/schema/public/table/3/"}
+                       #{"/db/1/schema/public/table/2/" "/db/3/schema/public/table/4/"}]]
+      (testing (pr-str (list 'is-permissions-set? perms-set))
+        (is (= true
+               (is-permissions-set? perms-set))))))
 
-(deftest ^:parallel set-has-full-permissions?-test
-  (are [perms path] (perms/set-has-full-permissions? perms path)
-    #{"/"}                                                     "/db/1/schema/public/table/2/"
-    #{"/db/3/" "/db/1/"}                                       "/db/1/schema/public/table/2/"
-    #{"/db/3/" "/db/1/"}                                       "/db/1/schema/public/table/2/"
-    #{"/db/1/schema/public/" "/db/3/schema//"}                 "/db/1/schema/public/table/2/"
-    #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"} "/db/1/schema/public/table/2/"
-    #{"/db/1/native/"}                                         "/db/1/native/")
-  (are [perms path] (not (perms/set-has-full-permissions? perms path))
-    #{}                                              "/db/1/schema/public/table/2/"
-    #{"/db/1/native/"}                               "/db/1/"
-    #{"/db/1/schema/public/"}                        "/db/1/schema/"
-    #{"/db/1/schema/public/table/1/"}                "/db/1/schema/public/"
-    #{"/db/2/"}                                      "/db/1/schema/public/table/2/"
-    #{"/db/3/" "/db/2/"}                             "/db/1/schema/public/table/2/"
-    #{"/db/3/schema/public/" "/db/2/schema/public/"} "/db/1/schema/public/table/2/"))
+  (testing "invalid permissions sets"
+    (doseq [[group sets] {"things that aren't sets"
+                          [nil {} [] true false "" 1234 :wow]
+
+                          "things that contain invalid paths"
+                          [#{"/" "/toucans/"}
+                           #{"/db/1/" "//"}
+                           #{"/db/1/" "/db/1/table/2/"}
+                           #{"/db/1/native/schema/"}
+                           #{"/db/1/schema/public/" "/parroty/"}
+                           #{"/db/1/schema/public/table/1/" "/ocean/"}]}]
+      (testing group
+        (doseq [perms-set sets]
+          (testing (pr-str (list 'is-permissions-set? perms-set))
+            (is (= false
+                   (is-permissions-set? perms-set)))))))))
+
+
+;;; ------------------------------------------- set-has-full-permissions? --------------------------------------------
+
+(deftest set-has-full-permissions?-test
+  (doseq [[expected inputs]
+          {true
+           [[#{"/"}                                                     "/db/1/schema/public/table/2/"]
+            [#{"/db/3/" "/db/1/"}                                       "/db/1/schema/public/table/2/"]
+            [#{"/db/3/" "/db/1/"}                                       "/db/1/schema/public/table/2/"]
+            [#{"/db/1/schema/public/" "/db/3/schema//"}                 "/db/1/schema/public/table/2/"]
+            [#{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"} "/db/1/schema/public/table/2/"]
+            [#{"/db/1/native/"}                                         "/db/1/native/"]]
+
+           false
+           [[#{}                                              "/db/1/schema/public/table/2/"]
+            [#{"/db/1/native/"}                               "/db/1/"]
+            [#{"/db/1/schema/public/"}                        "/db/1/schema/"]
+            [#{"/db/1/schema/public/table/1/"}                "/db/1/schema/public/"]
+            [#{"/db/2/"}                                      "/db/1/schema/public/table/2/"]
+            [#{"/db/3/" "/db/2/"}                             "/db/1/schema/public/table/2/"]
+            [#{"/db/3/schema/public/" "/db/2/schema/public/"} "/db/1/schema/public/table/2/"]]}
+
+          [perms path] inputs]
+    (testing (pr-str (list 'set-has-full-permissions? perms path))
+      (is (= expected
+             (perms/set-has-full-permissions? perms path))))))
+
+
+;;; ------------------------------------------ set-has-partial-permissions? ------------------------------------------
 
 (deftest set-has-partial-permissions?-test
   (doseq [[expected inputs]
@@ -457,95 +509,135 @@
       (is (= expected
              (perms/set-has-partial-permissions? perms path))))))
 
-(deftest ^:parallel set-has-application-permission-of-type?-test
-  (are [perms perms-type] (perms/set-has-application-permission-of-type? perms perms-type)
-    #{"/"}                          :subscription
-    #{"/"}                          :monitoring
-    #{"/"}                          :setting
-    #{"/application/subscription/"} :subscription
-    #{"/application/monitoring/"}   :monitoring
-    #{"/application/setting/"}      :setting)
-  (are [perms perms-type] (not (perms/set-has-application-permission-of-type? perms perms-type))
-    #{"/application/subscription/"} :monitoring
-    #{"/application/subscription/"} :setting
-    #{"/application/monitoring/"}   :subscription))
 
-(deftest ^:parallel set-has-full-permissions-for-set?-test
-  (are [perms paths] (perms/set-has-full-permissions-for-set? perms paths)
-    #{"/"}                                                     #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"}
-    #{"/db/3/" "/db/1/"}                                       #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"}
-    #{"/db/3/" "/db/1/"}                                       #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"}
-    #{"/db/1/schema/public/" "/db/3/schema//"}                 #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"}
-    #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"} #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"})
-  (are [perms paths] (not (perms/set-has-full-permissions-for-set? perms paths))
-    #{}                                                        #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"}
-    #{"/db/2/"}                                                #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"}
-    #{"/db/2/" "/db/1/"}                                       #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"}
-    #{"/db/3/schema/public/" "/db/1/schema/public/"}           #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"}
-    #{"/db/3/schema//table/5/" "/db/1/schema/public/table/2/"} #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"}))
+;;; -------------------------------------- set-has-application-permission-of-type? ---------------------------------------
 
-(deftest ^:parallel set-has-partial-permissions-for-set?-test
-  (are [perms paths] (perms/set-has-partial-permissions-for-set? perms paths)
-    #{"/"}                                                      #{"/db/1/schema/public/table/2/" "/db/2/"}
-    #{"/db/1/schema/public/table/2/" "/db/3/schema/public/"}    #{"/db/1/" "/db/3/"}
-    #{"/db/1/schema/public/table/2/" "/db/3/"}                  #{"/db/1/"}
-    #{"/db/1/schema/public/" "/db/3/schema//"}                  #{"/db/1/" "/db/3/"}
-    #{"/db/1/schema/public/table/2/" "/db/3/schema//table/4/"}  #{"/db/1/"}
-    #{"/db/1/schema/public/"}                                   #{"/db/1/"}
-    #{"/db/1/schema/"}                                          #{"/db/1/"}
-    #{"/db/1/schema/public/"}                                   #{"/db/1/"}
-    #{"/db/1/schema/public/"}                                   #{"/db/1/" "/db/1/schema/"}
-    #{"/db/1/schema/public/"}                                   #{"/db/1/" "/db/1/schema/public/"}
-    #{"/db/1/schema/public/table/1/"}                           #{"/db/1/" "/db/1/schema/public/table/1/"}
-    #{"/db/1/native/"}                                          #{"/db/1/native/"}
-    #{"/db/1/schema/public/"}                                   #{"/db/1/schema/"}
-    #{"/db/1/schema/public/table/1/"}                           #{"/db/1/schema/"}
-    #{"/db/1/schema/public/table/1/"}                           #{"/db/1/schema/public/"}
-    #{"/db/1/schema/public/table/2/" "/db/3/schema//table/4/"}  #{"/db/1/"})
-  (are [perms paths] (not (perms/set-has-partial-permissions-for-set? perms paths))
-    #{}                                                        #{"/db/1/schema/public/table/2/"}
-    #{"/db/1/schema/"}                                         #{"/db/1/native/"}
-    #{"/db/1/native/"}                                         #{"/db/1/schema/"}
-    #{"/db/2/"}                                                #{"/db/1/schema/public/table/2/"}
-    #{"/db/2/" "/db/3/"}                                       #{"/db/1/schema/public/table/2/"}
-    #{"/db/2/schema/public/" "/db/3/schema/public/"}           #{"/db/1/schema/public/table/2/"}
-    #{"/db/1/schema/public/table/2/" "/db/3/schema/public/"}   #{"/db/1/" "/db/3/" "/db/9/"}
-    #{"/db/1/schema/public/table/2/" "/db/3/"}                 #{"/db/1/" "/db/9/"}
-    #{"/db/1/schema/public/" "/db/3/schema//"}                 #{"/db/1/" "/db/3/" "/db/9/"}
-    #{"/db/1/schema/public/table/2/" "/db/3/schema//table/4/"} #{"/db/1/" "/db/9/"}
-    #{"/db/1/schema/public/"}                                  #{"/db/1/" "/db/9/"}
-    #{"/db/1/schema/"}                                         #{"/db/1/" "/db/9/"}
-    #{"/db/1/schema/public/"}                                  #{"/db/1/" "/db/9/"}
-    #{"/db/1/schema/public/"}                                  #{"/db/1/" "/db/1/schema/" "/db/9/"}
-    #{"/db/1/schema/public/"}                                  #{"/db/1/" "/db/1/schema/public/" "/db/9/"}
-    #{"/db/1/schema/public/table/1/"}                          #{"/db/1/" "/db/1/schema/public/table/1/" "/db/9/"}
-    #{"/db/1/native/"}                                         #{"/db/1/native/" "/db/9/"}
-    #{"/db/1/schema/public/"}                                  #{"/db/1/schema/" "/db/9/"}
-    #{"/db/1/schema/public/table/1/"}                          #{"/db/1/schema/" "/db/9/"}
-    #{"/db/1/schema/public/table/1/"}                          #{"/db/1/schema/public/" "/db/9/"}
-    #{"/db/1/schema/public/table/2/" "/db/3/schema//table/4/"} #{"/db/1/" "/db/9/"}))
+(deftest set-has-application-permission-of-type?-test
+  (doseq [[expected inputs]
+          {true
+           [[#{"/"}                          :subscription]
+            [#{"/"}                          :monitoring]
+            [#{"/"}                          :setting]
+            [#{"/application/subscription/"} :subscription]
+            [#{"/application/monitoring/"}   :monitoring]
+            [#{"/application/setting/"}      :setting]]
+           false
+           [[#{"/application/subscription/"} :monitoring]
+            [#{"/application/subscription/"} :setting]
+            [#{"/application/monitoring/"}   :subscription]]}
+          [perms path] inputs]
+    (testing (pr-str (list 'set-has-application-permission-of-type? perms path))
+      (is (= expected
+             (perms/set-has-application-permission-of-type? perms path))))))
 
-(deftest ^:parallel set-has-any-native-query-permissions?-test
-  (are [perms] (perms/set-has-any-native-query-permissions? perms)
-    #{"/"}
-    #{"/db/1/"}
-    #{"/db/1/native/"}
-    #{"/db/1/" "/db/2/schema/PUBLIC/table/1/"}
-    #{"/db/1/native/" "/db/2/schema/PUBLIC/table/1/"})
-  (are [perms] (not (perms/set-has-any-native-query-permissions? perms))
-    #{}
-    #{"/db/1"}
-    #{"/db/1/native"}
-    #{"/db/1/schema/"}
-    #{"/db/1/schema/PUBLIC/table/1/"}))
+;;; --------------------------------------- set-has-full-permissions-for-set? ----------------------------------------
 
-(deftest ^:parallel perms-objects-set-for-parent-collection-test
-  (are [input expected] (= expected
-                           (apply perms/perms-objects-set-for-parent-collection input))
-    [{:collection_id 1337} :read]  #{"/collection/1337/read/"}
-    [{:collection_id 1337} :write] #{"/collection/1337/"}
-    [{:collection_id nil} :read]   #{"/collection/root/read/"}
-    [{:collection_id nil} :write]  #{"/collection/root/"})
+(deftest set-has-full-permissions-for-set?-test
+  (doseq [[expected inputs]
+          {true
+           [[#{"/"}                                                     #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"}]
+            [#{"/db/3/" "/db/1/"}                                       #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"}]
+            [#{"/db/3/" "/db/1/"}                                       #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"}]
+            [#{"/db/1/schema/public/" "/db/3/schema//"}                 #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"}]
+            [#{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"} #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"}]]
+
+           false
+           [[#{}                                                        #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"}]
+            [#{"/db/2/"}                                                #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"}]
+            [#{"/db/2/" "/db/1/"}                                       #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"}]
+            [#{"/db/3/schema/public/" "/db/1/schema/public/"}           #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"}]
+            [#{"/db/3/schema//table/5/" "/db/1/schema/public/table/2/"} #{"/db/3/schema//table/4/" "/db/1/schema/public/table/2/"}]]}
+
+          [perms paths] inputs]
+    (testing (pr-str (list 'set-has-full-permissions-for-set? perms paths))
+      (is (= expected
+             (perms/set-has-full-permissions-for-set? perms paths))))))
+
+
+;;; -------------------------------------- set-has-partial-permissions-for-set? --------------------------------------
+
+(deftest set-has-partial-permissions-for-set?-test
+  (doseq [[expected inputs]
+          {true
+           [[#{"/"}                                                      #{"/db/1/schema/public/table/2/" "/db/2/"}]
+            [#{"/db/1/schema/public/table/2/" "/db/3/schema/public/"}    #{"/db/1/" "/db/3/"}]
+            [#{"/db/1/schema/public/table/2/" "/db/3/"}                  #{"/db/1/"}]
+            [#{"/db/1/schema/public/" "/db/3/schema//"}                  #{"/db/1/" "/db/3/"}]
+            [#{"/db/1/schema/public/table/2/" "/db/3/schema//table/4/"}  #{"/db/1/"}]
+            [#{"/db/1/schema/public/"}                                   #{"/db/1/"}]
+            [#{"/db/1/schema/"}                                          #{"/db/1/"}]
+            [#{"/db/1/schema/public/"}                                   #{"/db/1/"}]
+            [#{"/db/1/schema/public/"}                                   #{"/db/1/" "/db/1/schema/"}]
+            [#{"/db/1/schema/public/"}                                   #{"/db/1/" "/db/1/schema/public/"}]
+            [#{"/db/1/schema/public/table/1/"}                           #{"/db/1/" "/db/1/schema/public/table/1/"}]
+            [#{"/db/1/native/"}                                          #{"/db/1/native/"}]
+            [#{"/db/1/schema/public/"}                                   #{"/db/1/schema/"}]
+            [#{"/db/1/schema/public/table/1/"}                           #{"/db/1/schema/"}]
+            [#{"/db/1/schema/public/table/1/"}                           #{"/db/1/schema/public/"}]
+            [#{"/db/1/schema/public/table/2/" "/db/3/schema//table/4/"}  #{"/db/1/"}]]
+
+           false
+           [[#{}                                                        #{"/db/1/schema/public/table/2/"}]
+            [#{"/db/1/schema/"}                                         #{"/db/1/native/"}]
+            [#{"/db/1/native/"}                                         #{"/db/1/schema/"}]
+            [#{"/db/2/"}                                                #{"/db/1/schema/public/table/2/"}]
+            [#{"/db/2/" "/db/3/"}                                       #{"/db/1/schema/public/table/2/"}]
+            [#{"/db/2/schema/public/" "/db/3/schema/public/"}           #{"/db/1/schema/public/table/2/"}]
+            [#{"/db/1/schema/public/table/2/" "/db/3/schema/public/"}   #{"/db/1/" "/db/3/" "/db/9/"}]
+            [#{"/db/1/schema/public/table/2/" "/db/3/"}                 #{"/db/1/" "/db/9/"}]
+            [#{"/db/1/schema/public/" "/db/3/schema//"}                 #{"/db/1/" "/db/3/" "/db/9/"}]
+            [#{"/db/1/schema/public/table/2/" "/db/3/schema//table/4/"} #{"/db/1/" "/db/9/"}]
+            [#{"/db/1/schema/public/"}                                  #{"/db/1/" "/db/9/"}]
+            [#{"/db/1/schema/"}                                         #{"/db/1/" "/db/9/"}]
+            [#{"/db/1/schema/public/"}                                  #{"/db/1/" "/db/9/"}]
+            [#{"/db/1/schema/public/"}                                  #{"/db/1/" "/db/1/schema/" "/db/9/"}]
+            [#{"/db/1/schema/public/"}                                  #{"/db/1/" "/db/1/schema/public/" "/db/9/"}]
+            [#{"/db/1/schema/public/table/1/"}                          #{"/db/1/" "/db/1/schema/public/table/1/" "/db/9/"}]
+            [#{"/db/1/native/"}                                         #{"/db/1/native/" "/db/9/"}]
+            [#{"/db/1/schema/public/"}                                  #{"/db/1/schema/" "/db/9/"}]
+            [#{"/db/1/schema/public/table/1/"}                          #{"/db/1/schema/" "/db/9/"}]
+            [#{"/db/1/schema/public/table/1/"}                          #{"/db/1/schema/public/" "/db/9/"}]
+            [#{"/db/1/schema/public/table/2/" "/db/3/schema//table/4/"} #{"/db/1/" "/db/9/"}]]}
+
+          [perms paths] inputs]
+    (testing (pr-str (list 'set-has-partial-permissions-for-set? perms paths))
+      (is (= expected
+             (perms/set-has-partial-permissions-for-set? perms paths))))))
+
+
+;;; -------------------------------------- set-has-any-native-query-permissions? ---------------------------------------
+
+(deftest set-has-any-native-query-permissions?-test
+  (doseq [[expected inputs]
+          {true
+           [#{"/"}
+            #{"/db/1/"}
+            #{"/db/1/native/"}
+            #{"/db/1/" "/db/2/schema/PUBLIC/table/1/"}
+            #{"/db/1/native/" "/db/2/schema/PUBLIC/table/1/"}]
+
+           false
+           [#{}
+            #{"/db/1"}
+            #{"/db/1/native"}
+            #{"/db/1/schema/"}
+            #{"/db/1/schema/PUBLIC/table/1/"}]}
+          input inputs]
+    (testing (pr-str (list 'set-has-any-native-query-permissions?-test input))
+      (is (= expected
+             (perms/set-has-any-native-query-permissions? input))))))
+
+
+;;; ------------------------------------ perms-objects-set-for-parent-collection -------------------------------------
+
+(deftest perms-objects-set-for-parent-collection-test
+  (doseq [[input expected] {[{:collection_id 1337} :read]  #{"/collection/1337/read/"}
+                            [{:collection_id 1337} :write] #{"/collection/1337/"}
+                            [{:collection_id nil} :read]   #{"/collection/root/read/"}
+                            [{:collection_id nil} :write]  #{"/collection/root/"}}]
+    (testing (pr-str (cons 'perms-objects-set-for-parent-collection input))
+      (is (= expected
+             (apply perms/perms-objects-set-for-parent-collection input)))))
 
   (testing "invalid input"
     (doseq [[reason inputs] {"map must have `:collection_id` key"
@@ -589,9 +681,9 @@
 
 (deftest graph-for-tables-without-schemas-test
   (testing "Make sure that the graph functions work correctly for DBs with no schemas (#4000)"
-    (t2.with-temp/with-temp [PermissionsGroup group    {}
-                             Database         database {}
-                             Table            table    {:db_id (u/the-id database)}]
+    (mt/with-temp* [PermissionsGroup [group]
+                    Database         [database]
+                    Table            [table    {:db_id (u/the-id database)}]]
       ;; try to grant idential permissions to the table twice
       (perms/update-data-perms-graph! [(u/the-id group) (u/the-id database) :data :schemas] {"" {(u/the-id table) :all}})
       (perms/update-data-perms-graph! [(u/the-id group) (u/the-id database) :data :schemas] {"" {(u/the-id table) :all}})
@@ -607,7 +699,7 @@
              (test-data-graph group))))
 
     (t2.with-temp/with-temp [PermissionsGroup group]
-      (perms/grant-permissions! group (perms/table-sandboxed-query-path (t2/select-one Table :id (mt/id :venues))))
+      (perms/grant-permissions! group (perms/table-segmented-query-path (t2/select-one Table :id (mt/id :venues))))
       (is (= {(mt/id :venues) {:query :segmented}}
              (test-data-graph group))))
 
@@ -619,17 +711,6 @@
       (is (= {(mt/id :venues) {:read  :all
                                :query :segmented}}
              (test-data-graph group))))))
-
-(deftest audit-db-update-test
-  (testing "Throws exception when we attempt to change the audit db permission manually."
-    (mt/with-temp [PermissionsGroup group    {}
-                   Database         database {}
-                   Table            table    {:db_id (u/the-id database)}]
-      (with-redefs [perms/audit-db-id (u/the-id database)]
-        (is (thrown-with-msg?
-             Exception
-             #"Audit database permissions can only be changed by updating audit collection permissions."
-             (perms/update-data-perms-graph! [(u/the-id group) (u/the-id database) :data :schemas] {"" {(u/the-id table) :all}})))))))
 
 (deftest root-permissions-graph-test
   (testing "A \"/\" permission grants all dataset permissions"
@@ -716,36 +797,19 @@
 ;;; |                                 Granting/Revoking Permissions Helper Functions                                 |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
-(deftest revoke-db-schema-permissions-test
-  (mt/with-temp [Database database {}]
-    (testing "revoke-db-schema-permissions! should revoke all non-native permissions on a database"
-      (is (perms/set-has-full-permissions? (user/permissions-set (mt/user->id :rasta))
-                                           (perms/data-perms-path database)))
-      (is (perms/set-has-full-permissions? (user/permissions-set (mt/user->id :rasta))
-                                           (perms/adhoc-native-query-path database)))
-      (perms/revoke-db-schema-permissions! (perms-group/all-users) database)
-      (is (not (perms/set-has-full-permissions? (user/permissions-set (mt/user->id :rasta))
-                                                (perms/data-perms-path database))))
-      (is (perms/set-has-full-permissions? (user/permissions-set (mt/user->id :rasta))
-                                           (perms/adhoc-native-query-path database))))))
-
 (deftest revoke-permissions-helper-function-test
   (testing "Make sure if you try to use the helper function to *revoke* perms for a Personal Collection, you get an Exception"
-    (is (thrown-with-msg?
-         Exception
-         #"You cannot edit permissions for a Personal Collection or its descendants."
-         (perms/revoke-collection-permissions!
-          (perms-group/all-users)
-          (u/the-id (t2/select-one Collection :personal_owner_id (mt/user->id :lucky))))))
+    (is (thrown? Exception
+                 (perms/revoke-collection-permissions!
+                  (perms-group/all-users)
+                  (u/the-id (t2/select-one Collection :personal_owner_id (mt/user->id :lucky))))))
 
     (testing "(should apply to descendants as well)"
       (t2.with-temp/with-temp [Collection collection {:location (collection/children-location
                                                                  (collection/user->personal-collection
                                                                   (mt/user->id :lucky)))}]
-        (is (thrown-with-msg?
-             Exception
-             #"You cannot edit permissions for a Personal Collection or its descendants."
-             (perms/revoke-collection-permissions! (perms-group/all-users) collection)))))))
+        (is (thrown? Exception
+                     (perms/revoke-collection-permissions! (perms-group/all-users) collection)))))))
 
 (deftest revoke-collection-permissions-test
   (testing "Should be able to revoke permissions for non-personal Collections"
@@ -822,49 +886,44 @@
           (perms/revoke-application-permissions! group-id perm-type)
           (is (not (= (perms) #{perm-path}))))))))
 
-(deftest ^:parallel permission-classify-path
-  (are [path expected] (= expected
-                          (perms/classify-path path))
-    "/"                                                         :admin
-    "/block/db/0/"                                              :block
-    "/collection/7/"                                            :collection
-    "/db/3/"                                                    :data
-    "/data-model/db/0/schema/\\/\\/\\/񊏱\\\\\\\\\\\\򍕦/table/4/" :data-model
-    "/details/db/6/"                                            :db-conn-details
-    "/download/db/7/"                                           :download
-    "/execute/"                                                 :execute
-    "/application/monitoring/"                                  :non-scoped
-    "/query/db/0/native/"                                       :query-v2
-    "/data/db/3/schema/something/table/3/"                      :data-v2))
+(deftest permission-classify-path
+  (is (= :admin           (perms/classify-path "/")))
+  (is (= :block           (perms/classify-path "/block/db/0/")))
+  (is (= :collection      (perms/classify-path "/collection/7/")))
+  (is (= :data            (perms/classify-path "/db/3/")))
+  (is (= :data-model      (perms/classify-path "/data-model/db/0/schema/\\/\\/\\/񊏱\\\\\\\\\\\\򍕦/table/4/")))
+  (is (= :db-conn-details (perms/classify-path "/details/db/6/")))
+  (is (= :download        (perms/classify-path "/download/db/7/")))
+  (is (= :execute         (perms/classify-path "/execute/")))
+  (is (= :non-scoped      (perms/classify-path "/application/monitoring/")))
+
+  (is (= :query-v2        (perms/classify-path "/query/db/0/native/")))
+  (is (= :data-v2         (perms/classify-path "/data/db/3/schema/something/table/3/"))))
 
 
-(deftest ^:parallel data-permissions-classify-path
-  (are [path] (= :data
-                 (perms/classify-path path))
-    "/db/3/"
-    "/db/3/native/"
-    "/db/3/schema/"
-    "/db/3/schema//"
-    "/db/3/schema/secret_base/"
-    "/db/3/schema/secret_base/table/3/"
-    "/db/3/schema/secret_base/table/3/read/"
-    "/db/3/schema/secret_base/table/3/query/"
-    "/db/3/schema/secret_base/table/3/query/segmented/"))
+(deftest data-permissions-classify-path
+  (is (= :data (perms/classify-path "/db/3/")))
+  (is (= :data (perms/classify-path "/db/3/native/")))
+  (is (= :data (perms/classify-path "/db/3/schema/")))
+  (is (= :data (perms/classify-path "/db/3/schema//")))
+  (is (= :data (perms/classify-path "/db/3/schema/secret_base/")))
+  (is (= :data (perms/classify-path "/db/3/schema/secret_base/table/3/")))
+  (is (= :data (perms/classify-path "/db/3/schema/secret_base/table/3/read/")))
+  (is (= :data (perms/classify-path "/db/3/schema/secret_base/table/3/query/")))
+  (is (= :data (perms/classify-path "/db/3/schema/secret_base/table/3/query/segmented/"))))
 
-(deftest ^:parallel data-permissions-v2-migration-data-perm-classification-test
-  (are [path expected] (= expected
-                          (perms/classify-data-path path))
-    "/db/3/"                                            :dk/db
-    "/db/3/native/"                                     :dk/db-native
-    "/db/3/schema/"                                     :dk/db-schema
-    "/db/3/schema//"                                    :dk/db-schema-name
-    "/db/3/schema/secret_base/"                         :dk/db-schema-name
-    "/db/3/schema/secret_base/table/3/"                 :dk/db-schema-name-and-table
-    "/db/3/schema/secret_base/table/3/read/"            :dk/db-schema-name-table-and-read
-    "/db/3/schema/secret_base/table/3/query/"           :dk/db-schema-name-table-and-query
-    "/db/3/schema/secret_base/table/3/query/segmented/" :dk/db-schema-name-table-and-segmented))
+(deftest data-permissions-v2-migration-data-perm-classification-test
+  (is (= :dk/db                                 (perms/classify-data-path "/db/3/")))
+  (is (= :dk/db-native                          (perms/classify-data-path "/db/3/native/")))
+  (is (= :dk/db-schema                          (perms/classify-data-path "/db/3/schema/")))
+  (is (= :dk/db-schema-name                     (perms/classify-data-path "/db/3/schema//")))
+  (is (= :dk/db-schema-name                     (perms/classify-data-path "/db/3/schema/secret_base/")))
+  (is (= :dk/db-schema-name-and-table           (perms/classify-data-path "/db/3/schema/secret_base/table/3/")))
+  (is (= :dk/db-schema-name-table-and-read      (perms/classify-data-path "/db/3/schema/secret_base/table/3/read/")))
+  (is (= :dk/db-schema-name-table-and-query     (perms/classify-data-path "/db/3/schema/secret_base/table/3/query/")))
+  (is (= :dk/db-schema-name-table-and-segmented (perms/classify-data-path "/db/3/schema/secret_base/table/3/query/segmented/"))))
 
-(deftest ^:parallel idempotent-move-test
+(deftest idempotent-move-test
   (let [;; all v1 paths:
         v1-paths ["/db/3/" "/db/3/native/" "/db/3/schema/" "/db/3/schema//" "/db/3/schema/secret_base/"
                   "/db/3/schema/secret_base/table/3/" "/db/3/schema/secret_base/table/3/read/"
@@ -899,7 +958,7 @@
                                     w w   w w))))));
 
 
-(deftest ^:parallel data-permissions-v2-migration-move-test
+(deftest data-permissions-v2-migration-move-test
   (testing "move admin"
     (is (= ["/"] (#'perms/->v2-path "/"))))
   (testing "move block"
@@ -925,29 +984,42 @@
     (is (= ["/data/db/1/schema/PUBLIC/table/1/" "/query/db/1/schema/PUBLIC/table/1/"]
            (#'perms/->v2-path "/db/1/schema/PUBLIC/table/1/query/segmented/")))))
 
-(defn- check-fn [fn-var & [iterations]]
+(defn- check-fn! [fn-var & [iterations]]
   (let [iterations (or iterations 5000)]
     (if-let [result ((mg/function-checker (:schema (meta fn-var)) {::mg/=>iterations iterations}) @fn-var)]
       result
       {:pass? true :iterations iterations})))
 
-(deftest ^:parallel quickcheck-perm-path-classification-test
-  (is (:pass? (check-fn #'perms/classify-path))))
+(deftest quickcheck-perm-path-classification-test
+  (is (:pass? (check-fn! #'perms/classify-path))))
 
-(deftest ^:parallel quickcheck-data-path-classification-test
-  (is (:pass? (check-fn #'perms/classify-data-path))))
+(deftest quickcheck-data-path-classification-test
+  (is (:pass? (check-fn! #'perms/classify-data-path))))
 
-(deftest ^:parallel quickcheck-->v2-path-test
-  (is (:pass? (check-fn #'perms/->v2-path))))
+(deftest quickcheck-->v2-path-test
+  (is (:pass? (check-fn! #'perms/->v2-path))))
 
-(deftest ^:parallel generate-graph-test
-  (are [db-ids group-id->paths expected] (= expected
-                                            (#'perms/generate-graph db-ids group-id->paths))
-    #{2} {1 ["/db/2/"]}                            {1 {2 {:data {:native :write, :schemas :all}}}}
-    #{2} {1 ["/data/db/2/"]}                       {1 {2 {:data {:native :write}}}}
-    #{2} {1 ["/query/db/2/schema/"]}               {1 {2 {:query {:schemas :all, :native :none}}}}
-    #{2} {1 ["/query/db/2/schema/PUBLIC/"]}        {1 {2 {:query {:schemas {"PUBLIC" :all}}}}}
-    #{2} {1 ["/query/db/2/schema//"]}              {1 {2 {:query {:schemas {"" :all}}}}}
-    #{2} {1 ["/db/2/schema/"]}                     {1 {2 {:data {:schemas :all}}}}
-    #{2} {1 ["/query/db/2/schema/" "/data/db/2/"]} {1 {2 {:query {:schemas :all}, :data {:native :write}}}}
-    #{2} {1 ["/db/2/"]}                            {1 {2 {:data {:native :write, :schemas :all}}}}))
+(deftest generate-graph-test
+  (is (= {1 {2 {:data {:native :write, :schemas :all}}}}
+         (#'perms/generate-graph #{2} {1 ["/db/2/"]})))
+
+  (is (= {1 {2 {:data {:native :write}}}}
+         (#'perms/generate-graph #{2} {1 ["/data/db/2/"]})))
+
+  (is (= {1 {2 {:query {:schemas :all, :native :none}}}}
+         (#'perms/generate-graph #{2} {1 ["/query/db/2/schema/"]})))
+
+  (is (= {1 {2 {:query {:schemas {"PUBLIC" :all}}}}}
+         (#'perms/generate-graph #{2} {1 ["/query/db/2/schema/PUBLIC/"]})))
+
+  (is (= {1 {2 {:query {:schemas {"" :all}}}}}
+         (#'perms/generate-graph #{2} {1 ["/query/db/2/schema//"]})))
+
+  (is (= {1 {2 {:data {:schemas :all}}}}
+         (#'perms/generate-graph #{2} {1 ["/db/2/schema/"]})))
+
+  (is (= {1 {2 {:query {:schemas :all}, :data {:native :write}}}}
+         (#'perms/generate-graph #{2} {1 ["/query/db/2/schema/" "/data/db/2/"]})))
+
+  (is (= {1 {2 {:data {:native :write, :schemas :all}}}}
+         (#'perms/generate-graph #{2} {1 ["/db/2/"]}))))

@@ -5,7 +5,7 @@ import { t, jt } from "ttag";
 import _ from "underscore";
 
 import { Icon } from "metabase/core/components/Icon";
-import { CollectionMoveModal } from "metabase/containers/CollectionMoveModal";
+import CollectionMoveModal from "metabase/containers/CollectionMoveModal";
 
 import { color } from "metabase/lib/colors";
 import * as Urls from "metabase/lib/urls";
@@ -18,7 +18,7 @@ const mapDispatchToProps = {
   setDashboardCollection: Dashboards.actions.setCollection,
 };
 
-class DashboardMoveModal extends Component {
+class DashboardMoveModalInner extends Component {
   render() {
     const { dashboard, onClose, setDashboardCollection } = this.props;
     const title = t`Move dashboard to…`;
@@ -43,6 +43,15 @@ class DashboardMoveModal extends Component {
   }
 }
 
+const DashboardMoveModal = _.compose(
+  connect(null, mapDispatchToProps),
+  Dashboards.load({
+    id: (state, props) => Urls.extractCollectionId(props.params.slug),
+  }),
+)(DashboardMoveModalInner);
+
+export default DashboardMoveModal;
+
 const DashboardMoveToast = ({ collectionId }) => (
   <ToastRoot>
     <Icon name="collection" className="mr1" color="white" />
@@ -55,10 +64,3 @@ const DashboardMoveToast = ({ collectionId }) => (
     )}`}
   </ToastRoot>
 );
-
-export const DashboardMoveModalConnected = _.compose(
-  connect(null, mapDispatchToProps),
-  Dashboards.load({
-    id: (state, props) => Urls.extractCollectionId(props.params.slug),
-  }),
-)(DashboardMoveModal);

@@ -1,7 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { AuthSetting, AuthCardProps } from "./AuthCard";
-import AuthCard from "./AuthCard";
+import AuthCard, { AuthSetting, AuthCardProps } from "./AuthCard";
 
 describe("AuthCard", () => {
   it("should render when not configured", () => {

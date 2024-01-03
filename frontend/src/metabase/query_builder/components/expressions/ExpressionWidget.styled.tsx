@@ -16,7 +16,7 @@ export const ExpressionFieldWrapper = styled.div`
   padding: 1.5rem 1.5rem 1rem;
 `;
 
-export const FieldLabel = styled.label`
+export const FieldTitle = styled.div`
   display: flex;
   margin-bottom: 0.5rem;
 

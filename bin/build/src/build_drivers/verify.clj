@@ -10,8 +10,6 @@
   (:import
    (java.util.zip ZipEntry ZipFile)))
 
-(set! *warn-on-reflection* true)
-
 (defn- get-jar-entry [^String jar-path ^String filename]
   (with-open [zip-file (ZipFile. jar-path)]
     (first

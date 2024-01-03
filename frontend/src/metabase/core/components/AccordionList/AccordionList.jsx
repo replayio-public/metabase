@@ -57,8 +57,6 @@ export default class AccordionList extends Component {
     width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     maxHeight: PropTypes.number,
 
-    role: PropTypes.string,
-
     sections: PropTypes.array.isRequired,
 
     initiallyOpenSection: PropTypes.number,
@@ -68,6 +66,7 @@ export default class AccordionList extends Component {
 
     // section getters/render props
     renderSectionIcon: PropTypes.func,
+    renderSectionExtra: PropTypes.func,
     renderSearchSection: PropTypes.func,
 
     // item getters/render props
@@ -84,7 +83,6 @@ export default class AccordionList extends Component {
     alwaysTogglable: PropTypes.bool,
     alwaysExpanded: PropTypes.bool,
     hideSingleSectionTitle: PropTypes.bool,
-    showSpinner: PropTypes.func,
     showItemArrows: PropTypes.bool,
 
     searchable: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
@@ -111,10 +109,10 @@ export default class AccordionList extends Component {
     alwaysExpanded: false,
     hideSingleSectionTitle: false,
     hideEmptySectionsInSearch: false,
-    role: "grid",
 
     // section getters/render props
     renderSectionIcon: section => section.icon && <Icon name={section.icon} />,
+    renderSectionExtra: () => null,
 
     // item getters/render props
     itemIsClickable: item => true,
@@ -126,7 +124,6 @@ export default class AccordionList extends Component {
     getItemClassName: item => item.className,
     getItemStyles: item => {},
     hasInitialFocus: true,
-    showSpinner: _item => false,
   };
 
   componentDidMount() {
@@ -356,7 +353,7 @@ export default class AccordionList extends Component {
 
     const searchRow = this.getRows().findIndex(row => row.type === "search");
 
-    if (searchRow >= 0 && this.isVirtualized()) {
+    if (searchRow >= 0) {
       this._list.scrollToRow(searchRow);
     }
   };
@@ -554,7 +551,6 @@ export default class AccordionList extends Component {
       style,
       className,
       sections,
-      role,
       "data-testid": testId,
     } = this.props;
     const { cursor, scrollToAlignment } = this.state;
@@ -636,7 +632,6 @@ export default class AccordionList extends Component {
         overscanRowCount={100}
         scrollToIndex={scrollToIndex}
         scrollToAlignment={scrollToAlignment}
-        containerRole={role}
         containerProps={{
           onKeyDown: this.handleKeyDown,
           "data-testid": testId,

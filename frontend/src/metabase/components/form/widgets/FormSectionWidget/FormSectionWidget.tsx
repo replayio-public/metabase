@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { t } from "ttag";
 import { WidgetButton } from "./FormSectionWidget.styled";
-import type { FormField } from "./types";
+import { FormField } from "./types";
 
 export interface FormSectionWidgetProps {
   field: FormField;

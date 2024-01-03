@@ -4,7 +4,7 @@ import { Link } from "react-router";
 
 import cx from "classnames";
 import { Icon } from "metabase/core/components/Icon";
-import { Ellipsified } from "metabase/core/components/Ellipsified";
+import Ellipsified from "metabase/core/components/Ellipsified";
 import S from "./Breadcrumbs.css";
 
 // TODO: merge with BrowserCrumbs
@@ -33,10 +33,7 @@ export default class Breadcrumbs extends Component {
     const breadcrumbsClass = inSidebar ? S.sidebarBreadcrumbs : S.breadcrumbs;
 
     return (
-      <section
-        data-testid="breadcrumbs"
-        className={cx(className, breadcrumbsClass)}
-      >
+      <section className={cx(className, breadcrumbsClass)}>
         {crumbs.length <= 1 && placeholder ? (
           <span className={cx(breadcrumbClass, S.breadcrumbPage)}>
             {placeholder}

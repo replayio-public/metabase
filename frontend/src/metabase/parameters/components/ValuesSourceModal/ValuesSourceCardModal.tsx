@@ -1,16 +1,13 @@
-import type { ChangeEvent } from "react";
-import { useCallback, useEffect } from "react";
+import { ChangeEvent, useCallback, useEffect } from "react";
 import { connect } from "react-redux";
 import { t } from "ttag";
 import _ from "underscore";
 import Button from "metabase/core/components/Button";
 import Input from "metabase/core/components/Input";
 import ModalContent from "metabase/components/ModalContent";
-import type {
+import DataPicker, {
   DataPickerDataType,
   DataPickerValue,
-} from "metabase/containers/DataPicker";
-import DataPicker, {
   useDataPicker,
   useDataPickerValue,
 } from "metabase/containers/DataPicker";
@@ -18,14 +15,14 @@ import Questions from "metabase/entities/questions";
 import Collections from "metabase/entities/collections";
 import Tables from "metabase/entities/tables";
 import { coerceCollectionId } from "metabase/collections/utils";
-import type {
+import {
   CardId,
   Collection,
   Parameter,
   ValuesSourceConfig,
 } from "metabase-types/api";
-import type { State } from "metabase-types/store";
-import type Question from "metabase-lib/Question";
+import { State } from "metabase-types/store";
+import Question from "metabase-lib/Question";
 import {
   getCollectionVirtualSchemaId,
   getQuestionIdFromVirtualTableId,

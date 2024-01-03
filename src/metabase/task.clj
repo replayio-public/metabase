@@ -19,9 +19,9 @@
    [metabase.db.connection :as mdb.connection]
    [metabase.plugins.classloader :as classloader]
    [metabase.util :as u]
+   [metabase.util.i18n :refer [trs]]
    [metabase.util.log :as log]
-   [metabase.util.malli :as mu]
-   [metabase.util.malli.schema :as ms])
+   [schema.core :as s])
   (:import
    (org.quartz CronTrigger JobDetail JobKey Scheduler Trigger TriggerKey)))
 
@@ -65,10 +65,10 @@
   (doseq [ns-symb u/metabase-namespace-symbols
           :when   (.startsWith (name ns-symb) "metabase.task.")]
     (try
-      (log/debug "Loading tasks namespace:" (u/format-color 'blue ns-symb))
+      (log/debug (trs "Loading tasks namespace:") (u/format-color 'blue ns-symb))
       (classloader/require ns-symb)
       (catch Throwable e
-        (log/errorf e "Error loading tasks namespace %s" ns-symb)))))
+        (log/error e (trs "Error loading tasks namespace {0}" ns-symb))))))
 
 (defn- init-tasks!
   "Call all implementations of `init!`"
@@ -77,10 +77,11 @@
     (try
       ;; don't bother logging namespace for now, maybe in the future if there's tasks of the same name in multiple
       ;; namespaces we can log it
-      (log/infof "Initializing task %s" (u/format-color 'green (name k)) (u/emoji "📆"))
+      (log/info (trs "Initializing task {0}" (u/format-color 'green (name k))) (u/emoji "📆"))
       (f k)
       (catch Throwable e
-        (log/error e "Error initializing task {0}" k)))))
+        (log/error e (trs "Error initializing task {0}" k))))))
+
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                      Quartz Scheduler Connection Provider                                      |
@@ -153,7 +154,7 @@
       (when (compare-and-set! *quartz-scheduler* nil new-scheduler)
         (find-and-load-task-namespaces!)
         (qs/standby new-scheduler)
-        (log/info "Task scheduler initialized into standby mode.")
+        (log/info (trs "Task scheduler initialized into standby mode."))
         (init-tasks!)))))
 
 ;;; this is a function mostly to facilitate testing.
@@ -164,10 +165,10 @@
   "Start the task scheduler. Tasks do not run before calling this function."
   []
   (if (disable-scheduler?)
-    (log/warn  "Metabase task scheduler disabled. Scheduled tasks will not be ran.")
+    (log/warn (trs "Metabase task scheduler disabled. Scheduled tasks will not be ran."))
     (do (init-scheduler!)
         (qs/start (scheduler))
-        (log/info "Task scheduler started"))))
+        (log/info (trs "Task scheduler started")))))
 
 (defn stop-scheduler!
   "Stop our Quartzite scheduler and shutdown any running executions."
@@ -181,48 +182,48 @@
 ;;; |                                           SCHEDULING/DELETING TASKS                                            |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
-(mu/defn ^:private reschedule-task!
-  [job :- (ms/InstanceOfClass JobDetail) new-trigger :- (ms/InstanceOfClass Trigger)]
+(s/defn ^:private reschedule-task!
+  [job :- JobDetail, new-trigger :- Trigger]
   (try
     (when-let [scheduler (scheduler)]
-      (when-let [[^Trigger old-trigger] (seq (qs/get-triggers-of-job scheduler (.getKey ^JobDetail job)))]
-        (log/debugf "Rescheduling job %s" (-> ^JobDetail job .getKey .getName))
+      (when-let [[^Trigger old-trigger] (seq (qs/get-triggers-of-job scheduler (.getKey job)))]
+        (log/debug (trs "Rescheduling job {0}" (-> job .getKey .getName)))
         (.rescheduleJob scheduler (.getKey old-trigger) new-trigger)))
     (catch Throwable e
-      (log/error e "Error rescheduling job"))))
+      (log/error e (trs "Error rescheduling job")))))
 
-(mu/defn schedule-task!
+(s/defn schedule-task!
   "Add a given job and trigger to our scheduler."
-  [job :- (ms/InstanceOfClass JobDetail) trigger :- (ms/InstanceOfClass Trigger)]
+  [job :- JobDetail, trigger :- Trigger]
   (when-let [scheduler (scheduler)]
     (try
       (qs/schedule scheduler job trigger)
       (catch org.quartz.ObjectAlreadyExistsException _
-        (log/debug "Job already exists:" (-> ^JobDetail job .getKey .getName))
+        (log/debug (trs "Job already exists:") (-> job .getKey .getName))
         (reschedule-task! job trigger)))))
 
-(mu/defn delete-task!
+(s/defn delete-task!
   "delete a task from the scheduler"
-  [job-key :- (ms/InstanceOfClass JobKey) trigger-key :- (ms/InstanceOfClass TriggerKey)]
+  [job-key :- JobKey, trigger-key :- TriggerKey]
   (when-let [scheduler (scheduler)]
     (qs/delete-trigger scheduler trigger-key)
     (qs/delete-job scheduler job-key)))
 
-(mu/defn add-job!
+(s/defn add-job!
   "Add a job separately from a trigger, replace if the job is already there"
-  [job :- (ms/InstanceOfClass JobDetail)]
+  [job :- JobDetail]
   (when-let [scheduler (scheduler)]
     (qs/add-job scheduler job true)))
 
-(mu/defn add-trigger!
+(s/defn add-trigger!
   "Add a trigger. Assumes the trigger is already associated to a job (i.e. `trigger/for-job`)"
-  [trigger :- (ms/InstanceOfClass Trigger)]
+  [trigger :- Trigger]
   (when-let [scheduler (scheduler)]
     (qs/add-trigger scheduler trigger)))
 
-(mu/defn delete-trigger!
+(s/defn delete-trigger!
   "Remove `trigger-key` from the scheduler"
-  [trigger-key :- (ms/InstanceOfClass TriggerKey)]
+  [trigger-key :- TriggerKey]
   (when-let [scheduler (scheduler)]
     (qs/delete-trigger scheduler trigger-key)))
 
@@ -290,10 +291,8 @@
                :triggers (for [trigger (sort-by #(-> ^Trigger % .getKey .getName)
                                                 (qs/get-triggers-of-job scheduler job-key))]
                            (trigger->info trigger)))
-        (catch ClassNotFoundException _
-          (log/infof "Class not found for Quartz Job %s. This probably means that this job was removed or renamed." (.getName job-key)))
         (catch Throwable e
-          (log/warnf e "Error fetching details for Quartz Job: %s" (.getName job-key)))))))
+          (log/warn e (trs "Error fetching details for Job: {0}" (.getName job-key))))))))
 
 (defn- jobs-info []
   (->> (some-> (scheduler) (.getJobKeys nil))

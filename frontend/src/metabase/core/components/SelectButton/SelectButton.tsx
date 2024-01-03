@@ -1,5 +1,10 @@
-import type { ButtonHTMLAttributes, Ref } from "react";
-import { forwardRef, useCallback, useMemo } from "react";
+import {
+  ButtonHTMLAttributes,
+  forwardRef,
+  Ref,
+  useCallback,
+  useMemo,
+} from "react";
 import * as React from "react";
 import {
   SelectButtonRoot,

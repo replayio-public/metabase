@@ -3,7 +3,7 @@ import {
   buildCollectionTree as _buildCollectionTree,
 } from "metabase/entities/collections";
 import {
-  isRootPersonalCollection,
+  isPersonalCollection,
   nonPersonalOrArchivedCollection,
   currentUserPersonalCollections,
 } from "metabase/collections/utils";
@@ -52,7 +52,7 @@ export function buildCollectionTree({
   if (currentUser.is_superuser) {
     const otherPersonalCollections = collections.filter(
       collection =>
-        isRootPersonalCollection(collection) &&
+        isPersonalCollection(collection) &&
         collection.personal_owner_id !== currentUser.id,
     );
 

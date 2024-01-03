@@ -1,5 +1,4 @@
-import type { ReactNode } from "react";
-import { useCallback, useMemo } from "react";
+import { ReactNode, useCallback, useMemo } from "react";
 import { connect } from "react-redux";
 import cx from "classnames";
 import { t } from "ttag";
@@ -14,9 +13,9 @@ import {
   SortableHandle,
 } from "metabase/components/sortable";
 import TippyPopoverWithTrigger from "metabase/components/PopoverWithTrigger/TippyPopoverWithTrigger";
-import type { FieldId, SchemaId, TableFieldOrder } from "metabase-types/api";
-import type Table from "metabase-lib/metadata/Table";
-import type Field from "metabase-lib/metadata/Field";
+import { FieldId, SchemaId, TableFieldOrder } from "metabase-types/api";
+import Table from "metabase-lib/metadata/Table";
+import Field from "metabase-lib/metadata/Field";
 import MetadataTableColumn from "../MetadataTableColumn";
 import { SortButtonContainer } from "./MetadataTableColumnList.styled";
 

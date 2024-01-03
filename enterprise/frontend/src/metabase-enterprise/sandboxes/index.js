@@ -19,7 +19,7 @@ import {
 } from "metabase/admin/permissions/utils/urls";
 import { ModalRoute } from "metabase/hoc/ModalRoute";
 
-import { LoginAttributesWidget } from "./components/LoginAttributesWidget";
+import LoginAttributesWidget from "./components/LoginAttributesWidget";
 import EditSandboxingModal from "./containers/EditSandboxingModal";
 import sandboxingReducer from "./actions";
 import { getDraftPolicies, hasPolicyChanges } from "./selectors";
@@ -53,8 +53,11 @@ const getEditSegmentedAccessPostAction = (entityId, groupId, view) =>
   push(getEditSegementedAccessUrl(entityId, groupId, view));
 
 if (hasPremiumFeature("sandboxes")) {
-  PLUGIN_ADMIN_USER_FORM_FIELDS.FormLoginAttributes = LoginAttributesWidget;
-
+  PLUGIN_ADMIN_USER_FORM_FIELDS.push({
+    name: "login_attributes",
+    title: "Attributes",
+    type: LoginAttributesWidget,
+  });
   PLUGIN_ADMIN_PERMISSIONS_TABLE_ROUTES.push(
     <ModalRoute
       key=":tableId/segmented"
@@ -84,13 +87,13 @@ if (hasPremiumFeature("sandboxes")) {
     query: "segmented",
   };
 
-  PLUGIN_DATA_PERMISSIONS.permissionsPayloadExtraSelectors.push(state => {
+  PLUGIN_DATA_PERMISSIONS.getPermissionsPayloadExtraData = state => {
     const sandboxes = getDraftPolicies(state);
     return {
       sandboxes,
     };
-  });
+  };
 
-  PLUGIN_DATA_PERMISSIONS.hasChanges.push(hasPolicyChanges);
+  PLUGIN_DATA_PERMISSIONS.hasChanges = hasPolicyChanges;
   PLUGIN_REDUCERS.sandboxingPlugin = sandboxingReducer;
 }

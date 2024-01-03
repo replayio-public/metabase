@@ -5,7 +5,6 @@ import _ from "underscore";
 import { Icon } from "metabase/core/components/Icon";
 
 import type Question from "metabase-lib/Question";
-import * as ML_Urls from "metabase-lib/urls";
 import type Table from "metabase-lib/metadata/Table";
 
 import { ModelInfoTitle, ModelInfoSection } from "./ModelInfoSidePanel.styled";
@@ -37,7 +36,7 @@ function ModelRelationships({ model, mainTable }: Props) {
         {relatedTables.map(table => (
           <li key={table.id}>
             <ListItemLink
-              to={ML_Urls.getUrl(table.newQuestion())}
+              to={table.newQuestion().getUrl()}
               aria-label={table.displayName()}
             >
               <Icon name="table" />

@@ -1,21 +1,17 @@
-import type Field from "metabase-lib/metadata/Field";
-import type {
+import Field from "metabase-lib/metadata/Field";
+import {
   FieldFilterUiParameter,
   UiParameter,
 } from "metabase-lib/parameters/types";
 
-export const isFieldFilterUiParameter = (
+export const hasFields = (
   parameter: UiParameter,
 ): parameter is FieldFilterUiParameter => {
-  return "fields" in parameter && Array.isArray(parameter.fields);
-};
-
-export const hasFields = (parameter: UiParameter) => {
-  return isFieldFilterUiParameter(parameter) && parameter.fields.length > 0;
+  return (parameter as FieldFilterUiParameter).fields != null;
 };
 
 export const getFields = (parameter: UiParameter): Field[] => {
-  if (isFieldFilterUiParameter(parameter) && hasFields(parameter)) {
+  if (hasFields(parameter)) {
     return parameter.fields;
   } else {
     return [];

@@ -13,17 +13,14 @@ const colorsByVariant = {
   border: {
     info: color("bg-medium"),
     error: color("error"),
-    warning: color("warning"),
   },
   background: {
     info: color("bg-light"),
     error: lighten("error", 0.4),
-    warning: lighten("warning", 0.5),
   },
   icon: {
     info: color("text-dark"),
     error: color("error"),
-    warning: color("warning"),
   },
 };
 
@@ -48,7 +45,6 @@ interface AlertIconProps {
 }
 
 export const AlertIcon = styled(Icon)<AlertIconProps>`
-  flex-shrink: 0;
   padding: 0.5rem 1rem 0.5rem 0.5rem;
   color: ${props => colorsByVariant.icon[props.variant]};
 `;

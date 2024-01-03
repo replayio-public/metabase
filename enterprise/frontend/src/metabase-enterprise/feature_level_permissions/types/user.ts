@@ -1,4 +1,4 @@
-import type { User } from "metabase-types/api";
+import { User } from "metabase-types/api";
 
 export interface UserWithFeaturePermissions extends User {
   permissions?: {

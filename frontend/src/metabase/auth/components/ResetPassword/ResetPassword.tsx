@@ -11,7 +11,7 @@ import {
   validatePassword,
   validatePasswordToken,
 } from "../../actions";
-import type { ResetPasswordData } from "../../types";
+import { ResetPasswordData } from "../../types";
 import { ResetPasswordForm } from "../ResetPasswordForm";
 import { InfoBody, InfoMessage, InfoTitle } from "./ResetPassword.styled";
 

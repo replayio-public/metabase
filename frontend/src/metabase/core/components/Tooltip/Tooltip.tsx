@@ -60,9 +60,6 @@ function getTargetProps(
   }
 }
 
-/**
- * @deprecated: use Tooltip from "metabase/ui"
- */
 function Tooltip({
   tooltip,
   children,

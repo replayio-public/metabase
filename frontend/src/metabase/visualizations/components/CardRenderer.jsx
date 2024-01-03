@@ -106,6 +106,5 @@ class CardRenderer extends Component {
 
 export default ExplicitSize({
   wrapped: true,
-  // Avoid using debounce when isDashboard=true because there should not be any initial delay when rendering cards
-  refreshMode: props => (props.isDashboard ? "debounceLeading" : "throttle"),
+  refreshMode: props => (props.isDashboard ? "debounce" : "throttle"),
 })(CardRenderer);

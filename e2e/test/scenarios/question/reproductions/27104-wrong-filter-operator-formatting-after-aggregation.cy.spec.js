@@ -35,15 +35,13 @@ describe("issue 27104", () => {
     popover().findByText("Count").click();
     popover().within(() => {
       // The following line is the main assertion.
-      cy.button("Back").should("have.text", "Count");
+      cy.findByTestId("sidebar-header-title").should("have.text", "Count");
       // The rest of the test is not really needed for this reproduction.
-      cy.findByDisplayValue("Equal to").click();
+      cy.findByTestId("select-button").contains("Equal to").click();
     });
-    cy.findByRole("listbox").findByText("Greater than").click();
-    popover().within(() => {
-      cy.findByPlaceholderText("Enter a number").type("0").blur();
-      cy.button("Add filter").click();
-    });
+    popover().contains("Greater than").click();
+    cy.findByPlaceholderText("Enter a number").type("0").blur();
+    popover().button("Add filter").click();
 
     visualize();
 

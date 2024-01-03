@@ -1,36 +1,31 @@
 import { t } from "ttag";
 
-import type { Location } from "history";
 import { TabRow } from "metabase/core/components/TabRow";
-import { TabButton } from "metabase/core/components/TabButton";
-import type { SelectedTabId } from "metabase-types/store";
+import { SelectedTabId } from "metabase-types/store";
 import { Sortable } from "metabase/core/components/Sortable";
 
 import {
   Container,
+  Tab,
   CreateTabButton,
   PlaceholderTab,
 } from "./DashboardTabs.styled";
-import { useDashboardTabs } from "./use-dashboard-tabs";
+import { useDashboardTabs } from "./useDashboardTabs";
 
 interface DashboardTabsProps {
-  location: Location;
-  isEditing?: boolean;
+  isEditing: boolean;
 }
 
-export function DashboardTabs({
-  location,
-  isEditing = false,
-}: DashboardTabsProps) {
+export function DashboardTabs({ isEditing }: DashboardTabsProps) {
   const {
     tabs,
+    selectedTabId,
     createNewTab,
     deleteTab,
     renameTab,
     selectTab,
-    selectedTabId,
     moveTab,
-  } = useDashboardTabs({ location });
+  } = useDashboardTabs();
   const showTabs = tabs.length > 1 || isEditing;
   const showPlaceholder = tabs.length <= 1 && isEditing;
 
@@ -47,11 +42,13 @@ export function DashboardTabs({
         handleDragEnd={moveTab}
       >
         {showPlaceholder ? (
-          <PlaceholderTab label={tabs.length === 1 ? tabs[0].name : t`Tab 1`} />
+          <PlaceholderTab
+            label={tabs.length === 1 ? tabs[0].name : t`Page 1`}
+          />
         ) : (
           tabs.map(tab => (
             <Sortable key={tab.id} id={tab.id} disabled={!isEditing}>
-              <TabButton.Renameable<SelectedTabId>
+              <Tab<SelectedTabId>
                 value={tab.id}
                 label={tab.name}
                 onRename={name => renameTab(tab.id, name)}

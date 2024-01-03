@@ -1,6 +1,6 @@
 import { Route } from "react-router";
 import userEvent from "@testing-library/user-event";
-import type { Card, CollectionItem, Database, User } from "metabase-types/api";
+import { Card, CollectionItem, Database, User } from "metabase-types/api";
 import {
   createMockCard,
   createMockCollectionItem,
@@ -15,7 +15,7 @@ import {
 import {
   renderWithProviders,
   screen,
-  waitForLoaderToBeRemoved,
+  waitForElementToBeRemoved,
 } from "__support__/ui";
 import MetabotWidget from "./MetabotWidget";
 
@@ -88,7 +88,7 @@ const setup = async ({
     { storeInitialState: { currentUser }, withRouter: true },
   );
 
-  await waitForLoaderToBeRemoved();
+  await waitForElementToBeRemoved(() => screen.queryAllByText(/Loading/i));
 
   return { history };
 };

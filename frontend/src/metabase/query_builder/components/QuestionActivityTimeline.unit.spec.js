@@ -1,15 +1,13 @@
 import {
   renderWithProviders,
   screen,
-  waitForLoaderToBeRemoved,
+  waitForElementToBeRemoved,
 } from "__support__/ui";
 import { createMockUser, createMockUserInfo } from "metabase-types/api/mocks";
 import { QuestionActivityTimeline } from "metabase/query_builder/components/QuestionActivityTimeline";
 import { createMockRevision } from "metabase-types/api/mocks/revision";
-import {
-  setupRevisionsEndpoints,
-  setupUsersEndpoints,
-} from "__support__/server-mocks";
+import { setupRevisionsEndpoints } from "__support__/server-mocks/revision";
+import { setupUsersEndpoints } from "__support__/server-mocks/user";
 
 const REVISIONS = [
   {
@@ -43,7 +41,7 @@ async function setup({ question }) {
       currentUser={createMockUser()}
     />,
   );
-  await waitForLoaderToBeRemoved();
+  await waitForElementToBeRemoved(() => screen.queryByText("Loading..."));
 }
 
 describe("QuestionActivityTimeline", () => {

@@ -13,7 +13,7 @@ import Question from "metabase-lib/Question";
 
 import { AuditMode } from "../lib/mode";
 import QuestionLoadAndDisplay from "./QuestionLoadAndDisplay";
-import "../components/AuditTableVisualization";
+import "./AuditTableVisualization";
 import { PaginationControlsContainer } from "./AuditTable.styled";
 
 const mapStateToProps = state => ({

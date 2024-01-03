@@ -7,7 +7,6 @@ import _ from "underscore";
 import { Icon } from "metabase/core/components/Icon";
 import Tooltip from "metabase/core/components/Tooltip";
 
-import { Box } from "metabase/ui";
 import * as AGGREGATION from "metabase-lib/queries/utils/aggregation";
 import Aggregation from "metabase-lib/queries/structured/Aggregation";
 import { ExpressionWidget } from "../expressions/ExpressionWidget";
@@ -25,9 +24,6 @@ const CUSTOM_SECTION_NAME = t`Custom Expression`;
 
 const COMMON_AGGREGATIONS = new Set(["count"]);
 
-/**
- * @deprecated use MLv2 + metabase/common/components/AggregationPicker
- */
 export default class AggregationPopover extends Component {
   constructor(props, context) {
     super(props, context);
@@ -159,24 +155,29 @@ export default class AggregationPopover extends Component {
     return item.isSelected(AGGREGATION.getContent(aggregation));
   }
 
-  renderItemExtra(item) {
-    let content;
+  renderItemExtra(item, itemIndex) {
     if (item.aggregation?.description) {
-      content = item.aggregation.description;
-    } else if (item.metric) {
-      content = <QueryDefinitionTooltip type="metric" object={item.metric} />;
-    } else {
-      content = null;
-    }
-
-    return (
-      content && (
-        <Box p="0.5rem">
-          <Tooltip tooltip={content}>
+      return (
+        <div className="p1">
+          <Tooltip tooltip={item.aggregation.description}>
             <span className="QuestionTooltipTarget" />
           </Tooltip>
-        </Box>
-      )
+        </div>
+      );
+    } else if (item.metric) {
+      return this.renderMetricTooltip(item.metric);
+    }
+  }
+
+  renderMetricTooltip(metric) {
+    const content = <QueryDefinitionTooltip type="metric" object={metric} />;
+
+    return (
+      <div className="p1">
+        <Tooltip tooltip={content}>
+          <span className="QuestionTooltipTarget" />
+        </Tooltip>
+      </div>
     );
   }
 
@@ -321,8 +322,8 @@ export default class AggregationPopover extends Component {
   };
 
   render() {
-    const { query: legacyQuery } = this.props;
-    const table = legacyQuery.table();
+    const { query } = this.props;
+    const table = query.table();
     const { choosingField, editingAggregation } = this.state;
     const aggregation = AGGREGATION.getContent(this.state.aggregation);
     const selectedAggregation = this.getSelectedAggregation(table, aggregation);
@@ -332,9 +333,7 @@ export default class AggregationPopover extends Component {
       return (
         <ExpressionWidget
           name={AGGREGATION.getName(this.state.aggregation)}
-          query={legacyQuery.question()._getMLv2Query()}
-          stageIndex={-1}
-          legacyQuery={legacyQuery}
+          query={query}
           expression={aggregation}
           withName
           startRule="aggregation"
@@ -364,9 +363,9 @@ export default class AggregationPopover extends Component {
           <AggregationFieldList
             width={this.props.width}
             maxHeight={this.props.maxHeight - (this.state.headerHeight || 0)}
-            query={legacyQuery}
+            query={query}
             field={fieldId}
-            fieldOptions={legacyQuery.aggregationFieldOptions(agg)}
+            fieldOptions={query.aggregationFieldOptions(agg)}
             onFieldChange={this.onPickField}
             enableSubDimensions={true}
             preventNumberSubDimensions={true}

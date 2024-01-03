@@ -9,17 +9,18 @@ import type {
 } from "metabase-types/api";
 
 import Button from "metabase/core/components/Button";
-import { Form, FormProvider } from "metabase/forms";
+import Form from "metabase/core/components/Form";
+import FormProvider from "metabase/core/components/FormProvider";
 import FormInput from "metabase/core/components/FormInput";
 import FormSelect from "metabase/core/components/FormSelect";
-import { Ellipsified } from "metabase/core/components/Ellipsified";
+import Ellipsified from "metabase/core/components/Ellipsified";
 import {
   FieldLabel,
   FieldLabelContainer,
 } from "metabase/core/components/FormField/FormField.styled";
 
 import ModalWithTrigger from "metabase/components/ModalWithTrigger";
-import { Sidebar } from "metabase/dashboard/components/Sidebar";
+import Sidebar from "metabase/dashboard/components/Sidebar";
 
 import { ConnectedActionDashcardSettings } from "metabase/actions/components/ActionViz/ActionDashcardSettings";
 import ActionViz from "metabase/actions/components/ActionViz";
@@ -48,7 +49,7 @@ interface ActionSidebarProps {
   onClose: () => void;
 }
 
-export function ActionSidebar({
+export function ActionSidebarFn({
   dashboard,
   dashcardId,
   onUpdateVisualizationSettings,
@@ -58,10 +59,10 @@ export function ActionSidebar({
 
   const dashcard = useMemo(
     () =>
-      dashboard.dashcards.find(
+      dashboard.ordered_cards.find(
         dc => dc?.id === dashcardId && isActionDashCard(dc),
       ) as ActionDashboardCard | undefined,
-    [dashboard.dashcards, dashcardId],
+    [dashboard.ordered_cards, dashcardId],
   );
 
   if (!dashcard) {
@@ -150,7 +151,4 @@ export function ActionSidebar({
   );
 }
 
-export const ActionSidebarConnected = connect(
-  null,
-  mapDispatchToProps,
-)(ActionSidebar);
+export const ActionSidebar = connect(null, mapDispatchToProps)(ActionSidebarFn);

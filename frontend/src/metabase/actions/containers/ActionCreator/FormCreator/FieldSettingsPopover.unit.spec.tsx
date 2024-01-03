@@ -3,8 +3,10 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { FieldSettings } from "metabase-types/api";
 import { getDefaultFieldSettings } from "../../../utils";
-import type { FieldSettingsPopoverProps } from "./FieldSettingsPopover";
-import { FieldSettingsPopover } from "./FieldSettingsPopover";
+import {
+  FieldSettingsPopover,
+  FieldSettingsPopoverProps,
+} from "./FieldSettingsPopover";
 
 function WrappedFieldSettingsPopover({
   fieldSettings: initialSettings,

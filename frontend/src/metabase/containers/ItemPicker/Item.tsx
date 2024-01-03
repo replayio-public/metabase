@@ -1,34 +1,35 @@
 import { useCallback, useMemo } from "react";
 import _ from "underscore";
 
-import type { IconName, IconProps } from "metabase/core/components/Icon";
-import { Icon } from "metabase/core/components/Icon";
+import { Icon, IconName, IconProps } from "metabase/core/components/Icon";
 
-import type { PickerItem } from "./types";
+import type { PickerItem, PickerItemId } from "./types";
 
 import { ItemRoot, ItemContent, ItemTitle, ExpandButton } from "./Item.styled";
 
-interface Props<TId> {
-  item: PickerItem<TId>;
+interface Props {
+  item: PickerItem;
   name: string;
   icon: IconName | IconProps;
+  color: string;
   selected: boolean;
   canSelect: boolean;
   hasChildren?: boolean;
-  onChange: (item: PickerItem<TId>) => void;
-  onChangeOpenCollectionId?: (id: TId) => void;
+  onChange: (item: PickerItem) => void;
+  onChangeOpenCollectionId?: (id: PickerItemId) => void;
 }
 
-function Item<TId>({
+function Item({
   item,
   name,
   icon,
+  color,
   selected,
   canSelect,
   hasChildren,
   onChange,
   onChangeOpenCollectionId,
-}: Props<TId>) {
+}: Props) {
   const handleClick = useMemo(() => {
     if (canSelect) {
       return () => onChange(item);
@@ -59,8 +60,6 @@ function Item<TId>({
       isSelected={selected}
       hasChildren={hasChildren}
       data-testid="item-picker-item"
-      aria-selected={selected}
-      role="option"
     >
       <ItemContent>
         <Icon {...iconProps} />

@@ -26,8 +26,7 @@ import {
   SUB,
   WS,
 } from "./syntax";
-import type { NodeType, Token, Node, Hooks } from "./types";
-import { assert, CompileError } from "./types";
+import { assert, CompileError, NodeType, Token, Node, Hooks } from "./types";
 
 interface ParserOptions {
   hooks?: Hooks;

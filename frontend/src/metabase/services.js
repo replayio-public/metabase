@@ -1,5 +1,5 @@
 import _ from "underscore";
-import api, { GET, PUT, POST, DELETE } from "metabase/lib/api";
+import { GET, PUT, POST, DELETE } from "metabase/lib/api";
 import { IS_EMBED_PREVIEW } from "metabase/lib/embed";
 
 import Question from "metabase-lib/Question";
@@ -188,6 +188,7 @@ export const ModelIndexApi = {
 };
 
 export const DashboardApi = {
+  list: GET("/api/dashboard"),
   // creates a new empty dashboard
   create: POST("/api/dashboard"),
   // saves a complete transient dashboard
@@ -195,6 +196,7 @@ export const DashboardApi = {
   get: GET("/api/dashboard/:dashId"),
   update: PUT("/api/dashboard/:id"),
   delete: DELETE("/api/dashboard/:dashId"),
+  updateCardsAndTabs: PUT("/api/dashboard/:dashId/cards"),
   favorite: POST("/api/dashboard/:dashId/favorite"),
   unfavorite: DELETE("/api/dashboard/:dashId/favorite"),
   parameterValues: GET("/api/dashboard/:dashId/params/:paramId/values"),
@@ -246,7 +248,7 @@ export const PublicApi = {
   dashboardCardQueryPivot: GET(
     PIVOT_PUBLIC_PREFIX + "dashboard/:uuid/dashcard/:dashcardId/card/:cardId",
   ),
-  prefetchDashcardValues: GET(
+  prefetchValues: GET(
     "/api/public/dashboard/:dashboardId/dashcard/:dashcardId/execute",
   ),
 };
@@ -338,6 +340,7 @@ export const MetabaseApi = {
   db_discard_values: POST("/api/database/:dbId/discard_values"),
   db_persist: POST("/api/database/:dbId/persist"),
   db_unpersist: POST("/api/database/:dbId/unpersist"),
+  db_get_db_ids_with_deprecated_drivers: GET("/db-ids-with-deprecated-drivers"),
   db_usage_info: GET("/api/database/:dbId/usage_info"),
   table_list: GET("/api/table"),
   // table_get:                   GET("/api/table/:tableId"),
@@ -438,8 +441,6 @@ export const SessionApi = {
   forgot_password: POST("/api/session/forgot_password"),
   reset_password: POST("/api/session/reset_password"),
   password_reset_token_valid: GET("/api/session/password_reset_token_valid"),
-  unsubscribe: POST("/api/session/pulse/unsubscribe"),
-  undo_unsubscribe: POST("/api/session/pulse/unsubscribe/undo"),
 };
 
 export const SettingsApi = {
@@ -480,7 +481,7 @@ export const SetupApi = {
 
 export const UserApi = {
   create: POST("/api/user"),
-  list: GET("/api/user/recipients"),
+  list: GET("/api/user"),
   current: GET("/api/user/current"),
   // get:                         GET("/api/user/:userId"),
   update: PUT("/api/user/:id"),
@@ -496,14 +497,8 @@ export const UtilApi = {
   random_token: GET("/api/util/random_token"),
   logs: GET("/api/util/logs"),
   bug_report_details: GET("/api/util/bug_report_details"),
-  get_connection_pool_details_url: () => {
-    // this one does not need an HTTP verb because it's opened as an external link
-    // and it can be deployed at subpath
-    const path = "/api/util/diagnostic_info/connection_pool_info";
-    const { href } = new URL(api.basename + path, location.origin);
-
-    return href;
-  },
+  // this one does not need an HTTP verb because it's opened as an external link
+  connection_pool_details_url: "/api/util/diagnostic_info/connection_pool_info",
 };
 
 export const GeoJSONApi = {
@@ -582,8 +577,7 @@ export const ActionsApi = {
   create: POST("/api/action"),
   update: PUT("/api/action/:id"),
   execute: POST("/api/action/:id/execute"),
-  prefetchValues: GET("/api/action/:id/execute"),
-  prefetchDashcardValues: GET(
+  prefetchValues: GET(
     "/api/dashboard/:dashboardId/dashcard/:dashcardId/execute",
   ),
   executeDashcardAction: POST(

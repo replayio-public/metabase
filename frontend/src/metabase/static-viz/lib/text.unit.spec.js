@@ -1,10 +1,10 @@
-import { measureTextWidth, truncateText } from "./text";
+import { measureText, truncateText } from "./text";
 
 const fontSize = 11;
 
-describe("measureTextWidth", () => {
+describe("measureText", () => {
   it("should measure text", () => {
-    expect(Math.round(measureTextWidth("abc", fontSize))).toBe(17);
+    expect(Math.round(measureText("abc", fontSize))).toBe(17);
   });
 });
 

@@ -3,8 +3,7 @@ import {
   createMockTimeline,
   createMockTimelineEvent,
 } from "metabase-types/api/mocks";
-import type { EventListProps } from "./EventList";
-import EventList from "./EventList";
+import EventList, { EventListProps } from "./EventList";
 
 describe("EventList", () => {
   it("should render a list of events", () => {

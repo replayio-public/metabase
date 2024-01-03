@@ -4,9 +4,8 @@ import EmptyState from "metabase/components/EmptyState";
 import { Tree } from "metabase/components/tree";
 import { useDebouncedValue } from "metabase/hooks/use-debounced-value";
 import { SEARCH_DEBOUNCE_DURATION } from "metabase/lib/constants";
-import type { ITreeNodeItem } from "metabase/components/tree/types";
-import type { InputProps } from "metabase/core/components/Input";
-import Input from "metabase/core/components/Input";
+import { ITreeNodeItem } from "metabase/components/tree/types";
+import Input, { InputProps } from "metabase/core/components/Input";
 import {
   EmptyStateContainer,
   FilterableTreeContainer,

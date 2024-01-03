@@ -1,15 +1,15 @@
-import type { ReactNode } from "react";
-import { useCallback } from "react";
+import { ChangeEvent, ReactNode, useCallback } from "react";
 import { connect } from "react-redux";
 import { t } from "ttag";
+import { Link } from "react-router";
 import * as Urls from "metabase/lib/urls";
 import Fields from "metabase/entities/fields";
 import Button from "metabase/core/components/Button/Button";
-import type { DatabaseId, SchemaId, TableId } from "metabase-types/api";
-import type Field from "metabase-lib/metadata/Field";
+import { DatabaseId, SchemaId, TableId } from "metabase-types/api";
+import Field from "metabase-lib/metadata/Field";
 import FieldVisibilityPicker from "../FieldVisibilityPicker";
 import SemanticTypeAndTargetPicker from "../SemanticTypeAndTargetPicker";
-import { ColumnInput, FieldSettingsLink } from "./MetadataTableColumn.styled";
+import { ColumnInput } from "./MetadataTableColumn.styled";
 
 interface OwnProps {
   field: Field;
@@ -40,7 +40,7 @@ const MetadataTableColumn = ({
   onUpdateField,
 }: MetadataTableColumnProps) => {
   const handleChangeName = useCallback(
-    (event: { target: HTMLInputElement }) => {
+    (event: ChangeEvent<HTMLInputElement>) => {
       if (event.target.value) {
         onUpdateField(field, { display_name: event.target.value });
       } else {
@@ -51,7 +51,7 @@ const MetadataTableColumn = ({
   );
 
   const handleChangeDescription = useCallback(
-    (event: { target: HTMLInputElement }) => {
+    (event: ChangeEvent<HTMLInputElement>) => {
       if (event.target.value) {
         onUpdateField(field, { description: event.target.value });
       } else {
@@ -97,17 +97,18 @@ const MetadataTableColumn = ({
                     onUpdateField={onUpdateField}
                   />
                 </div>
-                <FieldSettingsLink
+                <Link
                   to={Urls.dataModelField(
                     selectedDatabaseId,
                     selectedSchemaId,
                     selectedTableId,
                     Number(field.id),
                   )}
+                  className="text-brand-hover mr1"
                   aria-label={t`Field settings`}
                 >
                   <Button icon="gear" style={{ padding: 10 }} />
-                </FieldSettingsLink>
+                </Link>
               </div>
             </div>
           </div>

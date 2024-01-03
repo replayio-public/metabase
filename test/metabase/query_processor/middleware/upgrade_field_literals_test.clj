@@ -10,7 +10,7 @@
    [metabase.test :as mt]))
 
 (defn- upgrade-field-literals [query]
-  (mt/with-metadata-provider (mt/id)
+  (mt/with-everything-store
     (upgrade-field-literals/upgrade-field-literals query)))
 
 (deftest dont-replace-aggregations-test
@@ -56,7 +56,7 @@
 
 (deftest support-legacy-filter-clauses-test
   (testing "We should handle legacy usage of `:field` w/ name inside filter clauses"
-    (mt/dataset test-data
+    (mt/dataset sample-dataset
       (testing "against explicit joins (#14809)"
         (let [source-query    (mt/mbql-query orders
                                 {:joins [{:fields       :all
@@ -92,8 +92,8 @@
 
 (deftest attempt-case-insensitive-match-test
   (testing "Attempt to fix things even if the name used is the wrong case (#16389)"
-    (mt/dataset test-data
-      (mt/with-metadata-provider (mt/id)
+    (mt/dataset sample-dataset
+      (mt/with-everything-store
         (is (query= (mt/mbql-query orders
                       {:source-query {:source-table $$orders
                                       :aggregation  [[:count]]

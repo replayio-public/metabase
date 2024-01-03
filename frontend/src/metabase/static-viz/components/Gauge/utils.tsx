@@ -1,7 +1,7 @@
 import type { PieArcDatum } from "@visx/shape/lib/shapes/Pie";
-import type { NumberFormatOptions } from "metabase/static-viz/lib/numbers";
+import { NumberFormatOptions } from "metabase/static-viz/lib/numbers";
 
-import { measureTextWidth } from "metabase/static-viz/lib/text";
+import { measureText } from "metabase/static-viz/lib/text";
 import {
   GAUGE_ARC_ANGLE,
   BASE_FONT_SIZE,
@@ -54,7 +54,7 @@ export function getCirclePositionInSvgCoordinate(
 export function calculateValueFontSize(displayValue: string, maxWidth: number) {
   let dynamicValueFontSize = BASE_FONT_SIZE;
   while (
-    measureTextWidth(displayValue, dynamicValueFontSize) >
+    measureText(displayValue, dynamicValueFontSize) >
     2 * (maxWidth - VALUE_MARGIN)
   ) {
     dynamicValueFontSize -= 1;
@@ -91,10 +91,7 @@ export function calculateSegmentLabelTextAnchor(angle: number): TextAnchor {
 
 export function calculateChartScale(gaugeLabels: GaugeLabelData[]) {
   const gaugeLabelDimensions = gaugeLabels.map(gaugeLabel => {
-    const labelWidth = measureTextWidth(
-      gaugeLabel.value,
-      SEGMENT_LABEL_FONT_SIZE,
-    );
+    const labelWidth = measureText(gaugeLabel.value, SEGMENT_LABEL_FONT_SIZE);
 
     return {
       left:

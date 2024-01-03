@@ -1,11 +1,11 @@
 import styled from "@emotion/styled";
 import { css } from "@emotion/react";
 import { color } from "metabase/lib/colors";
+import MarkdownBase from "../Markdown";
 
 export interface EditableTextRootProps {
   isEditing?: boolean;
   isDisabled: boolean;
-  isEditingMarkdown?: boolean;
 }
 
 export const EditableTextRoot = styled.div<EditableTextRootProps>`
@@ -14,7 +14,6 @@ export const EditableTextRoot = styled.div<EditableTextRootProps>`
   padding: 0.25rem;
   border: 1px solid transparent;
   border-radius: 4px;
-  word-wrap: break-word;
 
   &:hover,
   &:focus-within {
@@ -28,16 +27,12 @@ export const EditableTextRoot = styled.div<EditableTextRootProps>`
       border-color: ${color("border")};
     `}
 
-  ${({ isEditingMarkdown }) =>
-    isEditingMarkdown &&
-    css`
-      &:after {
-        content: attr(data-value);
-        visibility: hidden;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-      }
-    `}
+  &:after {
+    content: attr(data-value);
+    visibility: hidden;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
 `;
 
 export const EditableTextArea = styled.textarea`
@@ -62,4 +57,8 @@ export const EditableTextArea = styled.textarea`
   &:focus {
     cursor: text;
   }
+`;
+
+export const Markdown = styled(MarkdownBase)`
+  position: absolute;
 `;

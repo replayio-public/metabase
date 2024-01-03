@@ -78,9 +78,7 @@ export function visitQuestionAdhoc(
 
   runQueryIfNeeded(question, autorun);
 
-  if (mode !== "notebook") {
-    cy.wait("@" + alias).then(xhr => callback && callback(xhr));
-  }
+  cy.wait("@" + alias).then(xhr => callback && callback(xhr));
 }
 
 /**

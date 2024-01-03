@@ -1,6 +1,6 @@
 import { t } from "ttag";
-import { GRAPH_GOAL_SETTINGS } from "metabase/visualizations/lib/settings/goal";
-import { getDefaultDimensionLabel } from "metabase/visualizations/lib/settings/graph";
+import { getFriendlyName } from "metabase/visualizations/lib/utils";
+import { GRAPH_GOAL_SETTINGS } from "../../../lib/settings/goal";
 
 export const ROW_CHART_SETTINGS = {
   "stackable.stack_type": {
@@ -118,9 +118,11 @@ export const ROW_CHART_SETTINGS = {
     widget: "input",
     getHidden: (series, vizSettings) =>
       vizSettings["graph.x_axis.labels_enabled"] === false,
-    getDefault: getDefaultDimensionLabel,
+    getDefault: (series, vizSettings) =>
+      series.length > 1 ? getFriendlyName(series[0].data.cols[0]) : null,
     getProps: series => ({
-      placeholder: getDefaultDimensionLabel(series),
+      placeholder:
+        series.length > 1 ? getFriendlyName(series[0].data.cols[0]) : null,
     }),
   },
   "graph.y_axis.labels_enabled": {

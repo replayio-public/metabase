@@ -2,10 +2,9 @@
   (:require
    [metabase-enterprise.audit-app.interface :as audit.i]
    [metabase-enterprise.audit-app.pages.common :as common]
-   [metabase.models.permissions :as perms]
    [metabase.util.cron :as u.cron]
    [metabase.util.honey-sql-2 :as h2x]
-   [metabase.util.malli :as mu]))
+   [schema.core :as s]))
 
 ;; SELECT
 ;;   db.id AS database_id,
@@ -16,7 +15,6 @@
 ;; JOIN report_card card     ON qe.card_id = card.id
 ;; JOIN metabase_table t     ON card.table_id = t.id
 ;; JOIN metabase_database db ON t.db_id = db.id
-;; WHERE db.id != audit-db-id
 ;; GROUP BY db.id
 ;; ORDER BY lower(db.name) ASC
 ;;
@@ -37,13 +35,12 @@
                :join     [[:report_card :card]     [:= :qe.card_id :card.id]
                           [:metabase_table :t]     [:= :card.table_id :t.id]
                           [:metabase_database :db] [:= :t.db_id :db.id]]
-               :where    [:not= :db.id perms/audit-db-id]
                :group-by [:db.id]
                :order-by [[[:lower :db.name] :asc]]})})
 
 ;; Query that returns count of query executions grouped by Database and a `datetime-unit`.
-(mu/defmethod audit.i/internal-query ::query-executions-by-time
-  [_query-type datetime-unit :- common/DateTimeUnitStr]
+(s/defmethod audit.i/internal-query ::query-executions-by-time
+  [_ datetime-unit :- common/DateTimeUnitStr]
   {:metadata [[:date          {:display_name "Date",          :base_type (common/datetime-unit-str->base-type datetime-unit)}]
               [:database_id   {:display_name "Database ID",   :base_type :type/Integer, :remapped_to   :database_name}]
               [:database_name {:display_name "Database Name", :base_type :type/Name,    :remapped_from :database_id}]
@@ -56,8 +53,7 @@
                                  :left-join [[:report_card :card] [:= :qe.card_id :card.id]]
                                  :where     [:and
                                              [:not= :qe.card_id nil]
-                                             [:not= :card.database_id nil]
-                                             [:not= :card.database_id perms/audit-db-id]]
+                                             [:not= :card.database_id nil]]
                                  :group-by  [(common/grouped-datetime datetime-unit :qe.started_at) :card.database_id]
                                  :order-by  [[(common/grouped-datetime datetime-unit :qe.started_at) :asc]
                                              [:card.database_id :asc]]}]]
@@ -78,10 +74,10 @@
   (audit.i/internal-query ::query-executions-by-time "day"))
 
 ;; Table with information and statistics about all the data warehouse Databases in this Metabase instance.
-(mu/defmethod audit.i/internal-query ::table
+(s/defmethod audit.i/internal-query ::table
   ([query-type]
    (audit.i/internal-query query-type nil))
-  ([_query-type query-string :- [:maybe :string]]
+  ([_ query-string :- (s/maybe s/Str)]
    ;; TODO - Should we convert sync_schedule from a cron string into English? Not sure that's going to be feasible for
    ;; really complicated schedules
    {:metadata [[:database_id   {:display_name "Database ID", :base_type :type/Integer, :remapped_to :title}]
@@ -107,7 +103,6 @@
                              [:db.cache_ttl :cache_ttl]]
                  :from      [[:metabase_database :db]]
                  :left-join [:counts [:= :db.id :counts.id]]
-                 :where     [:not= :db.id perms/audit-db-id]
                  :order-by  [[[:lower :db.name] :asc]
                              [:database_id :asc]]}
                 (common/add-search-clause query-string :db.name)))

@@ -1,5 +1,5 @@
 import fetchMock from "fetch-mock";
-import type { Card, CardId, Dataset } from "metabase-types/api";
+import { Card, Dataset } from "metabase-types/api";
 import { createMockCard } from "metabase-types/api/mocks";
 import {
   getQuestionVirtualTableId,
@@ -13,15 +13,11 @@ export function setupCardEndpoints(card: Card) {
     const lastCall = fetchMock.lastCall(url);
     return createMockCard(await lastCall?.request?.json());
   });
-  setupCardQueryMetadataEndpoint(card);
-  fetchMock.get(`path:/api/card/${card.id}/series`, []);
-}
 
-export function setupCardQueryMetadataEndpoint(card: Card) {
   const virtualTableId = getQuestionVirtualTableId(card.id);
   fetchMock.get(`path:/api/table/${virtualTableId}/query_metadata`, {
     ...convertSavedQuestionToVirtualTable(card),
-    fields: card.result_metadata?.map(field => ({
+    fields: card.result_metadata.map(field => ({
       ...field,
       table_id: virtualTableId,
     })),
@@ -31,15 +27,7 @@ export function setupCardQueryMetadataEndpoint(card: Card) {
 
 export function setupCardsEndpoints(cards: Card[]) {
   fetchMock.get({ url: "path:/api/card", overwriteRoutes: false }, cards);
-  setupCardCreateEndpoint();
   cards.forEach(card => setupCardEndpoints(card));
-}
-
-export function setupCardCreateEndpoint() {
-  fetchMock.post("path:/api/card", async url => {
-    const lastCall = fetchMock.lastCall(url);
-    return createMockCard(await lastCall?.request?.json());
-  });
 }
 
 export function setupUnauthorizedCardEndpoints(card: Card) {
@@ -65,14 +53,4 @@ export function setupCardQueryEndpoints(card: Card, dataset: Dataset) {
 
 export function setupCardQueryDownloadEndpoint(card: Card, type: string) {
   fetchMock.post(`path:/api/card/${card.id}/query/${type}`, {});
-}
-
-export function setupCardPublicLinkEndpoints(cardId: CardId) {
-  fetchMock.post(`path:/api/card/${cardId}/public_link`, {
-    id: cardId,
-    uuid: "mock-uuid",
-  });
-  fetchMock.delete(`path:/api/card/${cardId}/public_link`, {
-    id: cardId,
-  });
 }

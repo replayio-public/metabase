@@ -1,49 +1,22 @@
-import type {
-  CardId,
-  DashboardId,
-  DashboardTabId,
-  FieldReference,
-  ParameterId,
-  TemplateTagName,
-} from "metabase-types/api";
+import type { CardId, DashboardId, ParameterId } from "metabase-types/api";
 
 // Used to set values for question filters
 // Example: "[\"dimension\",[\"field\",17,null]]"
 type StringifiedDimension = string;
 
-export interface ClickBehaviorSource {
-  id: ParameterId | StringifiedDimension;
-  name: string;
-  type: "column" | "parameter";
-}
-
-export interface ClickBehaviorDimensionTarget {
-  id: StringifiedDimension;
-  type: "dimension";
-  dimension: ["dimension", FieldReference | null | undefined];
-}
-
-export interface ClickBehaviorParameterTarget {
-  id: ParameterId;
-  type: "parameter";
-}
-
-export interface ClickBehaviorVariableTarget {
-  id: TemplateTagName;
-  type: "variable";
-}
-
-export type ClickBehaviorTarget =
-  | ClickBehaviorDimensionTarget
-  | ClickBehaviorParameterTarget
-  | ClickBehaviorVariableTarget;
-
 export type ClickBehaviorParameterMapping = Record<
   ParameterId | StringifiedDimension,
   {
     id: ParameterId | StringifiedDimension;
-    source: ClickBehaviorSource;
-    target: ClickBehaviorTarget;
+    source: {
+      id: ParameterId | StringifiedDimension;
+      name: string;
+      type: "column" | "parameter";
+    };
+    target: {
+      id: ParameterId | StringifiedDimension;
+      type: "parameter" | "dimension";
+    };
   }
 >;
 
@@ -53,35 +26,21 @@ export type ClickBehaviorType =
   | "crossfilter"
   | "link";
 
+export type CustomDestinationClickBehaviorEntity = "dashboard" | "question";
+
 export type CustomDestinationClickBehaviorLinkType =
-  | EntityCustomDestinationClickBehavior["linkType"]
-  | ArbitraryCustomDestinationClickBehavior["linkType"];
+  | CustomDestinationClickBehaviorEntity
+  | "url";
 
 export interface CrossFilterClickBehavior {
   type: "crossfilter";
   parameterMapping?: ClickBehaviorParameterMapping;
 }
 
-export type EntityCustomDestinationClickBehavior =
-  | DashboardCustomDestinationClickBehavior
-  | QuestionCustomDestinationClickBehavior;
-
-export interface DashboardCustomDestinationClickBehavior {
+export interface EntityCustomDestinationClickBehavior {
   type: "link";
-  linkType: "dashboard";
-  targetId?: DashboardId;
-  /**
-   * tabId will be undefined when user edits click behavior that
-   * was created before we supported links to dashboard tabs.
-   */
-  tabId?: DashboardTabId;
-  parameterMapping?: ClickBehaviorParameterMapping;
-}
-
-export interface QuestionCustomDestinationClickBehavior {
-  type: "link";
-  linkType: "question";
-  targetId?: CardId;
+  linkType: CustomDestinationClickBehaviorEntity;
+  targetId: CardId | DashboardId;
   parameterMapping?: ClickBehaviorParameterMapping;
 }
 
@@ -92,22 +51,24 @@ export interface ArbitraryCustomDestinationClickBehavior {
   linkTextTemplate?: string;
 }
 
-export interface BaseActionClickBehavior {
+export type ImplicitActionType = "insert" | "update" | "delete";
+
+interface BaseActionClickBehavior {
   type: "action";
-  actionType: string;
+  actionType?: ImplicitActionType;
 }
 
-export interface InsertActionClickBehavior extends BaseActionClickBehavior {
+interface InsertActionClickBehavior extends BaseActionClickBehavior {
   actionType: "insert";
   tableId: number;
 }
 
-export interface UpdateActionClickBehavior extends BaseActionClickBehavior {
+interface UpdateActionClickBehavior extends BaseActionClickBehavior {
   actionType: "update";
   objectDetailDashCardId: number;
 }
 
-export interface DeleteActionClickBehavior extends BaseActionClickBehavior {
+interface DeleteActionClickBehavior extends BaseActionClickBehavior {
   actionType: "delete";
   objectDetailDashCardId: number;
 }

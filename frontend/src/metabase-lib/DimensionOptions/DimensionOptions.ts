@@ -1,5 +1,5 @@
-import type Dimension from "metabase-lib/Dimension";
-import type {
+import Dimension from "metabase-lib/Dimension";
+import {
   DimensionFK,
   DimensionOptionsProps,
   DimensionOptionsSection,

@@ -2,6 +2,6 @@ import Triggerable from "metabase/components/Triggerable";
 import Popover from "metabase/components/Popover";
 
 /**
- * @deprecated prefer Popover from "metabase/ui" + useState instead
+ * @deprecated use Popover + useState
  */
 export default Triggerable(Popover);

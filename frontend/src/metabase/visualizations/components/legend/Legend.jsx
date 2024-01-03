@@ -28,10 +28,7 @@ const propTypes = {
   onSelectSeries: PropTypes.func,
   onRemoveSeries: PropTypes.func,
   isReversed: PropTypes.bool,
-  canRemoveSeries: PropTypes.func,
 };
-
-const alwaysTrue = () => true;
 
 const Legend = ({
   className,
@@ -45,7 +42,6 @@ const Legend = ({
   onSelectSeries,
   onRemoveSeries,
   isReversed,
-  canRemoveSeries = alwaysTrue,
 }) => {
   const targetRef = useRef();
   const [isOpened, setIsOpened] = useState(null);
@@ -73,11 +69,7 @@ const Legend = ({
   const overflowLength = labels.length - overflowIndex;
 
   return (
-    <LegendRoot
-      className={className}
-      aria-label={t`Legend`}
-      isVertical={isVertical}
-    >
+    <LegendRoot className={className} isVertical={isVertical}>
       {visibleLabels.map((label, index) => {
         const localIndex = index + visibleIndex;
         const itemIndex = isReversed
@@ -95,9 +87,7 @@ const Legend = ({
             isReversed={isReversed}
             onHoverChange={onHoverChange}
             onSelectSeries={onSelectSeries}
-            onRemoveSeries={
-              canRemoveSeries(itemIndex) ? onRemoveSeries : undefined
-            }
+            onRemoveSeries={onRemoveSeries}
           />
         );
       })}

@@ -1,8 +1,10 @@
-import type * as React from "react";
+import * as React from "react";
 
 import Tooltip from "metabase/core/components/Tooltip";
-import type { EntityMenuIconButtonProps } from "./EntityMenuTrigger.styled";
-import { EntityMenuIconButton } from "./EntityMenuTrigger.styled";
+import {
+  EntityMenuIconButton,
+  EntityMenuIconButtonProps,
+} from "./EntityMenuTrigger.styled";
 
 type EntityMenuTriggerProps = {
   icon: string;

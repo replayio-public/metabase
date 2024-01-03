@@ -25,10 +25,6 @@ const PIN_MAP_TYPES = new Set(["pin", "heat", "grid"]);
 import { getAccentColors } from "metabase/lib/colors/groups";
 import ColorRangeSelector from "metabase/core/components/ColorRangeSelector";
 import {
-  getDefaultSize,
-  getMinSize,
-} from "metabase/visualizations/shared/utils/sizes";
-import {
   isNumeric,
   isLatitude,
   isLongitude,
@@ -52,8 +48,7 @@ export default class Map extends Component {
 
   static aliases = ["state", "country", "pin_map"];
 
-  static minSize = getMinSize("map");
-  static defaultSize = getDefaultSize("map");
+  static minSize = { width: 4, height: 4 };
 
   static isSensible({ cols, rows }) {
     return (

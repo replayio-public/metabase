@@ -2,10 +2,12 @@
 
 import d3 from "d3";
 import { createSelector } from "@reduxjs/toolkit";
+import createCachedSelector from "re-reselect";
 import _ from "underscore";
 import { getIn, merge, updateIn } from "icepick";
 
 // Needed due to wrong dependency resolution order
+// eslint-disable-next-line no-unused-vars
 import {
   extractRemappings,
   getVisualizationTransformed,
@@ -20,7 +22,7 @@ import { getMetadata } from "metabase/selectors/metadata";
 import { getAlerts } from "metabase/alert/selectors";
 import { getEmbedOptions, getIsEmbedded } from "metabase/selectors/embed";
 import { parseTimestamp } from "metabase/lib/time";
-import { getMode as getQuestionMode } from "metabase/visualizations/click-actions/lib/modes";
+import { getMode as getQuestionMode } from "metabase/modes/lib/modes";
 import { getSortedTimelines } from "metabase/lib/timelines";
 import { getSetting } from "metabase/selectors/settings";
 import { getDashboardById } from "metabase/dashboard/selectors";
@@ -28,6 +30,7 @@ import {
   getXValues,
   isTimeseries,
 } from "metabase/visualizations/lib/renderer_utils";
+import ObjectMode from "metabase/modes/components/modes/ObjectMode";
 
 import { LOAD_COMPLETE_FAVICON } from "metabase/hoc/Favicon";
 import * as ML from "metabase-lib/v2";
@@ -37,6 +40,7 @@ import {
   normalizeParameterValue,
 } from "metabase-lib/parameters/utils/parameter-values";
 import { getIsPKFromTablePredicate } from "metabase-lib/types/utils/isa";
+import Mode from "metabase-lib/Mode";
 import NativeQuery from "metabase-lib/queries/NativeQuery";
 import Question from "metabase-lib/Question";
 import { isAdHocModelQuestion } from "metabase-lib/metadata/utils/models";
@@ -51,11 +55,8 @@ export const getIsShowingSnippetSidebar = state =>
   getUiControls(state).isShowingSnippetSidebar;
 export const getIsShowingDataReference = state =>
   getUiControls(state).isShowingDataReference;
-
-// This selector can be called from public questions / dashboards, which do not
-// have state.qb
 export const getIsShowingRawTable = state =>
-  !!state.qb?.uiControls.isShowingRawTable;
+  getUiControls(state).isShowingRawTable;
 
 const SIDEBARS = [
   "isShowingQuestionDetailsSidebar",
@@ -181,6 +182,8 @@ export const getPKRowIndexMap = createSelector(
   },
 );
 
+export const getIsNew = state => state.qb.card && !state.qb.card.id;
+
 export const getQueryStartTime = state => state.qb.queryStartTime;
 
 export const getDatabaseId = createSelector(
@@ -221,14 +224,10 @@ export const getTableMetadata = createSelector(
   (tableId, metadata) => metadata.table(tableId),
 );
 
-export const getTableForeignKeys = createSelector([getTableMetadata], table => {
-  const tableForeignKeys = table?.fks ?? [];
-  const tableForeignKeysWithoutHiddenTables = tableForeignKeys.filter(
-    tableForeignKey => tableForeignKey.origin != null,
-  );
-
-  return tableForeignKeysWithoutHiddenTables;
-});
+export const getTableForeignKeys = createSelector(
+  [getTableMetadata],
+  table => table?.fks ?? [],
+);
 
 export const getSampleDatabaseId = createSelector(
   [getDatabasesList],
@@ -271,12 +270,20 @@ const getLastRunParameterValues = createSelector(
   parameters => parameters.map(parameter => parameter.value),
 );
 const getNextRunParameterValues = createSelector([getParameters], parameters =>
-  parameters.map(parameter =>
-    // parameters are "normalized" immediately before a query run, so in order
-    // to compare current parameters to previously-used parameters we need
-    // to run parameters through this normalization function
-    normalizeParameterValue(parameter.type, parameter.value),
-  ),
+  parameters
+    .filter(
+      // parameters with an empty value get filtered out before a query run,
+      // so in order to compare current parameters to previously-used parameters we need
+      // to filter them here as well
+      parameter => parameter.value != null,
+    )
+    .map(parameter =>
+      // parameters are "normalized" immediately before a query run, so in order
+      // to compare current parameters to previously-used parameters we need
+      // to run parameters through this normalization function
+      normalizeParameterValue(parameter.type, parameter.value),
+    )
+    .filter(p => p !== undefined),
 );
 
 const getNextRunParameters = createSelector([getParameters], parameters =>
@@ -303,34 +310,20 @@ export const getOriginalQuestion = createSelector(
   (metadata, card) => metadata && card && new Question(card, metadata),
 );
 
-export const getOriginalQuestionWithParameterValues = createSelector(
-  [getMetadata, getOriginalCard, getParameterValues],
-  (metadata, card, parameterValues) =>
-    metadata && card && new Question(card, metadata, parameterValues),
-);
-
 export const getLastRunQuestion = createSelector(
   [getMetadata, getLastRunCard, getParameterValues],
   (metadata, card, parameterValues) =>
     card && metadata && new Question(card, metadata, parameterValues),
 );
 
-export const getQuestionWithParameters = createSelector(
-  [getCard, getMetadata, getParameterValues],
-  (card, metadata, parameterValues) => {
-    if (!card || !metadata) {
-      return;
-    }
-    return new Question(card, metadata, parameterValues);
-  },
-);
-
 export const getQuestion = createSelector(
-  [getQuestionWithParameters, getQueryBuilderMode],
-  (question, queryBuilderMode) => {
-    if (!question) {
+  [getMetadata, getCard, getParameterValues, getQueryBuilderMode],
+  (metadata, card, parameterValues, queryBuilderMode) => {
+    if (!metadata || !card) {
       return;
     }
+    const question = new Question(card, metadata, parameterValues);
+
     const isEditingModel = queryBuilderMode === "dataset";
     if (isEditingModel) {
       return question.lockDisplay();
@@ -348,6 +341,14 @@ export const getQuestion = createSelector(
       : question;
   },
 );
+
+// This jsdoc keeps the TS typechecker happy.
+// Otherwise TS thinks this `getQuestionFromCard` requires two args.
+/** @type {function(unknown, unknown): Question} */
+export const getQuestionFromCard = createCachedSelector(
+  [getMetadata, (_state, card) => card],
+  (metadata, card) => new Question(card, metadata),
+)((_state, card) => card.id);
 
 function isQuestionEditable(question) {
   return !question?.query().readOnly();
@@ -532,8 +533,11 @@ const isZoomingRow = createSelector(
 );
 
 export const getMode = createSelector(
-  [getLastRunQuestion],
-  question => question && getQuestionMode(question),
+  [getLastRunQuestion, isZoomingRow],
+  (question, isZoomingRow) =>
+    isZoomingRow
+      ? new Mode(question, ObjectMode)
+      : question && getQuestionMode(question),
 );
 
 export const getIsObjectDetail = createSelector(
@@ -553,20 +557,6 @@ export const getIsDirty = createSelector(
       return false;
     }
     return question.isDirtyComparedToWithoutParameters(originalQuestion);
-  },
-);
-
-export const getIsSavedQuestionChanged = createSelector(
-  [getQuestion, getOriginalQuestion],
-  (question, originalQuestion) => {
-    const isSavedQuestion = originalQuestion != null;
-    const hasChanges = question != null;
-    const wereChangesSaved = question?.isSaved();
-    const hasUnsavedChanges = hasChanges && !wereChangesSaved;
-
-    return (
-      isSavedQuestion && hasUnsavedChanges && !originalQuestion.isDataset()
-    );
   },
 );
 
@@ -607,55 +597,24 @@ export const isResultsMetadataDirty = createSelector(
   },
 );
 
-export const getShouldShowUnsavedChangesWarning = createSelector(
-  [
-    getQueryBuilderMode,
-    getIsDirty,
-    isResultsMetadataDirty,
-    getQuestion,
-    getIsSavedQuestionChanged,
-    getOriginalQuestion,
-    getUiControls,
-  ],
-  (
-    queryBuilderMode,
-    isDirty,
-    isMetadataDirty,
-    question,
-    isSavedQuestionChanged,
-    originalQuestion,
-    uiControls,
-  ) => {
-    const isEditingModel = queryBuilderMode === "dataset";
-
-    if (isEditingModel) {
-      return isDirty || isMetadataDirty;
-    }
-
-    if (question?.isNative()) {
-      const isNewQuestion = !originalQuestion;
-
-      if (isNewQuestion) {
-        return !question.isEmpty();
-      }
-
-      return isSavedQuestionChanged;
-    }
-
-    if (originalQuestion?.isStructured()) {
-      return uiControls.isModifiedFromNotebook;
-    }
-
-    return false;
-  },
-);
-
 /**
  * Returns the card and query results data in a format that `Visualization.jsx` expects
  */
 export const getRawSeries = createSelector(
-  [getQuestion, getQueryResults, getLastRunDatasetQuery, getIsShowingRawTable],
-  (question, results, lastRunDatasetQuery, isShowingRawTable) => {
+  [
+    getQuestion,
+    getQueryResults,
+    getIsObjectDetail,
+    getLastRunDatasetQuery,
+    getIsShowingRawTable,
+  ],
+  (
+    question,
+    results,
+    isObjectDetail,
+    lastRunDatasetQuery,
+    isShowingRawTable,
+  ) => {
     let display = question && question.display();
     let settings = question && question.settings();
 
@@ -983,11 +942,7 @@ export const getNativeQueryFn = createSelector(
 );
 
 export const getDashboardId = state => {
-  return state.qb.parentDashboard.dashboardId;
-};
-
-export const getIsEditingInDashboard = state => {
-  return state.qb.parentDashboard.isEditing;
+  return state.qb.dashboardId;
 };
 
 export const getDashboard = state => {

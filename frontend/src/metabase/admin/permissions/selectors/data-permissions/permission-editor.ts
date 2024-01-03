@@ -9,15 +9,15 @@ import Groups from "metabase/entities/groups";
 import Tables from "metabase/entities/tables";
 
 import { isAdminGroup, isDefaultGroup } from "metabase/lib/groups";
-import type {
+import {
   DatabaseId,
   Group,
   GroupsPermissions,
   TableId,
 } from "metabase-types/api";
-import type { State } from "metabase-types/store";
+import { State } from "metabase-types/store";
 import { PLUGIN_FEATURE_LEVEL_PERMISSIONS } from "metabase/plugins";
-import type Schema from "metabase-lib/metadata/Schema";
+import Schema from "metabase-lib/metadata/Schema";
 import {
   getTableEntityId,
   getSchemaEntityId,
@@ -25,7 +25,7 @@ import {
   getPermissionSubject,
 } from "../../utils/data-entity-id";
 
-import type {
+import {
   DataRouteParams,
   RawGroupRouteParams,
   PermissionSectionConfig,
@@ -33,10 +33,10 @@ import type {
 import { buildFieldsPermissions } from "./fields";
 import { buildTablesPermissions } from "./tables";
 import { buildSchemasPermissions } from "./schemas";
-import type { EditorBreadcrumb } from "./breadcrumbs";
 import {
   getDatabasesEditorBreadcrumbs,
   getGroupsDataEditorBreadcrumbs,
+  EditorBreadcrumb,
 } from "./breadcrumbs";
 import { getOrderedGroups } from "./groups";
 
@@ -240,7 +240,6 @@ export const getDatabasesPermissionEditor = createSelector(
               isAdmin,
               permissions,
               defaultGroup,
-              database,
             ),
           };
         });
@@ -365,7 +364,6 @@ export const getGroupsDataPermissionEditor: GetGroupsDataPermissionEditorSelecto
             isAdmin,
             permissions,
             defaultGroup,
-            database,
           );
         }
 

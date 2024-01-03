@@ -2,15 +2,12 @@
   "Shared logic for various Google drivers, including BigQuery and Google Analytics."
   (:require
    [metabase.config :as config]
-   [metabase.lib.metadata.protocols :as lib.metadata.protocols]
    [metabase.models.database :refer [Database]]
    [metabase.query-processor.error-type :as qp.error-type]
-   [metabase.query-processor.store :as qp.store]
    [metabase.util :as u]
    [metabase.util.i18n :refer [trs]]
    [metabase.util.log :as log]
    [ring.util.codec :as codec]
-   #_{:clj-kondo/ignore [:discouraged-namespace]}
    [toucan2.core :as t2])
   (:import
    (com.google.api.client.googleapis.auth.oauth2 GoogleAuthorizationCodeFlow GoogleAuthorizationCodeFlow$Builder
@@ -61,11 +58,12 @@
 
 (defn- create-application-name
   "Creates the application name string, separated out from the `def` below so it's testable with different values"
-  [{:keys [tag ^String hash]}]
+  [{:keys [tag ^String hash branch]}]
   (let [encoded-hash (some-> hash (.getBytes "UTF-8") codec/base64-encode)]
-    (format "Metabase/%s (GPN:Metabase; %s)"
+    (format "Metabase/%s (GPN:Metabase; %s %s)"
             (or tag "?")
-            (or encoded-hash "?"))))
+            (or encoded-hash "?")
+            (or branch "?"))))
 
 (def ^:const ^String application-name
   "The application name we should use for Google drivers. Requested by Google themselves -- see #2627"
@@ -135,6 +133,5 @@
   (database->credential*
    scopes
    (if (integer? database-or-id)
-     (qp.store/with-metadata-provider database-or-id
-       (lib.metadata.protocols/database (qp.store/metadata-provider)))
+     (t2/select-one [Database :id :details], :id database-or-id)
      database-or-id)))

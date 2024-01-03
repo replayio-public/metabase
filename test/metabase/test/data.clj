@@ -46,7 +46,7 @@
    [metabase.test.data.impl :as data.impl]
    [metabase.test.data.interface :as tx]
    [metabase.test.data.mbql-query-impl :as mbql-query-impl]
-   [metabase.util.malli :as mu]))
+   [metabase.util :as u]))
 
 (set! *warn-on-reflection* true)
 
@@ -57,14 +57,14 @@
 
 (defn db
   "Return the current database.
-   Relies on the dynamic variable [[metabase.test.data.impl/*db-fn*]], which can be rebound with [[with-db]]."
+   Relies on the dynamic variable `*get-db*`, which can be rebound with `with-db`."
   []
-  (data.impl/db))
+  (data.impl/*get-db*))
 
 (defmacro with-db
   "Run body with `db` as the current database. Calls to `db` and `id` use this value."
   [db & body]
-  `(data.impl/do-with-db ~db (^:once fn* [] ~@body)))
+  `(data.impl/do-with-db ~db (fn [] ~@body)))
 
 (defmacro $ids
   "Convert symbols like `$field` to `id` fn calls. Input is split into separate args by splitting the token on `.`.
@@ -136,7 +136,7 @@
      complete details.
   *  Wraps 'inner' query with the standard `{:database (data/id), :type :query, :query {...}}` boilerplate
   *  Adds `:source-table` clause if `:source-table` or `:source-query` is not already present"
-  {:style/indent :defn}
+  {:style/indent 1}
   ([table-name]
    `(mbql-query ~table-name {}))
 
@@ -187,27 +187,22 @@
   [table-name & [query]]
   `(run-mbql-query* (mbql-query ~table-name ~(or query {}))))
 
-(mu/defn format-name :- :string
+(defn format-name
   "Format a SQL schema, table, or field identifier in the correct way for the current database by calling the current
   driver's implementation of [[ddl.i/format-name]]. (Most databases use the default implementation of `identity`; H2
   uses [[clojure.string/upper-case]].) This function DOES NOT quote the identifier."
-  [a-name :- [:or
-              :keyword
-              :string
-              :symbol
-              [:fn
-               {:error/message (str "Cannot format `nil` name -- did you use a `$field` without specifying its Table? "
-                                    "(Change the form to `$table.field`, or specify a top-level default Table to "
-                                    "`$ids` or `mbql-query`.)")}
-               (constantly false)]]]
+  [a-name]
+  (assert ((some-fn keyword? string? symbol?) a-name)
+    (str "Cannot format `nil` name -- did you use a `$field` without specifying its Table? (Change the form to"
+         " `$table.field`, or specify a top-level default Table to `$ids` or `mbql-query`.)"))
   (ddl.i/format-name (tx/driver) (name a-name)))
 
 (defn id
-  "Get the ID of the current database or one of its Tables or Fields. Relies on the dynamic
-  variable [[metabase.test.data.impl/*db-fn*]], which can be rebound with [[with-db]]."
+  "Get the ID of the current database or one of its Tables or Fields. Relies on the dynamic variable `*get-db*`, which
+  can be rebound with `with-db`."
   ([]
    (mb.hawk.init/assert-tests-are-not-initializing "(mt/id ...) or (data/id ...)")
-   (data.impl/db-id))
+   (u/the-id (db)))
 
   ([table-name]
    (data.impl/the-table-id (id) (format-name table-name)))
@@ -248,14 +243,14 @@
                                           (not (get &env dataset)))
                                    `(data.impl/resolve-dataset-definition '~(ns-name *ns*) '~dataset)
                                    dataset)
-                                (^:once fn* [] ~@body))))
+                                (fn [] ~@body))))
 
 (defmacro with-temp-copy-of-db
   "Run `body` with the current DB (i.e., the one that powers `data/db` and `data/id`) bound to a temporary copy of the
   current DB. Tables and Fields are copied as well."
   {:style/indent 0}
   [& body]
-  `(data.impl/do-with-temp-copy-of-db (^:once fn* [] ~@body)))
+  `(data.impl/do-with-temp-copy-of-db (fn [] ~@body)))
 
 (defmacro with-empty-h2-app-db
   "Runs `body` under a new, blank, H2 application database (randomly named), in which all model tables have been
@@ -266,6 +261,7 @@
   {:style/indent 0}
   [& body]
   `(schema-migrations-test.impl/with-temp-empty-app-db [conn# :h2]
+     (schema-migrations-test.impl/run-migrations-in-range! conn# [0 "v99.00-000"]) ; this should catch all migrations)
      ;; since the actual group defs are not dynamic, we need with-redefs to change them here
      (with-redefs [perms-group/all-users (#'perms-group/magic-group perms-group/all-users-group-name)
                    perms-group/admin     (#'perms-group/magic-group perms-group/admin-group-name)]

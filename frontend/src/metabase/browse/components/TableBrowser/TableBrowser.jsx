@@ -55,10 +55,12 @@ const TableBrowser = ({
       <Grid>
         {tables.map(table => (
           <TableGridItem key={table.id}>
-            <TableCard hoverable={!isSyncInProgress(table)}>
+            <TableCard hoverable={!isTableLoading(table, database)}>
               <TableLink
                 to={
-                  !isSyncInProgress(table) ? getTableUrl(table, metadata) : ""
+                  !isTableLoading(table, database)
+                    ? getTableUrl(table, metadata)
+                    : ""
                 }
                 data-metabase-event={`${ANALYTICS_CONTEXT};Table Click`}
               >
@@ -88,7 +90,7 @@ const itemPropTypes = {
 
 const TableBrowserItem = ({ database, table, dbId, xraysEnabled }) => {
   const isVirtual = isVirtualCardId(table.id);
-  const isLoading = isSyncInProgress(table);
+  const isLoading = isTableLoading(table, database);
 
   return (
     <EntityItem
@@ -135,21 +137,15 @@ const TableBrowserItemButtons = ({ tableId, dbId, xraysEnabled }) => {
           />
         </TableActionLink>
       )}
-      <TableActionLink
-        to={`/reference/databases/${dbId}/tables/${tableId}`}
-        data-metabase-event={`${ANALYTICS_CONTEXT};Table Item;Reference Click`}
-      >
-        <Icon
-          name="reference"
-          tooltip={t`Learn about this table`}
-          color={color("text-medium")}
-        />
-      </TableActionLink>
     </Fragment>
   );
 };
 
 TableBrowserItemButtons.propTypes = itemButtonsPropTypes;
+
+const isTableLoading = (table, database) => {
+  return database && isSyncInProgress(database) && isSyncInProgress(table);
+};
 
 const getDatabaseCrumbs = dbId => {
   if (dbId === SAVED_QUESTIONS_VIRTUAL_DB_ID) {

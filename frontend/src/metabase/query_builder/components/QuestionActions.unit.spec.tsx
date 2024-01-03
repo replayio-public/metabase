@@ -1,25 +1,17 @@
 import userEvent from "@testing-library/user-event";
-import { getMetadata } from "metabase/selectors/metadata";
-import type { Card, Database } from "metabase-types/api";
-import { createMockCard, createMockNativeCard } from "metabase-types/api/mocks";
-import { createSampleDatabase } from "metabase-types/api/mocks/presets";
+import { renderWithProviders, screen } from "__support__/ui";
 import { createMockState } from "metabase-types/store/mocks";
 import { createMockEntitiesState } from "__support__/store";
-import {
-  getIcon,
-  queryIcon,
-  renderWithProviders,
-  screen,
-} from "__support__/ui";
-import type Question from "metabase-lib/Question";
-import QuestionActions from "./QuestionActions";
+import QuestionActions from "metabase/query_builder/components/QuestionActions";
+import { createMockCard, createMockNativeCard } from "metabase-types/api/mocks";
+import { getMetadata } from "metabase/selectors/metadata";
+import { Card } from "metabase-types/api";
+import Question from "metabase-lib/Question";
 
-const ICON_CASES_CARDS = [
-  createMockCard({ name: "GUI" }),
-  createMockNativeCard({ name: "SQL" }),
-];
+const TEST_STRUCTURED_CARD = createMockCard();
+const TEST_NATIVE_CARD = createMockNativeCard();
 
-const ICON_CASES_LABELS = [
+const iconList = [
   { label: "bookmark icon", tooltipText: "Bookmark" },
   { label: "info icon", tooltipText: "More info" },
   {
@@ -28,19 +20,9 @@ const ICON_CASES_LABELS = [
   },
 ];
 
-const ICON_CASES = ICON_CASES_CARDS.flatMap(card =>
-  ICON_CASES_LABELS.map(labels => ({ ...labels, card })),
-);
-
-interface SetupOpts {
-  card: Card;
-  databases?: Database[];
-}
-
-function setup({ card, databases = [createSampleDatabase()] }: SetupOpts) {
+function setup({ card }: { card: Card }) {
   const state = createMockState({
     entities: createMockEntitiesState({
-      databases,
       questions: [card],
     }),
   });
@@ -64,55 +46,22 @@ function setup({ card, databases = [createSampleDatabase()] }: SetupOpts) {
   );
 }
 
-describe("QuestionActions", () => {
-  it.each(ICON_CASES)(
-    `should display the "$label" icon with the "$tooltipText" tooltip for $card.name questions`,
-    async ({ label, tooltipText, card }) => {
-      setup({ card });
+describe("Question Actions | Icons", () => {
+  ["structured", "native"].forEach(queryType => {
+    iconList.forEach(({ label, tooltipText }) => {
+      it(`should display the "${label}" icon with the "${tooltipText}" tooltip for ${queryType} questions`, async () => {
+        setup({
+          card:
+            queryType === "structured"
+              ? TEST_STRUCTURED_CARD
+              : TEST_NATIVE_CARD,
+        });
 
-      await userEvent.hover(screen.getByRole("button", { name: label }));
-      const tooltip = screen.getByRole("tooltip", { name: tooltipText });
-      expect(tooltip).toHaveAttribute("data-placement", "top");
-      expect(tooltip).toHaveTextContent(tooltipText);
-    },
-  );
-
-  it("should allow to edit the model only with write permissions", () => {
-    setup({
-      card: createMockCard({
-        dataset: true,
-        can_write: true,
-      }),
+        await userEvent.hover(screen.getByRole("button", { name: label }));
+        const tooltip = screen.getByRole("tooltip", { name: tooltipText });
+        expect(tooltip).toHaveAttribute("data-placement", "top");
+        expect(tooltip).toHaveTextContent(tooltipText);
+      });
     });
-
-    userEvent.click(getIcon("ellipsis"));
-    expect(screen.getByText("Edit query definition")).toBeInTheDocument();
-    expect(screen.getByText("Edit metadata")).toBeInTheDocument();
-  });
-
-  it("should not allow to edit the model without write permissions", () => {
-    setup({
-      card: createMockCard({
-        dataset: true,
-        can_write: false,
-      }),
-    });
-
-    userEvent.click(getIcon("ellipsis"));
-    expect(screen.queryByText("Edit query definition")).not.toBeInTheDocument();
-    expect(screen.queryByText("Edit metadata")).not.toBeInTheDocument();
-  });
-
-  it("should not render the menu when there are no menu items", () => {
-    setup({
-      card: createMockCard({
-        dataset: true,
-        can_write: false,
-      }),
-      databases: [],
-    });
-
-    expect(getIcon("info")).toBeInTheDocument();
-    expect(queryIcon("ellipsis")).not.toBeInTheDocument();
   });
 });

@@ -5,8 +5,6 @@ import Link from "metabase/core/components/Link";
 export const GoogleButtonRoot = styled.div`
   display: flex;
   justify-content: center;
-  flex-flow: column wrap;
-  align-items: center;
 `;
 
 export const AuthError = styled.div`

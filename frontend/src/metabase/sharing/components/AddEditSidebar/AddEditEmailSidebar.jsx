@@ -8,7 +8,7 @@ import { dashboardPulseIsValid } from "metabase/lib/pulse";
 import { Icon } from "metabase/core/components/Icon";
 import Toggle from "metabase/core/components/Toggle";
 import SchedulePicker from "metabase/containers/SchedulePicker";
-import { Sidebar } from "metabase/dashboard/components/Sidebar";
+import Sidebar from "metabase/dashboard/components/Sidebar";
 import EmailAttachmentPicker from "metabase/sharing/components/EmailAttachmentPicker";
 import RecipientPicker from "metabase/pulse/components/RecipientPicker";
 import SendTestPulse from "metabase/components/SendTestPulse";
@@ -25,6 +25,7 @@ function _AddEditEmailSidebar({
   channelSpec,
   users,
   parameters,
+  defaultParametersById,
   dashboard,
 
   // form callbacks
@@ -103,11 +104,13 @@ function _AddEditEmailSidebar({
             dashboard={dashboard}
             pulse={pulse}
             setPulseParameters={setPulseParameters}
+            defaultParametersById={defaultParametersById}
           />
         ) : (
           <DefaultParametersSection
             className="py3 mt2 border-top"
             parameters={parameters}
+            defaultParametersById={defaultParametersById}
           />
         )}
         <div className="text-bold py3 flex justify-between align-center border-top">
@@ -154,6 +157,7 @@ _AddEditEmailSidebar.propTypes = {
   channelSpec: PropTypes.object.isRequired,
   users: PropTypes.array,
   parameters: PropTypes.array.isRequired,
+  defaultParametersById: PropTypes.object.isRequired,
   dashboard: PropTypes.object.isRequired,
   handleSave: PropTypes.func.isRequired,
   onCancel: PropTypes.func.isRequired,

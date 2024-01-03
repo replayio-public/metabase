@@ -37,7 +37,6 @@ const DisplayOptionsPane = ({
   showDownloadDataButtonVisibilityToggle,
 }) => {
   const toggleId = useUniqueId("show-download-data-button");
-  const fontControlLabelId = useUniqueId("display-option");
 
   return (
     <div className={className}>
@@ -79,7 +78,7 @@ const DisplayOptionsPane = ({
       </DisplayOptionSection>
       {canWhitelabel && (
         <>
-          <DisplayOptionSection title={t`Font`} titleId={fontControlLabelId}>
+          <DisplayOptionSection title={t`Font`}>
             <Select
               value={displayOptions.font}
               options={[
@@ -92,9 +91,6 @@ const DisplayOptionsPane = ({
                   value: font,
                 })),
               ]}
-              buttonProps={{
-                "aria-labelledby": fontControlLabelId,
-              }}
               onChange={e => {
                 onChangeDisplayOptions({
                   ...displayOptions,
@@ -130,9 +126,9 @@ const DisplayOptionsPane = ({
   );
 };
 
-const DisplayOptionSection = ({ title, titleId, children }) => (
+const DisplayOptionSection = ({ title, children }) => (
   <DisplayOption>
-    <DisplayOptionTitle id={titleId}>{title}</DisplayOptionTitle>
+    <DisplayOptionTitle>{title}</DisplayOptionTitle>
     {children}
   </DisplayOption>
 );

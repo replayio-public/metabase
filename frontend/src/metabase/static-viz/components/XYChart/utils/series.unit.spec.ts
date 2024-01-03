@@ -1,4 +1,4 @@
-import type { Series } from "../types";
+import { Series } from "../types";
 import { calculateStackedItems, sortSeries } from "./series";
 
 describe("sortSeries", () => {

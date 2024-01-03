@@ -1,11 +1,16 @@
-import type { KeyboardEvent } from "react";
-import { forwardRef, useEffect, useCallback, useRef } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useCallback,
+  useRef,
+  KeyboardEvent,
+} from "react";
 
 import { usePrevious } from "react-use";
-import type { Collection } from "metabase-types/api";
+import { Collection } from "metabase-types/api";
 
 import { TreeNode } from "metabase/components/tree/TreeNode";
-import type { TreeNodeProps } from "metabase/components/tree/types";
+import { TreeNodeProps } from "metabase/components/tree/types";
 
 import CollectionDropTarget from "metabase/containers/dnd/CollectionDropTarget";
 

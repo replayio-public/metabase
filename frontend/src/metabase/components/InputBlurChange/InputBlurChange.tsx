@@ -1,35 +1,24 @@
-import type * as React from "react";
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useState, useLayoutEffect, useCallback } from "react";
+import * as React from "react";
 import _ from "underscore";
-import { useUnmount } from "react-use";
-import type { InputProps } from "metabase/core/components/Input";
-import Input from "metabase/core/components/Input";
+import Input, { InputProps } from "metabase/core/components/Input";
 
 /**
  * A small wrapper around <input>, primarily should be used for the
  * `onBlurChange` feature, otherwise you should use <input> directly
  */
 
-type Value = string | number | null;
-type HTMLInputValue = string | number | undefined;
-
-export interface InputBlurChangeProps
-  extends Omit<InputProps, "inputRef" | "value" | "onBlur"> {
-  value: string | undefined;
-  onBlurChange?: (event: { target: HTMLInputElement }) => void;
-  normalize?: (value: Value) => Value;
+interface InputBlurChangeProps extends Omit<InputProps, "onBlur"> {
+  onBlurChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-const InputBlurChange = (props: InputBlurChangeProps) => {
-  const {
-    value,
-    onChange,
-    onBlurChange,
-    normalize = value => value,
-    ...restProps
-  } = props;
-  const [internalValue, setInternalValue] = useState<HTMLInputValue>(value);
-  const inputRef = useRef<HTMLInputElement>(null);
+const InputBlurChange = ({
+  value,
+  onChange,
+  onBlurChange,
+  ...props
+}: InputBlurChangeProps) => {
+  const [internalValue, setInternalValue] = useState(value);
 
   useLayoutEffect(() => {
     setInternalValue(value);
@@ -38,42 +27,27 @@ const InputBlurChange = (props: InputBlurChangeProps) => {
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       setInternalValue(event.target.value);
-
       if (onChange) {
         onChange(event);
-        setInternalValue(normalize(event.target.value) ?? undefined);
       }
     },
-    [normalize, onChange],
+    [onChange],
   );
 
   const handleBlur = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       if (onBlurChange && (value || "") !== event.target.value) {
         onBlurChange(event);
-        setInternalValue(normalize(event.target.value) ?? undefined);
       }
     },
-    [normalize, onBlurChange, value],
+    [value, onBlurChange],
   );
 
-  useUnmount(() => {
-    const lastPropsValue = value || "";
-    const currentValue = inputRef.current?.value || "";
-
-    if (onBlurChange && inputRef.current && lastPropsValue !== currentValue) {
-      onBlurChange({
-        target: inputRef.current,
-      });
-    }
-  });
-
-  const inputProps = _.omit(restProps, "onBlur", "onBlurChange", "onChange");
+  const inputProps = _.omit(props, "onBlur", "onBlurChange", "onChange");
 
   return (
     <Input
       {...inputProps}
-      inputRef={inputRef}
       value={internalValue}
       onBlur={handleBlur}
       onChange={handleChange}

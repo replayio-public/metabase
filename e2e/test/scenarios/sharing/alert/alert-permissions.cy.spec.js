@@ -4,14 +4,7 @@ import {
   visitQuestion,
   getFullName,
 } from "e2e/support/helpers";
-
 import { USERS } from "e2e/support/cypress_data";
-
-import {
-  ORDERS_QUESTION_ID,
-  ORDERS_BY_YEAR_QUESTION_ID,
-  ORDERS_COUNT_QUESTION_ID,
-} from "e2e/support/cypress_sample_instance_data";
 
 const { normal, admin } = USERS;
 
@@ -25,16 +18,16 @@ describe("scenarios > alert > alert permissions", { tags: "@external" }, () => {
     setupSMTP();
 
     // Create alert as admin
-    visitQuestion(ORDERS_QUESTION_ID);
+    visitQuestion(1);
     createBasicAlert({ firstAlert: true });
 
     // Create alert as admin that user can see
-    visitQuestion(ORDERS_COUNT_QUESTION_ID);
+    visitQuestion(2);
     createBasicAlert({ includeNormal: true });
 
     // Create alert as normal user
     cy.signInAsNormalUser();
-    visitQuestion(ORDERS_BY_YEAR_QUESTION_ID);
+    visitQuestion(3);
     createBasicAlert();
   });
 
@@ -48,10 +41,10 @@ describe("scenarios > alert > alert permissions", { tags: "@external" }, () => {
     });
 
     it("should let you edit an alert", () => {
-      cy.intercept("PUT", "/api/alert/*").as("updatedAlert");
+      cy.intercept("PUT", "/api/alert/1").as("updatedAlert");
 
       // Change alert
-      visitQuestion(ORDERS_QUESTION_ID);
+      visitQuestion(1);
       cy.icon("bell").click();
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.findByText("Edit").click();
@@ -74,7 +67,7 @@ describe("scenarios > alert > alert permissions", { tags: "@external" }, () => {
     beforeEach(cy.signInAsNormalUser);
 
     it("should not let you see other people's alerts", () => {
-      visitQuestion(ORDERS_QUESTION_ID);
+      visitQuestion(1);
       cy.icon("bell").click();
 
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
@@ -84,7 +77,7 @@ describe("scenarios > alert > alert permissions", { tags: "@external" }, () => {
     });
 
     it("should let you see other alerts where you are a recipient", () => {
-      visitQuestion(ORDERS_COUNT_QUESTION_ID);
+      visitQuestion(2);
       cy.icon("bell").click();
 
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
@@ -94,7 +87,7 @@ describe("scenarios > alert > alert permissions", { tags: "@external" }, () => {
     });
 
     it("should let you see your own alerts", () => {
-      visitQuestion(ORDERS_BY_YEAR_QUESTION_ID);
+      visitQuestion(3);
       cy.icon("bell").click();
 
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
@@ -103,7 +96,7 @@ describe("scenarios > alert > alert permissions", { tags: "@external" }, () => {
 
     it("should let you unsubscribe from both your own and others' alerts", () => {
       // Unsubscribe from your own alert
-      visitQuestion(ORDERS_BY_YEAR_QUESTION_ID);
+      visitQuestion(3);
       cy.icon("bell").click();
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.findByText("Unsubscribe").click();
@@ -112,7 +105,7 @@ describe("scenarios > alert > alert permissions", { tags: "@external" }, () => {
       cy.findByText("Okay, you're unsubscribed");
 
       // Unsubscribe from others' alerts
-      visitQuestion(ORDERS_COUNT_QUESTION_ID);
+      visitQuestion(2);
       cy.icon("bell").click();
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.findByText("Unsubscribe").click();

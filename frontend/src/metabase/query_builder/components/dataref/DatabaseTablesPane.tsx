@@ -2,11 +2,10 @@ import { useMemo } from "react";
 import { ngettext, msgid } from "ttag";
 import _ from "underscore";
 
-import type { SearchResult } from "metabase-types/api";
 import Search from "metabase/entities/search";
 import SidebarContent from "metabase/query_builder/components/SidebarContent";
 import type { State } from "metabase-types/store";
-import type Database from "metabase-lib/metadata/Database";
+import Database from "metabase-lib/metadata/Database";
 import {
   NodeListItemLink,
   NodeListItemName,
@@ -19,15 +18,15 @@ import {
 } from "./NodeList.styled";
 import { PaneContent } from "./Pane.styled";
 
-export interface DatabaseTablesPaneProps {
+interface DatabaseTablesPaneProps {
   onBack: () => void;
   onClose: () => void;
   onItemClick: (type: string, item: unknown) => void;
   database: Database;
-  searchResults: SearchResult[];
+  searchResults: any[]; // TODO: /api/search is yet to be typed
 }
 
-export const DatabaseTablesPane = ({
+const DatabaseTablesPane = ({
   database,
   onItemClick,
   searchResults,
@@ -98,10 +97,7 @@ export const DatabaseTablesPane = ({
           <ul>
             {tables.map(table => (
               <li key={table.id}>
-                <NodeListItemLink
-                  disabled={table.initial_sync_status !== "complete"}
-                  onClick={() => onItemClick("table", table)}
-                >
+                <NodeListItemLink onClick={() => onItemClick("table", table)}>
                   <NodeListItemIcon name="table" />
                   <NodeListItemName>{table.table_name}</NodeListItemName>
                 </NodeListItemLink>

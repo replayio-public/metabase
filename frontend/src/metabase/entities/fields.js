@@ -30,7 +30,6 @@ import {
 } from "metabase/lib/core";
 import { TYPE } from "metabase-lib/types/constants";
 import { getFieldValues } from "metabase-lib/queries/utils/field";
-import { getUniqueFieldId } from "metabase-lib/metadata/utils/fields";
 
 // ADDITIONAL OBJECT ACTIONS
 
@@ -72,27 +71,21 @@ const Fields = createEntity({
     fetchFieldValues: compose(
       withAction(FETCH_FIELD_VALUES),
       withCachedDataAndRequestState(
-        ({ id, table_id }) => {
-          const uniqueId = getUniqueFieldId({ id, table_id });
-          return [...Fields.getObjectStatePath(uniqueId)];
-        },
-        ({ id, table_id }) => {
-          const uniqueId = getUniqueFieldId({ id, table_id });
-          return [...Fields.getObjectStatePath(uniqueId), "values"];
-        },
-        field => {
-          return Fields.getQueryKey({ id: field.id });
-        },
+        ({ id }) => [...Fields.getObjectStatePath(id)],
+        ({ id }) => [...Fields.getObjectStatePath(id), "values"],
+        entityQuery => Fields.getQueryKey(entityQuery),
       ),
       withNormalize(FieldSchema),
-    )(field => async () => {
-      const { field_id, ...data } = await MetabaseApi.field_values({
-        fieldId: field.id,
+    )(({ id: fieldId, ...params }) => async (dispatch, getState) => {
+      const {
+        field_id: id,
+        values,
+        has_more_values,
+      } = await MetabaseApi.field_values({
+        fieldId,
+        ...params,
       });
-      const table_id = field.table_id;
-
-      // table_id is required for uniqueFieldId as it's a way to know if field is virtual
-      return { id: field_id, ...data, ...(table_id && { table_id }) };
+      return { id, values, has_more_values };
     }),
 
     updateField(field, values, opts) {
@@ -107,7 +100,7 @@ const Fields = createEntity({
 
         // field values needs to be fetched again once the field is updated metabase#16322
         await dispatch(
-          Fields.actions.fetchFieldValues(field, { reload: true }),
+          Fields.actions.fetchFieldValues({ id: field.id }, { reload: true }),
         );
 
         return result;

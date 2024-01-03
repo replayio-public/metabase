@@ -1,5 +1,5 @@
 import { merge } from "icepick";
-import type { FunnelDatum, FunnelSettings } from "../types";
+import { FunnelDatum, FunnelSettings } from "../types";
 import {
   calculateFunnelPolygonPoints,
   calculateFunnelSteps,

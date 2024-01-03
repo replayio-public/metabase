@@ -5,11 +5,11 @@
    [clojure.test :refer :all]
    [metabase.driver :as driver]
    [metabase.query-processor :as qp]
+   [metabase.query-processor-test :as qp.test]
    [metabase.query-processor-test.timezones-test :as timezones-test]
-   [metabase.query-processor.test-util :as qp.test-util]
    [metabase.test :as mt]))
 
-(deftest ^:parallel and-test
+(deftest and-test
   (mt/test-drivers (mt/normal-drivers)
     (testing ":and, :>, :>="
       (is (= [[55 "Dal Rae Restaurant"       67 33.983  -118.096 4]
@@ -30,7 +30,7 @@
                  {:filter   [:and [:< $id 24] [:> $id 20] [:!= $id 22]]
                   :order-by [[:asc $id]]})))))))
 
-(deftest ^:parallel filter-by-false-test
+(deftest filter-by-false-test
   (mt/test-drivers (mt/normal-drivers)
     (testing (str "Check that we're checking for non-nil values, not just logically true ones. There's only one place "
                   "(out of 3) that I don't like")
@@ -41,16 +41,16 @@
                    {:aggregation [[:count]]
                     :filter      [:= $liked false]}))))))))
 
-(defn- ->bool [x] ; SQLite returns 0/1 for false/true;
-  (condp = x      ; Redshift returns nil/true.
-    0   false     ; convert to false/true and restore sanity.
+(defn- ->bool [x]                       ; SQLite returns 0/1 for false/true;
+  (condp = x                            ; Redshift returns nil/true.
+    0   false                           ; convert to false/true and restore sanity.
     0M  false
     1   true
     1M  true
     nil false
     x))
 
-(deftest ^:parallel comparison-test
+(deftest comparison-test
   (mt/test-drivers (mt/normal-drivers)
     (mt/dataset places-cam-likes
       (testing "Can we use true literal in comparisons"
@@ -105,8 +105,8 @@
       (when (= :snowflake driver/*driver*)
         (driver/notify-database-updated driver/*driver* (mt/id)))
       (is (=? {:rows [[29]]
-               :cols [(qp.test-util/aggregate-col :count)]}
-              (qp.test-util/rows-and-cols
+               :cols [(qp.test/aggregate-col :count)]}
+              (qp.test/rows-and-cols
                (mt/format-rows-by [int]
                  (mt/run-mbql-query checkins
                    {:aggregation [[:count]]
@@ -118,7 +118,7 @@
     (mt/normal-drivers-with-feature :date-arithmetics)
     (timezones-test/timezone-aware-column-drivers)))
 
-(deftest ^:parallel temporal-arithmetic-test
+(deftest temporal-arithmetic-test
   (testing "Should be able to use temporal arithmetic expressions in filters (#22531)"
     (mt/test-drivers (timezone-arithmetic-drivers)
       (mt/dataset attempted-murders
@@ -148,14 +148,14 @@
                           (pos-int? result)))
                   (is (nat-int? result)))))))))))
 
-(deftest ^:parallel nonstandard-temporal-arithmetic-test
+(deftest nonstandard-temporal-arithmetic-test
   (testing "Nonstandard temporal arithmetic should also be supported"
     (mt/test-drivers (timezone-arithmetic-drivers)
       (mt/dataset attempted-murders
         (doseq [offset-unit   [:year :day]
                 interval-unit [:year :day]
                 compare-op    [:between := :< :<= :> :>=]
-                add-op        [:+ :-]
+                add-op        [:+ #_:-] ; TODO support subtraction like sql.qp/add-interval-honeysql-form (#23423)
                 compare-order (cond-> [:field-first]
                                 (not= compare-op :between) (conj :value-first))]
           (let [add-fn (fn [field interval]
@@ -183,7 +183,7 @@
                           (pos-int? result)))
                   (is (nat-int? result)))))))))))
 
-(deftest ^:parallel or-test
+(deftest or-test
   (mt/test-drivers (mt/normal-drivers)
     (testing ":or, :<=, :="
       (is (= [[1 "Red Medicine"                  4 10.0646 -165.374 3]
@@ -195,7 +195,7 @@
                  {:filter   [:or [:<= $id 3] [:= $id 5]]
                   :order-by [[:asc $id]]})))))))
 
-(deftest ^:parallel inside-test
+(deftest inside-test
   (mt/test-drivers (mt/normal-drivers)
     (testing ":inside"
       (is (= [[1 "Red Medicine" 4 10.0646 -165.374 3]]
@@ -203,15 +203,16 @@
                (mt/run-mbql-query venues
                  {:filter [:inside $latitude $longitude 10.0649 -165.379 10.0641 -165.371]})))))))
 
-(deftest ^:parallel is-null-test
+(deftest is-null-test
   (mt/test-drivers (mt/normal-drivers)
     (let [result (mt/first-row (mt/run-mbql-query checkins
                                  {:aggregation [[:count]]
                                   :filter      [:is-null $date]}))]
       ;; Some DBs like Mongo don't return any results at all in this case, and there's no easy workaround (#5419)
-      (is (contains? #{[0] [0M] [nil] nil} result)))))
+      (is (= true
+             (contains? #{[0] [0M] [nil] nil} result))))))
 
-(deftest ^:parallel not-null-test
+(deftest not-null-test
   (mt/test-drivers (mt/normal-drivers)
     (is (= [1000]
            (mt/first-row
@@ -235,16 +236,15 @@
 
 ;;; -------------------------------------------------- starts-with ---------------------------------------------------
 
-(deftest ^:parallel starts-with-test
+(deftest starts-with-test
   (mt/test-drivers (mt/normal-drivers)
     (is (= [[41 "Cheese Steak Shop" 18 37.7855 -122.44  1]
             [74 "Chez Jay"           2 34.0104 -118.493 2]]
            (mt/formatted-rows :venues
              (mt/run-mbql-query venues
                {:filter   [:starts-with $name "Che"]
-                :order-by [[:asc $id]]}))))))
+                :order-by [[:asc $id]]})))))
 
-(deftest ^:parallel starts-with-case-sensitive-test
   (testing "case sensitivity option"
     (mt/test-drivers (mt/normal-drivers-with-feature :case-sensitivity-string-filter-options)
       (testing "case-sensitive (default)"
@@ -269,33 +269,12 @@
                    {:filter   [:starts-with $name "CHE" {:case-sensitive false}]
                     :order-by [[:asc $id]]}))))))))
 
-(deftest ^:parallel starts-with-expression-argument-test
-  (mt/test-drivers (mt/normal-drivers)
-    (testing "expression argument"
-      (is (= [[1 "Red Medicine" 4 10.0646 -165.374 3]
-              [2 "Stout Burgers & Beers" 11 34.0996 -118.329 2]
-              [3 "The Apple Pan" 11 34.0406 -118.428 2]]
-             (mt/formatted-rows :venues
-               (mt/run-mbql-query venues
-                 {:filter   [:starts-with $name [:lower [:substring $name 1 3]] {:case-sensitive false}]
-                  :order-by [[:asc $id]]
-                  :limit 3})))))))
 
-(deftest ^:parallel starts-with-field-argument-test
-  (mt/test-drivers (mt/normal-drivers)
-    (testing "field argument"
-      (is (= [[1 "Red Medicine" 4 10.0646 -165.374 3]
-              [2 "Stout Burgers & Beers" 11 34.0996 -118.329 2]
-              [3 "The Apple Pan" 11 34.0406 -118.428 2]]
-             (mt/formatted-rows :venues
-               (mt/run-mbql-query venues
-                 {:filter   [:starts-with $name $name]
-                  :order-by [[:asc $id]]
-                  :limit    3})))))))
+
 
 ;;; --------------------------------------------------- ends-with ----------------------------------------------------
 
-(deftest ^:parallel ends-with-test
+(deftest ends-with-test
   (mt/test-drivers (mt/normal-drivers)
     (is (= [[ 5 "Brite Spot Family Restaurant" 20 34.0778 -118.261 2]
             [ 7 "Don Day Korean Restaurant"    44 34.0689 -118.305 2]
@@ -305,9 +284,8 @@
            (mt/formatted-rows :venues
              (mt/run-mbql-query venues
                {:filter   [:ends-with $name "Restaurant"]
-                :order-by [[:asc $id]]}))))))
+                :order-by [[:asc $id]]})))))
 
-(deftest ^:parallel ends-with-case-sensitive-test
   (testing "case sensitivity option"
     (mt/test-drivers (mt/normal-drivers-with-feature :case-sensitivity-string-filter-options)
       (testing "case-sensitive (default)"
@@ -333,32 +311,12 @@
                (mt/formatted-rows :venues
                  (mt/run-mbql-query venues
                    {:filter   [:ends-with $name "RESTAURANT" {:case-sensitive false}]
-                    :order-by [[:asc $id]]})))))))
+                    :order-by [[:asc $id]]}))))))))
 
-      (mt/test-drivers (mt/normal-drivers)
-        (testing "expression argument"
-          (is (= [[1 "Red Medicine" 4 10.0646 -165.374 3]
-                  [2 "Stout Burgers & Beers" 11 34.0996 -118.329 2]
-                  [3 "The Apple Pan" 11 34.0406 -118.428 2]]
-                 (mt/formatted-rows :venues
-                                    (mt/run-mbql-query venues
-                                      {:filter   [:ends-with $name [:upper $name] {:case-sensitive false}]
-                                       :order-by [[:asc $id]]
-                                       :limit 3})))))
-
-        (testing "field argument"
-          (is (= [[1 "Red Medicine" 4 10.0646 -165.374 3]
-                  [2 "Stout Burgers & Beers" 11 34.0996 -118.329 2]
-                  [3 "The Apple Pan" 11 34.0406 -118.428 2]]
-                 (mt/formatted-rows :venues
-                                    (mt/run-mbql-query venues
-                                      {:filter   [:ends-with $name $name]
-                                       :order-by [[:asc $id]]
-                                       :limit 3})))))))
 
 ;;; ---------------------------------------------------- contains ----------------------------------------------------
 
-(deftest ^:parallel contains-test
+(deftest contains-test
   (mt/test-drivers (mt/normal-drivers)
     (is (= [[31 "Bludso's BBQ"             5 33.8894 -118.207 2]
             [34 "Beachwood BBQ & Brewing" 10 33.7701 -118.191 2]
@@ -366,9 +324,8 @@
            (mt/formatted-rows :venues
              (mt/run-mbql-query venues
                {:filter   [:contains $name "BBQ"]
-                :order-by [[:asc $id]]}))))))
+                :order-by [[:asc $id]]})))))
 
-(deftest ^:parallel contains-case-sensitive-test
   (testing "case sensitivity option"
     (mt/test-drivers (mt/normal-drivers-with-feature :case-sensitivity-string-filter-options)
       (testing "case-sensitive (default)"
@@ -392,28 +349,8 @@
                (mt/formatted-rows :venues
                  (mt/run-mbql-query venues
                    {:filter   [:contains $name "bbq" {:case-sensitive false}]
-                    :order-by [[:asc $id]]})))))))
+                    :order-by [[:asc $id]]}))))))))
 
-      (mt/test-drivers (mt/normal-drivers)
-        (testing "expression argument"
-          (is (= [[1 "Red Medicine" 4 10.0646 -165.374 3]
-                  [2 "Stout Burgers & Beers" 11 34.0996 -118.329 2]
-                  [3 "The Apple Pan" 11 34.0406 -118.428 2]]
-                 (mt/formatted-rows :venues
-                                    (mt/run-mbql-query venues
-                                      {:filter   [:contains $name [:lower [:substring $name 1 3]] {:case-sensitive false}]
-                                       :order-by [[:asc $id]]
-                                       :limit 3})))))
-
-        (testing "field argument"
-          (is (= [[1 "Red Medicine" 4 10.0646 -165.374 3]
-                  [2 "Stout Burgers & Beers" 11 34.0996 -118.329 2]
-                  [3 "The Apple Pan" 11 34.0406 -118.428 2]]
-                 (mt/formatted-rows :venues
-                                    (mt/run-mbql-query venues
-                                      {:filter   [:contains $name $name]
-                                       :order-by [[:asc $id]]
-                                       :limit 3})))))))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                             NESTED AND/OR CLAUSES                                              |
@@ -440,7 +377,7 @@
 ;;; |                                         = AND != WITH MULTIPLE VALUES                                          |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
-(deftest ^:parallel equals-and-not-equals-with-extra-args-test
+(deftest equals-and-not-equals-with-extra-args-test
   (mt/test-drivers (mt/normal-drivers))
   (testing ":= with >2 args"
     (is (= 81
@@ -460,7 +397,7 @@
 ;; equivalent expressions but I already wrote them so in this case it doesn't hurt to have a little more test coverage
 ;; than we need
 
-(deftest ^:parallel not-filter-test
+(deftest not-filter-test
   (mt/test-drivers (mt/normal-drivers)
     (testing "="
       (is (= 99
@@ -536,7 +473,7 @@
 ;;; |                                                      Etc                                                       |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
-(deftest ^:parallel etc-test
+(deftest etc-test
   (mt/test-drivers (mt/normal-drivers)
     (mt/dataset office-checkins
       (testing "make sure that filtering with timestamps truncating to minutes works (#4632)"
@@ -549,7 +486,7 @@
       (is (= 7
              (count-with-filter-clause checkins [:= !week.date "2015-06-21T07:00:00.000000000-00:00"]))))))
 
-(deftest ^:parallel string-escape-test
+(deftest string-escape-test
   ;; test `:sql` drivers that support native parameters
   (mt/test-drivers (mt/normal-drivers-with-feature :native-parameters)
     (testing "Make sure single quotes in parameters are escaped properly for the current driver"
@@ -579,7 +516,7 @@
                  {:aggregation [[:count]]
                   :filter      [:starts-with $name "In-N-Out"]})))))))
 
-(deftest ^:parallel automatically-parse-strings-test
+(deftest automatically-parse-strings-test
   (mt/test-drivers (mt/normal-drivers)
     (testing "The QP should automatically parse String parameters in filter clauses to the correct type"
       (testing "String parameter to an Integer Field"
@@ -591,7 +528,7 @@
 ;; - there are 415 regions, and 8 have a `nil` name; 407 have non-empty, non-nil names
 ;; - there are 601 airports, and 1 has a `""` code; 600 have non-empty, non-nil codes
 
-(deftest ^:parallel text-equals-nil-empty-string-test
+(deftest text-equals-nil-empty-string-test
   (mt/test-drivers (mt/normal-drivers)
     (mt/dataset airports
       (testing ":= against a text column should match the correct columns when value is"
@@ -604,7 +541,7 @@
                    (mt/formatted-rows [int]
                      (mt/run-mbql-query airport {:aggregation [:count], :filter [:= $code ""]}))))))))))
 
-(deftest ^:parallel text-not-equals-nil-test
+(deftest text-not-equals-nil-test
   (mt/test-drivers (mt/normal-drivers)
     (mt/dataset airports
       (testing ":!= against a nil/NULL in a text column should be truthy"
@@ -616,7 +553,7 @@
                  (mt/formatted-rows [int]
                    (mt/run-mbql-query airport {:aggregation [:count], :filter [:!= $code "SFO"]})))))))))
 
-(deftest ^:parallel is-empty-not-empty-test
+(deftest is-empty-not-empty-test
   (mt/test-drivers (mt/normal-drivers)
     (mt/dataset airports
       (testing ":is-empty and :not-empty filters should work correctly (#13158)"
@@ -638,7 +575,7 @@
                    (mt/formatted-rows [int]
                      (mt/run-mbql-query airport {:aggregation [:count], :filter [:not-empty $code]}))))))))))
 
-(deftest ^:parallel order-by-nulls-test
+(deftest order-by-nulls-test
   (testing "Check that we can sort by numeric columns that contain NULLs (#6615)"
     (mt/dataset daily-bird-counts
       (mt/test-drivers (mt/normal-drivers)

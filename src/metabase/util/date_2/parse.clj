@@ -1,7 +1,7 @@
 (ns metabase.util.date-2.parse
   (:require
    [clojure.string :as str]
-   [java-time.api :as t]
+   [java-time :as t]
    [metabase.util.date-2.common :as u.date.common]
    [metabase.util.date-2.parse.builder :as b]
    [metabase.util.i18n :refer [tru]]

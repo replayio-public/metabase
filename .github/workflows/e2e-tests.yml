@@ -29,16 +29,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.run_id }}
 
 jobs:
-  e2e-matrix-builder:
+  test-run-id:
     runs-on: ubuntu-22.04
-    timeout-minutes: 5
     outputs:
-      matrix: ${{ steps.e2e-matrix.outputs.matrix }}
+      testRunId: ${{ steps.testRunId.outputs.testRunId }}
     steps:
-      - uses: actions/checkout@v3
-      - name: Generate matrix for E2E tests
-        id: e2e-matrix
-        uses: ./.github/actions/build-e2e-matrix
+      - id: testRunId
+        run: echo testRunId=$(npx uuid) >> "$GITHUB_OUTPUT"
 
   build:
     runs-on: ubuntu-22.04
@@ -73,11 +70,9 @@ jobs:
 
       - name: Prepare uberjar artifact
         uses: ./.github/actions/prepare-uberjar-artifact
-        with:
-          name: metabase-${{ matrix.edition }}-${{ github.event.pull_request.head.sha || github.sha }}-uberjar
 
   e2e-tests:
-    needs: [build]
+    needs: [build, test-run-id]
     if: |
       always() &&
       needs.build.result == 'success'
@@ -88,15 +83,10 @@ jobs:
       MB_EDITION: ${{ matrix.edition }}
       DISPLAY: ""
       QA_DB_ENABLED: true
-      # Any env starting with `CYPRESS_` will be available to all Cypress tests via `Cypress.env()`
-      # Example: you can get `CYPRESS_FOO` with `Cypress.env("FOO")`
-      CYPRESS_ALL_FEATURES_TOKEN: ${{ secrets.ENTERPRISE_TOKEN }}
-      CYPRESS_NO_FEATURES_TOKEN: ${{ secrets.E2E_STARTER_TOKEN }}
-      CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
-      CYPRESS_PULL_REQUEST_ID: ${{ github.event.pull_request.number || '' }}
-      COMMIT_INFO_MESSAGE : ${{ github.event.pull_request.title || github.event.head_commit.message || github.even.head.sha }}
+      MB_PREMIUM_EMBEDDING_TOKEN: ${{ secrets.ENTERPRISE_TOKEN }}
       MB_SNOWPLOW_AVAILABLE: true
       MB_SNOWPLOW_URL: "http://localhost:9090" # Snowplow micro
+      ELECTRON_EXTRA_LAUNCH_ARGS: "--remote-debugging-port=40500" # deploysentinel
       TZ: US/Pacific # to make node match the instance tz
     strategy:
       fail-fast: false
@@ -150,7 +140,6 @@ jobs:
           echo "RECORD_REPLAY_VERBOSE=1" >> "$GITHUB_ENV"
       - uses: actions/checkout@v3
         with:
-          # 1220-merge: we might not need this
           ref: 9b1a5c2d5899f1abe1ac70b799fca98edfdd8a0a
       - name: Prepare front-end environment
         uses: ./.github/actions/prepare-frontend
@@ -164,22 +153,10 @@ jobs:
       - name: Run Snowplow micro
         uses: ./.github/actions/run-snowplow-micro
 
-      - name: Prepare Docker containers
-        uses: ./.github/actions/e2e-prepare-containers
+      - uses: actions/download-artifact@v3
+        name: Retrieve uberjar artifact for ${{ matrix.edition }}
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          maildev: true
-          openldap: ${{ startsWith(matrix.name, 'admin') }}
-          postgres: ${{ matrix.name != 'mongo'}}
-          mysql: ${{ matrix.name != 'mongo'}}
-          mongo: ${{ matrix.name == 'mongo'}}
-
-      - name: Retrieve uberjar artifact for ${{ matrix.edition }}
-        uses: actions/download-artifact@v3
-        with:
-          name: metabase-${{ matrix.edition }}-${{ github.event.pull_request.head.sha || github.sha }}-uberjar
-
+          name: metabase-${{ matrix.edition }}-uberjar
       - name: Get the version info
         run: |
           jar xf target/uberjar/metabase.jar version.properties
@@ -213,6 +190,20 @@ jobs:
           TERM: xterm
           CYPRESS_VIDEO_ENABLED: 1
 
+      # - name: 3.1) Run EE Cypress tests on ${{ matrix.folder }} using Replay.io browser (no asserts + maps)
+      #   if: always()
+      #   run: |
+      #     yarn run test-cypress-run \
+      #     --env grepTags="-@OSS" \
+      #     --folder ${{ matrix.folder }} \
+      #     --browser "replay-chromium"
+      #   env:
+      #     TERM: xterm
+      #     CYPRESS_REPLAYIO_ENABLED: 1
+      #     RECORD_REPLAY_DISABLE_ASSERTS: 1
+      #     RECORD_REPLAY_METADATA_FILE: /tmp/replay-metadata.json
+      #     RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ needs.test-run-id.outputs.testRunId }}
+
       - name: 3.2) Run EE Cypress tests on ${{ matrix.folder }} using Replay.io browser (no-asserts + no-maps)
         if: always()
         run: |
@@ -226,7 +217,19 @@ jobs:
           RECORD_REPLAY_DISABLE_ASSERTS: 1
           RECORD_REPLAY_DISABLE_SOURCEMAP_COLLECTION: 1
           RECORD_REPLAY_METADATA_FILE: /tmp/replay-metadata.json
-          RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ github.run_id }}
+          RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ needs.test-run-id.outputs.testRunId }}
+
+      # - name: 4) Run EE Cypress tests on ${{ matrix.folder }} with DeploySentinel
+      #   if: always()
+      #   run: |
+      #     yarn run test-cypress-run \
+      #     --env grepTags="-@OSS" \
+      #     --folder ${{ matrix.folder }}
+      #   env:
+      #     TERM: xterm
+      #     DEPLOYSENTINEL_ENABLED: 1
+      #     CYPRESS_DEPLOYSENTINEL_ENABLED: 1
+      #     CYPRESS_DEPLOYSENTINEL_KEY: c554175b-4bda-4378-8bb3-b1fe62ccb868
 
       - name: Upload Replay.io recordings
         uses: replayio/action-upload@v0.5.0

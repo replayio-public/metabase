@@ -43,6 +43,7 @@ export default ComposedComponent =>
       }
 
       render() {
+        // eslint-disable-next-line no-unused-vars
         const { metadata, fetchRemapping, ...props } = this.props;
         const field = metadata.field(props.column && props.column.id);
         const displayValue = field && field.remappedValue(props.value);

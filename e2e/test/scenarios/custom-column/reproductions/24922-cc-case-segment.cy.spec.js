@@ -5,7 +5,6 @@ import {
   visualize,
 } from "e2e/support/helpers";
 import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
-import { createSegment } from "e2e/support/helpers/e2e-table-metadata-helpers";
 
 const { ORDERS, ORDERS_ID } = SAMPLE_DATABASE;
 
@@ -29,7 +28,7 @@ describe("issue 24922", () => {
   beforeEach(() => {
     restore();
     cy.signInAsAdmin();
-    createSegment(segmentDetails);
+    cy.request("POST", "/api/segment", segmentDetails);
   });
 
   it("should allow segments in case custom expressions (metabase#24922)", () => {

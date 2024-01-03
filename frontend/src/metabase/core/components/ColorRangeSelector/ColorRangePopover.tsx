@@ -1,5 +1,11 @@
-import type { HTMLAttributes, Ref } from "react";
-import { forwardRef, useCallback, useMemo, useState } from "react";
+import {
+  forwardRef,
+  HTMLAttributes,
+  Ref,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 import _ from "underscore";
 import ColorPill from "metabase/core/components/ColorPill";
 import ColorRangeToggle from "./ColorRangeToggle";
@@ -47,9 +53,7 @@ const ColorSelectorContent = forwardRef(function ColorRangeSelector(
   );
 
   const [value, setValue] = useState(() =>
-    color === "" // empty string is for multi-color selection
-      ? initialValue
-      : getColorRange(color, colorMapping, isInverted),
+    getColorRange(color, colorMapping, isInverted),
   );
 
   const handleColorSelect = useCallback(
@@ -63,29 +67,13 @@ const ColorSelectorContent = forwardRef(function ColorRangeSelector(
     [colorMapping, isInverted, onChange],
   );
 
-  const handleColorRangeSelect = useCallback(
-    (newColorRange: string[]) => {
-      const newValue = isInverted
-        ? [...newColorRange].reverse()
-        : newColorRange;
-
-      setColor("");
-      setValue(newValue);
-      onChange?.(newValue);
-    },
-    [isInverted, onChange],
-  );
-
   const handleToggleInvertedClick = useCallback(() => {
-    const newValue =
-      color === ""
-        ? [...value].reverse()
-        : getColorRange(color, colorMapping, !isInverted);
+    const newValue = getColorRange(color, colorMapping, !isInverted);
 
     setIsInverted(!isInverted);
     setValue(newValue);
     onChange?.(newValue);
-  }, [color, value, colorMapping, isInverted, onChange]);
+  }, [color, colorMapping, isInverted, onChange]);
 
   return (
     <PopoverRoot {...props} ref={ref}>
@@ -102,8 +90,7 @@ const ColorSelectorContent = forwardRef(function ColorRangeSelector(
       <ColorRangeToggle
         value={value}
         isQuantile={isQuantile}
-        onToggleClick={handleToggleInvertedClick}
-        showToggleButton
+        onClick={handleToggleInvertedClick}
       />
       {colorRanges.length > 0 && <PopoverDivider />}
       <PopoverColorRangeList>
@@ -112,8 +99,7 @@ const ColorSelectorContent = forwardRef(function ColorRangeSelector(
             key={index}
             value={range}
             isQuantile={isQuantile}
-            onToggleClick={handleToggleInvertedClick}
-            onColorRangeSelect={handleColorRangeSelect}
+            onClick={handleToggleInvertedClick}
           />
         ))}
       </PopoverColorRangeList>
@@ -146,7 +132,7 @@ const getDefaultColor = (
     } else {
       return selection;
     }
-  }, "" as string);
+  }, colors[0]);
 };
 
 const getDefaultColorMapping = (colors: string[]) => {

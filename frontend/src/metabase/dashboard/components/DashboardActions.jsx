@@ -1,14 +1,15 @@
+/* eslint-disable react/no-string-refs */
 import { t } from "ttag";
+import cx from "classnames";
 
+import MetabaseSettings from "metabase/lib/settings";
+import NightModeIcon from "metabase/components/icons/NightModeIcon";
+import RefreshWidget from "metabase/dashboard/components/RefreshWidget";
 import Tooltip from "metabase/core/components/Tooltip";
+import FullscreenIcon from "metabase/components/icons/FullscreenIcon";
 
-import { DashboardHeaderButton } from "metabase/dashboard/components/DashboardHeader/DashboardHeader.styled";
-import { DashboardEmbedAction } from "metabase/dashboard/components/DashboardEmbedAction/DashboardEmbedAction";
-import {
-  FullScreenButtonIcon,
-  NightModeButtonIcon,
-  RefreshWidgetButton,
-} from "./DashboardActions.styled";
+import { DashboardHeaderButton } from "metabase/dashboard/containers/DashboardHeader.styled";
+import DashboardSharingEmbeddingModal from "../containers/DashboardSharingEmbeddingModal.jsx";
 
 export const getDashboardActions = (
   self,
@@ -16,7 +17,6 @@ export const getDashboardActions = (
     dashboard,
     isAdmin,
     canManageSubscriptions,
-    formInput,
     isEditing = false,
     isEmpty = false,
     isFullscreen,
@@ -31,59 +31,79 @@ export const getDashboardActions = (
     hasNightModeToggle,
   },
 ) => {
+  const isPublicLinksEnabled = MetabaseSettings.get("enable-public-sharing");
+  const isEmbeddingEnabled = MetabaseSettings.get("enable-embedding");
+
   const buttons = [];
 
   const isLoaded = !!dashboard;
-  const hasCards = isLoaded && dashboard.dashcards.length > 0;
+  const hasCards = isLoaded && dashboard.ordered_cards.length > 0;
 
   // dashcardData only contains question cards, text ones don't appear here
   const hasDataCards =
     hasCards &&
-    dashboard.dashcards.some(
-      dashCard => !["text", "heading"].includes(dashCard.card.display),
-    );
+    dashboard.ordered_cards.some(dashCard => dashCard.card.display !== "text");
 
+  const canShareDashboard = hasCards;
   const canCreateSubscription = hasDataCards && canManageSubscriptions;
-
-  const emailConfigured = formInput?.channels?.email?.configured || false;
-  const slackConfigured = formInput?.channels?.slack?.configured || false;
-
-  const shouldShowSubscriptionsButton =
-    emailConfigured || slackConfigured || isAdmin;
 
   if (!isEditing && !isEmpty && !isPublic) {
     // Getting notifications with static text-only cards doesn't make a lot of sense
-    if (
-      shouldShowSubscriptionsButton &&
-      canCreateSubscription &&
-      !isFullscreen
-    ) {
+    if (canCreateSubscription && !isFullscreen) {
       buttons.push(
         <Tooltip tooltip={t`Subscriptions`} key="dashboard-subscriptions">
           <DashboardHeaderButton
             icon="subscription"
             disabled={!canManageSubscriptions}
             onClick={onSharingClick}
-            aria-label="subscriptions"
             data-metabase-event="Dashboard;Subscriptions"
           />
         </Tooltip>,
       );
     }
 
-    buttons.push(
-      <DashboardEmbedAction
-        key="dashboard-embed-action"
-        dashboard={dashboard}
-      />,
-    );
+    if (canShareDashboard) {
+      buttons.push(
+        <DashboardSharingEmbeddingModal
+          key="dashboard-embed"
+          additionalClickActions={() => self.refs.popover.close()}
+          dashboard={dashboard}
+          enabled={
+            !isEditing &&
+            !isFullscreen &&
+            ((isPublicLinksEnabled && (isAdmin || dashboard.public_uuid)) ||
+              (isEmbeddingEnabled && isAdmin))
+          }
+          isLinkEnabled={canShareDashboard}
+          linkText={
+            <Tooltip
+              isLinkEnabled={canShareDashboard}
+              tooltip={
+                canShareDashboard
+                  ? t`Sharing`
+                  : t`Add data to share this dashboard`
+              }
+            >
+              <DashboardHeaderButton
+                icon="share"
+                className={cx({
+                  "text-brand-hover": canShareDashboard,
+                  "text-light": !canShareDashboard,
+                })}
+              />
+            </Tooltip>
+          }
+        />,
+      );
+    }
   }
 
   if (!isEditing && !isEmpty) {
     buttons.push(
-      <RefreshWidgetButton
+      <RefreshWidget
         key="refresh"
         data-metabase-event="Dashboard;Refresh Menu Open"
+        className="text-brand-hover"
         period={refreshPeriod}
         setRefreshElapsedHook={setRefreshElapsedHook}
         onChangePeriod={onRefreshPeriodChange}
@@ -100,7 +120,8 @@ export const getDashboardActions = (
         <span data-metabase-event={"Dashboard;Night Mode;" + !isNightMode}>
           <DashboardHeaderButton
             icon={
-              <NightModeButtonIcon
+              <NightModeIcon
+                className="text-brand-hover cursor-pointer"
                 isNightMode={isNightMode}
                 onClick={() => onNightModeChange(!isNightMode)}
               />
@@ -122,7 +143,12 @@ export const getDashboardActions = (
           data-metabase-event={"Dashboard;Fullscreen Mode;" + !isFullscreen}
         >
           <DashboardHeaderButton
-            icon={<FullScreenButtonIcon isFullscreen={isFullscreen} />}
+            icon={
+              <FullscreenIcon
+                className="text-brand-hover"
+                isFullscreen={isFullscreen}
+              />
+            }
             onClick={e => onFullscreenChange(!isFullscreen, !e.altKey)}
           />
         </span>

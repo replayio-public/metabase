@@ -1,26 +1,22 @@
-import type { ParameterValueOrArray } from "metabase-types/api";
-import type { DatasetColumn, RowValue } from "metabase-types/api/dataset";
 import { formatValue } from "metabase/lib/formatting";
+import type { DatasetColumn } from "metabase-types/api/dataset";
 import { isDate } from "metabase-lib/types/utils/isa";
 import { formatDateTimeForParameter } from "./date";
 
-type Value = ParameterValueOrArray | RowValue | undefined;
-
 interface TemplateForClickFormatFunctionParamsType {
-  value: Value;
+  value: string;
   column: DatasetColumn;
 }
 
 export interface ValueAndColumnForColumnNameDate {
-  column: Record<string, TemplateForClickFormatFunctionParamsType>;
-  parameter: Record<string, { value: Value }>;
-  parameterBySlug: Record<string, { value: Value }>;
-  parameterByName: Record<string, { value: Value }>;
-  userAttribute: Record<string, { value: Value }>;
+  column: DatasetColumn;
+  parameterBySlug: string;
+  parameterByName: string;
+  userAttribute: string;
 }
 
-function formatValueForLinkTemplate(value: Value, column: DatasetColumn) {
-  if (isDate(column) && column.unit && typeof value === "string") {
+function formatValueForLinkTemplate(value: string, column: DatasetColumn) {
+  if (isDate(column) && column.unit) {
     return formatDateTimeForParameter(value, column.unit);
   }
   return value;
@@ -80,7 +76,7 @@ function getValueAndColumnForColumnName(
   columnName: string,
 ) {
   const name = columnName.toLowerCase();
-  const dataSources: [string, Record<string, { value: Value }>][] = [
+  const dataSources: any[] = [
     ["column", column],
     ["filter", parameterByName],
     ["filter", parameterBySlug], // doubling up "filter" lets us search params both by name and slug

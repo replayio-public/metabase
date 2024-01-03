@@ -1,10 +1,7 @@
-import type * as React from "react";
+import * as React from "react";
 import ReactMarkdown from "react-markdown";
 import Mustache from "mustache";
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
-import type { Moment } from "moment-timezone";
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
-import moment from "moment-timezone";
+import moment, { Moment } from "moment-timezone";
 
 import ExternalLink from "metabase/core/components/ExternalLink";
 import { renderLinkTextForClick } from "metabase/lib/formatting/link";
@@ -31,16 +28,16 @@ import { formatNumber } from "./numbers";
 import { formatCoordinate } from "./geography";
 import { formatImage } from "./image";
 
-import type { OptionsType } from "./types";
+import { OptionsType } from "./types";
 
 const MARKDOWN_RENDERERS = {
+  // eslint-disable-next-line react/display-name
   a: ({ href, children }: any) => (
     <ExternalLink href={href}>{children}</ExternalLink>
   ),
 };
 
-export function formatValue(value: unknown, _options: OptionsType = {}) {
-  let { prefix, suffix, ...options } = _options;
+export function formatValue(value: unknown, options: OptionsType = {}) {
   // avoid rendering <ExternalLink> if we have click_behavior set
   if (
     options.click_behavior &&
@@ -80,17 +77,17 @@ export function formatValue(value: unknown, _options: OptionsType = {}) {
       return formatted;
     }
   }
-  if (prefix || suffix) {
+  if (options.prefix || options.suffix) {
     if (options.jsx && typeof formatted !== "string") {
       return (
         <span>
-          {prefix || ""}
+          {options.prefix || ""}
           {formatted}
-          {suffix || ""}
+          {options.suffix || ""}
         </span>
       );
     } else {
-      return `${prefix || ""}${formatted}${suffix || ""}`;
+      return `${options.prefix || ""}${formatted}${options.suffix || ""}`;
     }
   } else {
     return formatted;

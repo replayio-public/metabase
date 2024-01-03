@@ -2,7 +2,6 @@ import {
   describeEE,
   restore,
   mockCurrentUserProperty,
-  setTokenFeatures,
 } from "e2e/support/helpers";
 import { USERS } from "e2e/support/cypress_data";
 
@@ -76,7 +75,6 @@ describe("scenarios > auth > signin > SSO", () => {
 
   describeEE("EE", () => {
     beforeEach(() => {
-      setTokenFeatures("all");
       // Disable password log-in
       cy.request("PUT", "api/setting/enable-password-login", {
         value: false,

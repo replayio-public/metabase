@@ -1,20 +1,22 @@
-import type {
+import {
+  createRef,
+  Children,
+  Component,
   CSSProperties,
   Key,
   ReactElement,
   ReactNode,
   RefObject,
 } from "react";
-import { createRef, Children, Component } from "react";
 
 import _ from "underscore";
 import cx from "classnames";
 import { createSelector } from "@reduxjs/toolkit";
-import type { IconName } from "metabase/core/components/Icon";
-import { Icon } from "metabase/core/components/Icon";
+import { Icon, IconName } from "metabase/core/components/Icon";
 import PopoverWithTrigger from "metabase/components/PopoverWithTrigger";
-import type { SelectButtonProps } from "metabase/core/components/SelectButton";
-import SelectButton from "metabase/core/components/SelectButton";
+import SelectButton, {
+  SelectButtonProps,
+} from "metabase/core/components/SelectButton";
 
 import { color } from "metabase/lib/colors";
 
@@ -96,7 +98,7 @@ export interface SelectChangeTarget<TValue> {
   value: TValue;
 }
 
-class BaseSelect<TValue, TOption = SelectOption<TValue>> extends Component<
+class Select<TValue, TOption = SelectOption<TValue>> extends Component<
   SelectProps<TValue, TOption>
 > {
   _popover?: any;
@@ -305,7 +307,6 @@ class BaseSelect<TValue, TOption = SelectOption<TValue>> extends Component<
           className="MB-Select"
           alwaysExpanded
           width={width}
-          role="listbox"
           itemIsSelected={this.itemIsSelected}
           itemIsClickable={this.itemIsClickable}
           renderItemName={this.props.optionNameFn}
@@ -328,13 +329,8 @@ class BaseSelect<TValue, TOption = SelectOption<TValue>> extends Component<
   }
 }
 
-/**
- * @deprecated: use Select from "metabase/ui"
- */
-const Select = Uncontrollable()(BaseSelect);
-
 // eslint-disable-next-line import/no-default-export -- deprecated usage
-export default Select;
+export default Uncontrollable()(Select);
 
 export interface OptionSectionProps {
   name?: string;

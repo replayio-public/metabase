@@ -13,7 +13,7 @@ export const settingToFormField = setting => ({
   placeholder: setting.is_env_setting
     ? t`Using ${setting.env_name}`
     : setting.placeholder || setting.default,
-  required: setting.required,
+  validate: setting.required ? value => !value && "required" : undefined,
   autoFocus: setting.autoFocus,
 });
 

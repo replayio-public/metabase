@@ -1,25 +1,18 @@
 import { useCallback, useMemo } from "react";
 
-import type { IconName } from "metabase/core/components/Icon";
-import { Icon } from "metabase/core/components/Icon";
+import { Icon, IconName } from "metabase/core/components/Icon";
 import { color } from "metabase/lib/colors";
 
-import type {
-  DashboardCard,
-  ClickBehavior,
-  ClickBehaviorType,
-} from "metabase-types/api";
+import type { DashboardOrderedCard, ClickBehavior } from "metabase-types/api";
 import type { UiParameter } from "metabase-lib/parameters/types";
 
-import { clickBehaviorOptions } from "../utils";
-import { useClickBehaviorOptionName } from "../hooks";
+import { clickBehaviorOptions, getClickBehaviorOptionName } from "../utils";
 import { SidebarItem } from "../SidebarItem";
 
 import { BehaviorOptionIcon } from "./TypeSelector.styled";
 
 interface BehaviorOptionProps {
-  value: ClickBehaviorType | "menu";
-  dashcard: DashboardCard;
+  option: string;
   icon: IconName;
   hasNextStep: boolean;
   selected: boolean;
@@ -28,47 +21,43 @@ interface BehaviorOptionProps {
 }
 
 export const BehaviorOption = ({
-  value,
-  dashcard,
+  option,
   icon,
   onClick,
   hasNextStep,
   selected,
   disabled,
-}: BehaviorOptionProps) => {
-  const behaviorOptionName = useClickBehaviorOptionName(value, dashcard);
-  return (
-    <SidebarItem.Selectable
+}: BehaviorOptionProps) => (
+  <SidebarItem.Selectable
+    isSelected={selected}
+    onClick={onClick}
+    disabled={disabled}
+  >
+    <BehaviorOptionIcon
+      name={selected ? "check" : icon}
+      color={selected ? color("white") : color("brand")}
       isSelected={selected}
-      onClick={onClick}
-      disabled={disabled}
-    >
-      <BehaviorOptionIcon
-        name={selected ? "check" : icon}
-        color={selected ? color("white") : color("brand")}
-        isSelected={selected}
-      />
-      <SidebarItem.Content>
-        <SidebarItem.Name>{behaviorOptionName}</SidebarItem.Name>
-        {hasNextStep && (
-          <span className="ml-auto">
-            <Icon name="chevronright" size={12} />
-          </span>
-        )}
-      </SidebarItem.Content>
-    </SidebarItem.Selectable>
-  );
-};
+    />
+    <SidebarItem.Content>
+      <SidebarItem.Name>{option}</SidebarItem.Name>
+      {hasNextStep && (
+        <span className="ml-auto">
+          <Icon name="chevronright" size={12} />
+        </span>
+      )}
+    </SidebarItem.Content>
+  </SidebarItem.Selectable>
+);
 
 interface TypeSelectorProps {
-  dashcard: DashboardCard;
+  dashcard: DashboardOrderedCard;
   clickBehavior: ClickBehavior;
   parameters: UiParameter[];
   updateSettings: (settings?: ClickBehavior) => void;
   moveToNextPage: () => void;
 }
 
-export function TypeSelector({
+function TypeSelector({
   dashcard,
   clickBehavior,
   parameters,
@@ -95,8 +84,7 @@ export function TypeSelector({
       {options.map(({ value, icon }) => (
         <div key={value} className="mb1">
           <BehaviorOption
-            value={value}
-            dashcard={dashcard}
+            option={getClickBehaviorOptionName(value, dashcard)}
             selected={clickBehavior.type === value}
             disabled={value === "crossfilter" && parameters.length === 0}
             onClick={() => handleSelect(value)}
@@ -108,3 +96,6 @@ export function TypeSelector({
     </div>
   );
 }
+
+// eslint-disable-next-line import/no-default-export -- deprecated usage
+export default TypeSelector;

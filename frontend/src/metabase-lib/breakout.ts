@@ -1,6 +1,5 @@
 import * as ML from "cljs/metabase.lib.js";
-import type { BreakoutClause, ColumnMetadata, Query } from "./types";
-import { removeClause } from "./query";
+import type { Clause, ColumnMetadata, Query } from "./types";
 
 export function breakoutableColumns(
   query: Query,
@@ -9,7 +8,7 @@ export function breakoutableColumns(
   return ML.breakoutable_columns(query, stageIndex);
 }
 
-export function breakouts(query: Query, stageIndex: number): BreakoutClause[] {
+export function breakouts(query: Query, stageIndex: number): Clause[] {
   return ML.breakouts(query, stageIndex);
 }
 
@@ -19,18 +18,4 @@ export function breakout(
   column: ColumnMetadata,
 ): Query {
   return ML.breakout(query, stageIndex, column);
-}
-
-export function replaceBreakouts(
-  query: Query,
-  stageIndex: number,
-  column: ColumnMetadata,
-) {
-  let nextQuery = query;
-
-  breakouts(query, stageIndex).forEach(clause => {
-    nextQuery = removeClause(nextQuery, stageIndex, clause);
-  });
-
-  return breakout(nextQuery, stageIndex, column);
 }

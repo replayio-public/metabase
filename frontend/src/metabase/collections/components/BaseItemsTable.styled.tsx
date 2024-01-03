@@ -19,7 +19,6 @@ export const Table = styled.table<{ canSelect: boolean }>`
   background-color: ${color("white")};
   table-layout: fixed;
   border-collapse: unset;
-  border-radius: 8px;
 
   thead {
     th {

@@ -1,8 +1,6 @@
-import { t } from "ttag";
-
 export const perDayBySize = () => ({
   card: {
-    name: t`Largest downloads in the last 30 days`,
+    name: "Largest downloads in the last 30 days",
     display: "scatter",
     dataset_query: {
       type: "internal",
@@ -19,7 +17,7 @@ export const perDayBySize = () => ({
 
 export const perUser = () => ({
   card: {
-    name: t`Total downloads per user`,
+    name: "Total downloads per user",
     display: "row",
     dataset_query: {
       type: "internal",
@@ -35,7 +33,7 @@ export const perUser = () => ({
 
 export const bySize = () => ({
   card: {
-    name: t`All downloads by size`,
+    name: "All downloads by size",
     display: "bar",
     dataset_query: {
       type: "internal",

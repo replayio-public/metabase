@@ -1,22 +1,18 @@
 (ns metabase.models.pulse-card
   (:require
+   [metabase.models.interface :as mi]
    [metabase.models.serialization :as serdes]
    [metabase.util :as u]
-   [metabase.util.malli :as mu]
-   [metabase.util.malli.schema :as ms]
-   [methodical.core :as methodical]
+   [metabase.util.schema :as su]
+   [schema.core :as s]
+   [toucan.models :as models]
    [toucan2.core :as t2]))
 
-(def PulseCard
-  "Used to be the toucan1 model name defined using [[toucan.models/defmodel]], not it's a reference to the toucan2 model name.
-  We'll keep this till we replace all these symbols in our codebase."
-  :model/PulseCard)
+(models/defmodel PulseCard :pulse_card)
 
-(methodical/defmethod t2/table-name :model/PulseCard [_model] :pulse_card)
-
-(doto :model/PulseCard
-  (derive :metabase/model)
-  (derive :hook/entity-id))
+(mi/define-methods
+ PulseCard
+ {:properties (constantly {::mi/entity-id true})})
 
 (defmethod serdes/hash-fields PulseCard
   [_pulse-card]
@@ -34,26 +30,25 @@
       (or 0)))
 
 (def ^:private NewPulseCard
- [:map {:closed true}
-  [:card_id                            ms/PositiveInt]
-  [:pulse_id                           ms/PositiveInt]
-  [:dashboard_card_id                  ms/PositiveInt]
-  [:position          {:optional true} [:maybe ms/IntGreaterThanOrEqualToZero]]
-  [:include_csv       {:optional true} [:maybe :boolean]]
-  [:include_xls       {:optional true} [:maybe :boolean]]])
+  {:card_id                      su/IntGreaterThanZero
+   :pulse_id                     su/IntGreaterThanZero
+   :dashboard_card_id            su/IntGreaterThanZero
+   (s/optional-key :position)    (s/maybe su/IntGreaterThanOrEqualToZero)
+   (s/optional-key :include_csv) (s/maybe s/Bool)
+   (s/optional-key :include_xls) (s/maybe s/Bool)})
 
-(mu/defn bulk-create!
+(s/defn bulk-create!
   "Creates new PulseCards, joining the given card, pulse, and dashboard card and setting appropriate defaults for other
   values if they're not provided."
-  [new-pulse-cards :- [:sequential NewPulseCard]]
+  [new-pulse-cards :- [NewPulseCard]]
   (t2/insert! PulseCard
     (for [{:keys [card_id pulse_id dashboard_card_id position include_csv include_xls]} new-pulse-cards]
       {:card_id           card_id
        :pulse_id          pulse_id
        :dashboard_card_id dashboard_card_id
        :position          (u/or-with some? position (next-position-for pulse_id))
-       :include_csv       (boolean include_csv)
-       :include_xls       (boolean include_xls)})))
+       :include_csv       (u/or-with some? include_csv false)
+       :include_xls       (u/or-with some? include_xls false)})))
 
 ; ----------------------------------------------------- Serialization -------------------------------------------------
 

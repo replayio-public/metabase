@@ -1,4 +1,4 @@
-import type { Collection, CollectionItem } from "metabase-types/api";
+import { Collection, CollectionItem } from "metabase-types/api";
 
 export const createMockCollection = (
   opts?: Partial<Collection>,
@@ -7,10 +7,8 @@ export const createMockCollection = (
   name: "Collection",
   description: null,
   location: "/",
-  can_write: true,
+  can_write: false,
   archived: false,
-  is_personal: false,
-  authority_level: null,
   ...opts,
 });
 
@@ -24,7 +22,7 @@ export const createMockCollectionItem = (
   collection_position: null,
   collection_preview: true,
   fully_parametrized: true,
-  getIcon: () => ({ name: "question" }),
+  getIcon: () => ({ name: "card" }),
   getUrl: () => "/question/1",
   ...opts,
 });

@@ -2,11 +2,8 @@ import { t } from "ttag";
 import _ from "underscore";
 import Button from "metabase/core/components/Button";
 import Questions from "metabase/entities/questions";
-import { setUIControls } from "metabase/query_builder/actions";
-import { useDispatch } from "metabase/lib/redux";
-import type { State } from "metabase-types/store";
-import * as Lib from "metabase-lib";
-import type Question from "metabase-lib/Question";
+import { State } from "metabase-types/store";
+import Question from "metabase-lib/Question";
 import StructuredQuery from "metabase-lib/queries/StructuredQuery";
 import {
   getQuestionIdFromVirtualTableId,
@@ -35,29 +32,22 @@ interface EntityLoaderProps {
 
 type NotebookProps = NotebookOwnProps & EntityLoaderProps;
 
-const Notebook = ({ className, updateQuestion, ...props }: NotebookProps) => {
+const Notebook = ({ className, ...props }: NotebookProps) => {
   const {
     question,
     isDirty,
     isRunnable,
     isResultDirty,
     hasVisualizeButton = true,
+    updateQuestion,
     runQuestionQuery,
     setQueryBuilderMode,
   } = props;
 
-  const dispatch = useDispatch();
-
+  // When switching out of the notebook editor, cleanupQuestion accounts for
+  // post aggregation filters and otherwise nested queries with duplicate column names.
   async function cleanupQuestion() {
-    // Converting a query to MLv2 and back performs a clean-up
-    let cleanQuestion = question.setDatasetQuery(
-      Lib.toLegacyQuery(question._getMLv2Query()),
-    );
-
-    // MLv2 doesn't clean up redundant stages, so we do it with MLv1 for now
-    const query = cleanQuestion.query() as StructuredQuery;
-    cleanQuestion = cleanQuestion.setQuery(query.clean({ skipFilters: true }));
-
+    let cleanQuestion = question.setQuery(question.query().clean());
     if (cleanQuestion.display() === "table") {
       cleanQuestion = cleanQuestion.setDefaultDisplay();
     }
@@ -79,14 +69,9 @@ const Notebook = ({ className, updateQuestion, ...props }: NotebookProps) => {
     }
   }
 
-  const handleUpdateQuestion = (question: Question): Promise<void> => {
-    dispatch(setUIControls({ isModifiedFromNotebook: true }));
-    return updateQuestion(question);
-  };
-
   return (
     <NotebookRoot className={className}>
-      <NotebookSteps updateQuestion={handleUpdateQuestion} {...props} />
+      <NotebookSteps {...props} />
       {hasVisualizeButton && isRunnable && (
         <Button medium primary style={{ minWidth: 220 }} onClick={visualize}>
           {t`Visualize`}

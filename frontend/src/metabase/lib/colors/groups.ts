@@ -1,6 +1,6 @@
 import _ from "underscore";
 import { ACCENT_COUNT, color } from "./palette";
-import type { AccentColorOptions, ColorPalette } from "./types";
+import { AccentColorOptions, ColorPalette } from "./types";
 
 export const getAccentColors = (
   {

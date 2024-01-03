@@ -12,8 +12,3 @@ export const entityTypeForModel = model => {
 
 export const entityTypeForObject = object =>
   object && entityTypeForModel(object.model);
-
-export const entityForObject = object => {
-  const entities = require("metabase/entities");
-  return entities[entityTypeForObject(object)];
-};

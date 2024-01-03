@@ -1,5 +1,4 @@
 import d3 from "d3";
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
 import moment from "moment-timezone";
 
 // moment-timezone based d3 scale

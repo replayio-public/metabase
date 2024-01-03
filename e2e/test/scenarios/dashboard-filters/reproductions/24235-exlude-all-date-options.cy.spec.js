@@ -1,15 +1,10 @@
-import {
-  popover,
-  restore,
-  visitDashboard,
-  filterWidget,
-} from "e2e/support/helpers";
+import { popover, restore, visitDashboard } from "e2e/support/helpers";
 import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
 
 const { PRODUCTS, PRODUCTS_ID } = SAMPLE_DATABASE;
 
 const questionDetails = {
-  query: { "source-table": PRODUCTS_ID, limit: 5 },
+  query: { "source-table": PRODUCTS_ID },
 };
 
 const parameter = {
@@ -42,7 +37,8 @@ describe("issue 24235", () => {
       },
     );
 
-    filterWidget().contains(parameter.name).click();
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText(parameter.name).click();
 
     popover().within(() => {
       cy.findByText("Exclude...").click();
@@ -53,19 +49,20 @@ describe("issue 24235", () => {
     });
 
     cy.wait("@getCardQuery");
-    cy.get(".cellData").should("contain", "Price, Schultz and Daniel");
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Rows 1-13 of 200").should("be.visible");
   });
 });
 
 const mapParameterToDashboardCard = ({ id, card_id, dashboard_id }) => {
-  cy.request("PUT", `/api/dashboard/${dashboard_id}`, {
-    dashcards: [
+  cy.request("PUT", `/api/dashboard/${dashboard_id}/cards`, {
+    cards: [
       {
         id,
         card_id,
         row: 0,
         col: 0,
-        size_x: 24,
+        size_x: 18,
         size_y: 10,
         parameter_mappings: [
           {

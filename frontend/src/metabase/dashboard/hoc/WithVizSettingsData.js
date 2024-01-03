@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { Component } from "react";
 import { connect } from "react-redux";
 import { withRouter } from "react-router";
@@ -10,7 +11,7 @@ import { getLinkTargets } from "metabase/lib/click-behavior";
  * This HOC gives access to data referenced in viz settings.
  * @deprecated HOCs are deprecated
  */
-export const WithVizSettingsData = ComposedComponent => {
+const WithVizSettingsData = ComposedComponent => {
   return withRouter(
     connect(
       (state, props) => ({
@@ -50,3 +51,5 @@ export const WithVizSettingsData = ComposedComponent => {
     ),
   );
 };
+
+export default WithVizSettingsData;

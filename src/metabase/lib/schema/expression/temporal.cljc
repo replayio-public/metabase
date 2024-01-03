@@ -8,7 +8,6 @@
    [metabase.lib.schema.literal :as literal]
    [metabase.lib.schema.mbql-clause :as mbql-clause]
    [metabase.lib.schema.temporal-bucketing :as temporal-bucketing]
-   [metabase.shared.util.internal.time-common :as shared.ut.common]
    [metabase.util.malli.registry :as mr])
   #?@
   (:clj
@@ -78,18 +77,17 @@
 
 (mr/def ::timezone-id
   [:and
+
    ::common/non-blank-string
-   [:or
-    (into [:enum
-           {:error/message "valid timezone ID"
-            :error/fn      (fn [{:keys [value]} _]
-                             (str "invalid timezone ID: " (pr-str value)))}]
-          (sort
-           #?( ;; 600 timezones on java 17
-              :clj (ZoneId/getAvailableZoneIds)
-              ;; 596 timezones on moment-timezone 0.5.38
-              :cljs (.names (.-tz moment)))))
-    ::literal/string.zone-offset]])
+   (into [:enum
+          {:error/message "valid timezone ID"
+           :error/fn      (fn [{:keys [value]} _]
+                            (str "invalid timezone ID: " (pr-str value)))}]
+         (sort
+          #?( ;; 600 timezones on java 17
+             :clj (ZoneId/getAvailableZoneIds)
+             ;; 596 timezones on moment-timezone 0.5.38
+             :cljs (.names (.-tz moment)))))])
 
 (mbql-clause/define-catn-mbql-clause :convert-timezone
   [:datetime [:schema [:ref ::expression/temporal]]]
@@ -158,8 +156,8 @@
    ;; `:absolute-datetime`.
    (when (string? value)
      (cond
-       (re-matches shared.ut.common/year-month-regex value) :type/Date
-       (re-matches shared.ut.common/year-regex value)       :type/Date))
+       (re-matches literal/year-month-regex value) :type/Date
+       (re-matches literal/year-regex value)       :type/Date))
    ;; for things that return a union of types like string literals, only the temporal types make sense, so filter out
    ;; everything else.
    (let [value-type (expression/type-of value)

@@ -5,7 +5,9 @@ import cx from "classnames";
 import ButtonBar from "metabase/components/ButtonBar";
 
 import QueryDownloadWidget from "metabase/query_builder/components/QueryDownloadWidget";
-import { EmbedMenu } from "metabase/dashboard/components/EmbedMenu";
+import QuestionEmbedWidget, {
+  QuestionEmbedWidgetTrigger,
+} from "metabase/query_builder/containers/QuestionEmbedWidget";
 import ViewButton from "./ViewButton";
 
 import QuestionAlertWidget from "./QuestionAlertWidget";
@@ -32,7 +34,9 @@ const ViewFooter = ({
   isObjectDetail,
   questionAlerts,
   visualizationSettings,
+  isAdmin,
   canManageSubscriptions,
+  isResultDirty,
   isVisualized,
   isTimeseries,
   isShowingTimelineSidebar,
@@ -111,15 +115,13 @@ const ViewFooter = ({
               result={result}
             />
           ),
-          QueryDownloadWidget.shouldRender({ result }) && (
+          QueryDownloadWidget.shouldRender({ result, isResultDirty }) && (
             <QueryDownloadWidget
               key="download"
               className="mx1 hide sm-show"
               question={question}
               result={result}
               visualizationSettings={visualizationSettings}
-              dashcardId={question.card().dashcardId}
-              dashboardId={question.card().dashboardId}
             />
           ),
           QuestionAlertWidget.shouldRender({
@@ -139,13 +141,10 @@ const ViewFooter = ({
               }
             />
           ),
-          !question.isDataset() && (
-            <EmbedMenu
-              key="embed"
-              resource={question}
-              resourceType="question"
-              hasPublicLink={!!question.publicUUID()}
-              onModalOpen={() =>
+          QuestionEmbedWidget.shouldRender({ question, isAdmin }) && (
+            <QuestionEmbedWidgetTrigger
+              key="embeds"
+              onClick={() =>
                 question.isSaved()
                   ? onOpenModal("embed")
                   : onOpenModal("save-question-before-embed")

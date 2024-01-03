@@ -1,8 +1,8 @@
 import { useMemo } from "react";
-import type * as React from "react";
+import * as React from "react";
 import PropTypes from "prop-types";
 import _ from "underscore";
-import type { IconName } from "metabase/core/components/Icon";
+import { IconName } from "metabase/core/components/Icon";
 import {
   SegmentedList,
   SegmentedItem,

@@ -2,6 +2,7 @@
 import { Component } from "react";
 import { t } from "ttag";
 
+import MetabaseSettings from "metabase/lib/settings";
 import { canonicalCollectionId } from "metabase/collections/utils";
 import TippyPopoverWithTrigger from "metabase/components/PopoverWithTrigger/TippyPopoverWithTrigger";
 import AccordionList from "metabase/core/components/AccordionList";
@@ -11,6 +12,9 @@ const ICON_SIZE = 16;
 
 export default class CollectionOptionsButton extends Component {
   render() {
+    if (!MetabaseSettings.enhancementsEnabled()) {
+      return null;
+    }
     const items = this.popoverOptions();
     if (items.length === 0) {
       return null;
@@ -34,7 +38,7 @@ export default class CollectionOptionsButton extends Component {
               className="text-brand"
               sections={[{ items }]}
               onChange={item => {
-                item.onClick(item);
+                item.onClick();
                 closePopover();
               }}
             />

@@ -4,11 +4,11 @@ import _ from "underscore";
 import * as Urls from "metabase/lib/urls";
 import Timelines from "metabase/entities/timelines";
 import TimelineEvents from "metabase/entities/timeline-events";
-import type { Timeline, TimelineEvent } from "metabase-types/api";
-import type { State } from "metabase-types/store";
+import { Timeline, TimelineEvent } from "metabase-types/api";
+import { State } from "metabase-types/store";
 import TimelineDetailsModal from "../../components/TimelineDetailsModal";
 import LoadingAndErrorWrapper from "../../components/LoadingAndErrorWrapper";
-import type { ModalParams } from "../../types";
+import { ModalParams } from "../../types";
 
 interface TimelineDetailsModalProps {
   params: ModalParams;

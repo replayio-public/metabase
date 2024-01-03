@@ -5,11 +5,6 @@ import {
   visitQuestion,
 } from "e2e/support/helpers";
 
-import {
-  ORDERS_QUESTION_ID,
-  ORDERS_COUNT_QUESTION_ID,
-} from "e2e/support/cypress_sample_instance_data";
-
 const channels = { slack: mockSlackConfigured, email: setupSMTP };
 
 describe("scenarios > alert", () => {
@@ -20,7 +15,7 @@ describe("scenarios > alert", () => {
 
   describe("with nothing set", () => {
     it("should prompt you to add email/slack credentials", () => {
-      visitQuestion(ORDERS_QUESTION_ID);
+      visitQuestion(1);
       cy.icon("bell").click();
 
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
@@ -32,7 +27,7 @@ describe("scenarios > alert", () => {
     it("should say to non-admins that admin must add email credentials", () => {
       cy.signInAsNormalUser();
 
-      visitQuestion(ORDERS_QUESTION_ID);
+      visitQuestion(1);
       cy.icon("bell").click();
 
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
@@ -48,12 +43,10 @@ describe("scenarios > alert", () => {
 
       it("educational screen should show for the first alert, but not for the second", () => {
         cy.intercept("POST", "/api/alert").as("savedAlert");
-        cy.intercept("POST", `/api/card/${ORDERS_COUNT_QUESTION_ID}/query`).as(
-          "questionLoaded",
-        );
+        cy.intercept("POST", "/api/card/2/query").as("questionLoaded");
 
         // Open the first alert screen and create an alert
-        visitQuestion(ORDERS_QUESTION_ID);
+        visitQuestion(1);
         cy.icon("bell").click();
 
         // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
@@ -76,7 +69,7 @@ describe("scenarios > alert", () => {
         cy.wait("@savedAlert");
 
         // Open the second alert screen
-        visitQuestion(ORDERS_COUNT_QUESTION_ID);
+        visitQuestion(2);
         cy.wait("@questionLoaded");
 
         cy.icon("bell").click();

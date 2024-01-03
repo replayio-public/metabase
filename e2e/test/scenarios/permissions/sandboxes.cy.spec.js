@@ -13,16 +13,12 @@ import {
   filter,
   visitQuestion,
   visitDashboard,
-  sidebar,
   startNewQuestion,
   sendEmailAndAssert,
-  setTokenFeatures,
 } from "e2e/support/helpers";
-import {
-  NORMAL_USER_ID,
-  ORDERS_DASHBOARD_ID,
-} from "e2e/support/cypress_sample_instance_data";
+
 import { USER_GROUPS, SAMPLE_DB_ID } from "e2e/support/cypress_data";
+
 import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
 
 const {
@@ -43,12 +39,11 @@ describeEE("formatting > sandboxes", () => {
     beforeEach(() => {
       restore();
       cy.signInAsAdmin();
-      setTokenFeatures("all");
       cy.visit("/admin/people");
     });
 
     it("should add key attributes to an existing user", () => {
-      cy.icon("ellipsis").first().click();
+      cy.icon("ellipsis").last().click();
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.findByText("Edit user").click();
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
@@ -86,10 +81,9 @@ describeEE("formatting > sandboxes", () => {
     beforeEach(() => {
       restore();
       cy.signInAsAdmin();
-      setTokenFeatures("all");
 
       // Add user attribute to existing ("normal" / id:2) user
-      cy.request("PUT", `/api/user/${NORMAL_USER_ID}`, {
+      cy.request("PUT", "/api/user/2", {
         login_attributes: { [USER_ATTRIBUTE]: ATTRIBUTE_VALUE },
       });
 
@@ -160,13 +154,14 @@ describeEE("formatting > sandboxes", () => {
         filter({ mode: "notebook" });
         popover().within(() => {
           cy.findByText("Total").click({ force: true });
-          cy.findByDisplayValue("Equal to").click();
         });
-        cy.findByRole("listbox").findByText("Greater than").click();
-        popover().within(() => {
-          cy.findByPlaceholderText("Enter a number").type("100");
-          cy.button("Add filter").click();
-        });
+        // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+        cy.findByText("Equal to").click();
+        // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+        cy.findByText("Greater than").click();
+        cy.findByPlaceholderText("Enter a number").type("100");
+        // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+        cy.findByText("Add filter").click();
 
         visualize();
 
@@ -194,7 +189,6 @@ describeEE("formatting > sandboxes", () => {
     beforeEach(() => {
       restore();
       cy.signInAsAdmin();
-      setTokenFeatures("all");
     });
 
     it("should allow joins to the sandboxed table (metabase-enterprise#154)", () => {
@@ -363,7 +357,7 @@ describeEE("formatting > sandboxes", () => {
           expect(xhr.response.body.error).not.to.exist;
         });
         // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-        cy.findByText("Product → Category is Doohickey");
+        cy.findByText("Category is Doohickey");
         // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
         cy.findByText("97.44"); // Subtotal for order #10
       });
@@ -443,233 +437,219 @@ describeEE("formatting > sandboxes", () => {
       cy.findByText("97.44"); // Subtotal for order #10
     });
 
-    describe(
-      "with display values remapped to use a foreign key",
-      { tags: "@flaky" },
-      () => {
-        beforeEach(() => {
-          cy.intercept("POST", "/api/dataset").as("datasetQuery");
-          cy.log("Remap Product ID's display value to `title`");
-          remapDisplayValueToFK({
-            display_value: ORDERS.PRODUCT_ID,
-            name: "Product ID",
-            fk: PRODUCTS.TITLE,
-          });
+    describe("with display values remapped to use a foreign key", () => {
+      beforeEach(() => {
+        cy.log("Remap Product ID's display value to `title`");
+        remapDisplayValueToFK({
+          display_value: ORDERS.PRODUCT_ID,
+          name: "Product ID",
+          fk: PRODUCTS.TITLE,
         });
+      });
 
-        /**
-         * There isn't an exact issue that this test reproduces, but it is basically a version of (metabase-enterprise#520)
-         * that uses a query builder instead of SQL based questions.
-         */
-        it(
-          "should be able to sandbox using query builder saved questions",
-          { tags: "@flaky" },
-          () => {
-            cy.log("Create 'Orders'-based question using QB");
-            cy.createQuestion({
-              name: "520_Orders",
-              query: {
-                "source-table": ORDERS_ID,
-                filter: [">", ["field", ORDERS.TOTAL, null], 10],
-              },
-            }).then(({ body: { id: CARD_ID } }) => {
-              cy.sandboxTable({
-                table_id: ORDERS_ID,
-                card_id: CARD_ID,
-                attribute_remappings: {
-                  attr_uid: ["dimension", ["field", ORDERS.USER_ID, null]],
-                },
-              });
-            });
-
-            cy.log("Create 'Products'-based question using QB");
-            cy.createQuestion({
-              name: "520_Products",
-              query: {
-                "source-table": PRODUCTS_ID,
-                filter: [">", ["field", PRODUCTS.PRICE, null], 10],
-              },
-            }).then(({ body: { id: CARD_ID } }) => {
-              cy.sandboxTable({
-                table_id: PRODUCTS_ID,
-                card_id: CARD_ID,
-                attribute_remappings: {
-                  attr_cat: ["dimension", ["field", PRODUCTS.CATEGORY, null]],
-                },
-              });
-            });
-
-            cy.signOut();
-            cy.signInAsSandboxedUser();
-
-            openOrdersTable({
-              callback: xhr => expect(xhr.response.body.error).not.to.exist,
-            });
-
-            cy.wait("@datasetQuery");
-
-            cy.findByTestId("TableInteractive-root")
-              .findByText("Awesome Concrete Shoes")
-              .click();
-            popover()
-              .findByText(/View details/i)
-              .click();
-
-            cy.log(
-              "It should show object details instead of filtering by this Product ID",
-            );
-            cy.findByTestId("object-detail");
-            cy.findAllByText("McClure-Lockman");
+      /**
+       * There isn't an exact issue that this test reproduces, but it is basically a version of (metabase-enterprise#520)
+       * that uses a query builder instead of SQL based questions.
+       */
+      it("should be able to sandbox using query builder saved questions", () => {
+        cy.log("Create 'Orders'-based question using QB");
+        cy.createQuestion({
+          name: "520_Orders",
+          query: {
+            "source-table": ORDERS_ID,
+            filter: [">", ["field", ORDERS.TOTAL, null], 10],
           },
-        );
-
-        /**
-         * This issue (metabase-enterprise#520) has a peculiar quirk:
-         *  - It works ONLY if SQL question is first run (`result_metadata` builds), and then the question is saved.
-         *  - In a real-world scenario it is quite possible for an admin to save that SQL question without running it first. This fails!
-         *  (more info: https://github.com/metabase/metabase-enterprise/issues/520#issuecomment-772528159)
-         *
-         * That's why this test has 2 versions that reflect both scenarios. We'll call them "normal" and "workaround".
-         * Until the underlying issue is fixed, "normal" scenario will be skipped.
-         *
-         * Related issues: metabase#10474, metabase#14629
-         */
-
-        // skipping the workaround test because the function `runAndSaveQuestion`
-        // relies on the existence of a save button on a saved question that is not dirty
-        // which is a bug fixed in ssue metabase#14302
-        ["normal" /* , "workaround" */].forEach(test => {
-          it(`${test.toUpperCase()} version:\n advanced sandboxing should not ignore data model features like object detail of FK (metabase-enterprise#520)`, () => {
-            cy.intercept("POST", "/api/card/*/query").as("cardQuery");
-            cy.intercept("PUT", "/api/card/*").as("questionUpdate");
-
-            cy.createNativeQuestion({
-              name: "EE_520_Q1",
-              native: {
-                query:
-                  "SELECT * FROM ORDERS WHERE USER_ID={{sandbox}} AND TOTAL > 10",
-                "template-tags": {
-                  sandbox: {
-                    "display-name": "Sandbox",
-                    id: "1115dc4f-6b9d-812e-7f72-b87ab885c88a",
-                    name: "sandbox",
-                    type: "number",
-                  },
-                },
-              },
-            }).then(({ body: { id: CARD_ID } }) => {
-              test === "workaround"
-                ? runAndSaveQuestion({ question: CARD_ID, sandboxValue: "1" })
-                : null;
-
-              cy.sandboxTable({
-                table_id: ORDERS_ID,
-                card_id: CARD_ID,
-                attribute_remappings: {
-                  attr_uid: ["variable", ["template-tag", "sandbox"]],
-                },
-              });
-            });
-
-            cy.createNativeQuestion({
-              name: "EE_520_Q2",
-              native: {
-                query:
-                  "SELECT * FROM PRODUCTS WHERE CATEGORY={{sandbox}} AND PRICE > 10",
-                "template-tags": {
-                  sandbox: {
-                    "display-name": "Sandbox",
-                    id: "3d69ba99-7076-2252-30bd-0bb8810ba895",
-                    name: "sandbox",
-                    type: "text",
-                  },
-                },
-              },
-            }).then(({ body: { id: CARD_ID } }) => {
-              test === "workaround"
-                ? runAndSaveQuestion({
-                    question: CARD_ID,
-                    sandboxValue: "Widget",
-                  })
-                : null;
-
-              cy.sandboxTable({
-                table_id: PRODUCTS_ID,
-                card_id: CARD_ID,
-                attribute_remappings: {
-                  attr_cat: ["variable", ["template-tag", "sandbox"]],
-                },
-              });
-            });
-
-            cy.signOut();
-            cy.signInAsSandboxedUser();
-
-            openOrdersTable();
-
-            cy.log("Reported failing on v1.36.x");
-
-            cy.log(
-              "It should show remapped Display Values instead of Product ID",
-            );
-            cy.get(".cellData").contains("Awesome Concrete Shoes").click();
-            // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-            cy.findByText(/View details/i).click();
-
-            cy.log(
-              "It should show object details instead of filtering by this Product ID",
-            );
-            // The name of this Vendor is visible in "details" only
-            cy.findByTestId("object-detail");
-            cy.findAllByText("McClure-Lockman");
-
-            /**
-             * Helper function related to this test only!
-             */
-            function runAndSaveQuestion({ question, sandboxValue } = {}) {
-              // Run the question
-              cy.visit(`/question/${question}?sandbox=${sandboxValue}`);
-              // Wait for results
-              cy.wait("@cardQuery");
-              // Save the question
-              cy.findByText("Save").click();
-              modal().within(() => {
-                cy.button("Save").click();
-              });
-              // Wait for an update so the other queries don't accidentally cancel it
-              cy.wait("@questionUpdate");
-            }
-          });
-        });
-
-        it("simple sandboxing should work (metabase#14629)", () => {
+        }).then(({ body: { id: CARD_ID } }) => {
           cy.sandboxTable({
             table_id: ORDERS_ID,
+            card_id: CARD_ID,
             attribute_remappings: {
               attr_uid: ["dimension", ["field", ORDERS.USER_ID, null]],
             },
           });
+        });
 
-          cy.updatePermissionsSchemas({
-            schemas: {
-              PUBLIC: {
-                [PRODUCTS_ID]: "all",
+        cy.log("Create 'Products'-based question using QB");
+        cy.createQuestion({
+          name: "520_Products",
+          query: {
+            "source-table": PRODUCTS_ID,
+            filter: [">", ["field", PRODUCTS.PRICE, null], 10],
+          },
+        }).then(({ body: { id: CARD_ID } }) => {
+          cy.sandboxTable({
+            table_id: PRODUCTS_ID,
+            card_id: CARD_ID,
+            attribute_remappings: {
+              attr_cat: ["dimension", ["field", PRODUCTS.CATEGORY, null]],
+            },
+          });
+        });
+
+        cy.signOut();
+        cy.signInAsSandboxedUser();
+
+        openOrdersTable({
+          callback: xhr => expect(xhr.response.body.error).not.to.exist,
+        });
+
+        cy.get(".cellData").contains("Awesome Concrete Shoes").click();
+        // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+        cy.findByText(/View details/i).click();
+
+        cy.log(
+          "It should show object details instead of filtering by this Product ID",
+        );
+        cy.findByTestId("object-detail");
+        cy.findAllByText("McClure-Lockman");
+      });
+
+      /**
+       * This issue (metabase-enterprise#520) has a peculiar quirk:
+       *  - It works ONLY if SQL question is first run (`result_metadata` builds), and then the question is saved.
+       *  - In a real-world scenario it is quite possible for an admin to save that SQL question without running it first. This fails!
+       *  (more info: https://github.com/metabase/metabase-enterprise/issues/520#issuecomment-772528159)
+       *
+       * That's why this test has 2 versions that reflect both scenarios. We'll call them "normal" and "workaround".
+       * Until the underlying issue is fixed, "normal" scenario will be skipped.
+       *
+       * Related issues: metabase#10474, metabase#14629
+       */
+
+      // skipping the workaround test because the function `runAndSaveQuestion`
+      // relies on the existence of a save button on a saved question that is not dirty
+      // which is a bug fixed in ssue metabase#14302
+      ["normal" /* , "workaround" */].forEach(test => {
+        it(`${test.toUpperCase()} version:\n advanced sandboxing should not ignore data model features like object detail of FK (metabase-enterprise#520)`, () => {
+          cy.intercept("POST", "/api/card/*/query").as("cardQuery");
+          cy.intercept("PUT", "/api/card/*").as("questionUpdate");
+
+          cy.createNativeQuestion({
+            name: "EE_520_Q1",
+            native: {
+              query:
+                "SELECT * FROM ORDERS WHERE USER_ID={{sandbox}} AND TOTAL > 10",
+              "template-tags": {
+                sandbox: {
+                  "display-name": "Sandbox",
+                  id: "1115dc4f-6b9d-812e-7f72-b87ab885c88a",
+                  name: "sandbox",
+                  type: "number",
+                },
               },
             },
+          }).then(({ body: { id: CARD_ID } }) => {
+            test === "workaround"
+              ? runAndSaveQuestion({ question: CARD_ID, sandboxValue: "1" })
+              : null;
+
+            cy.sandboxTable({
+              table_id: ORDERS_ID,
+              card_id: CARD_ID,
+              attribute_remappings: {
+                attr_uid: ["variable", ["template-tag", "sandbox"]],
+              },
+            });
+          });
+
+          cy.createNativeQuestion({
+            name: "EE_520_Q2",
+            native: {
+              query:
+                "SELECT * FROM PRODUCTS WHERE CATEGORY={{sandbox}} AND PRICE > 10",
+              "template-tags": {
+                sandbox: {
+                  "display-name": "Sandbox",
+                  id: "3d69ba99-7076-2252-30bd-0bb8810ba895",
+                  name: "sandbox",
+                  type: "text",
+                },
+              },
+            },
+          }).then(({ body: { id: CARD_ID } }) => {
+            test === "workaround"
+              ? runAndSaveQuestion({
+                  question: CARD_ID,
+                  sandboxValue: "Widget",
+                })
+              : null;
+
+            cy.sandboxTable({
+              table_id: PRODUCTS_ID,
+              card_id: CARD_ID,
+              attribute_remappings: {
+                attr_cat: ["variable", ["template-tag", "sandbox"]],
+              },
+            });
           });
 
           cy.signOut();
           cy.signInAsSandboxedUser();
-          openOrdersTable({
-            callback: xhr => expect(xhr.response.body.error).not.to.exist,
-          });
 
-          // Title of the first order for User ID = 1
+          openOrdersTable();
+
+          cy.log("Reported failing on v1.36.x");
+
+          cy.log(
+            "It should show remapped Display Values instead of Product ID",
+          );
+          cy.get(".cellData").contains("Awesome Concrete Shoes").click();
           // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-          cy.findByText("Awesome Concrete Shoes");
+          cy.findByText(/View details/i).click();
+
+          cy.log(
+            "It should show object details instead of filtering by this Product ID",
+          );
+          // The name of this Vendor is visible in "details" only
+          cy.findByTestId("object-detail");
+          cy.findAllByText("McClure-Lockman");
+
+          /**
+           * Helper function related to this test only!
+           */
+          function runAndSaveQuestion({ question, sandboxValue } = {}) {
+            // Run the question
+            cy.visit(`/question/${question}?sandbox=${sandboxValue}`);
+            // Wait for results
+            cy.wait("@cardQuery");
+            // Save the question
+            cy.findByText("Save").click();
+            modal().within(() => {
+              cy.button("Save").click();
+            });
+            // Wait for an update so the other queries don't accidentally cancel it
+            cy.wait("@questionUpdate");
+          }
         });
-      },
-    );
+      });
+
+      it("simple sandboxing should work (metabase#14629)", () => {
+        cy.sandboxTable({
+          table_id: ORDERS_ID,
+          attribute_remappings: {
+            attr_uid: ["dimension", ["field", ORDERS.USER_ID, null]],
+          },
+        });
+
+        cy.updatePermissionsSchemas({
+          schemas: {
+            PUBLIC: {
+              [PRODUCTS_ID]: "all",
+            },
+          },
+        });
+
+        cy.signOut();
+        cy.signInAsSandboxedUser();
+        openOrdersTable({
+          callback: xhr => expect(xhr.response.body.error).not.to.exist,
+        });
+
+        // Title of the first order for User ID = 1
+        // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+        cy.findByText("Awesome Concrete Shoes");
+      });
+    });
 
     ["remapped", "default"].forEach(test => {
       it(`${test.toUpperCase()} version:\n should work on questions with joins, with sandboxed target table, where target fields cannot be filtered (metabase#13642)`, () => {
@@ -844,9 +824,13 @@ describeEE("formatting > sandboxes", () => {
           // Remove the "Subtotal" column from within sidebar
           cy.findByText("Subtotal").parent().find(".Icon-eye_outline").click();
         });
-
       cy.button("Done").click();
+      // Rerun the query
+      cy.icon("play").last().click();
 
+      cy.wait("@dataset").then(xhr => {
+        expect(xhr.response.body.error).not.to.exist;
+      });
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.contains("Subtotal").should("not.exist");
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
@@ -921,8 +905,6 @@ describeEE("formatting > sandboxes", () => {
     });
 
     it("should show dashboard subscriptions for sandboxed user (metabase#14990)", () => {
-      setupSMTP();
-
       cy.sandboxTable({
         table_id: ORDERS_ID,
         attribute_remappings: {
@@ -931,11 +913,39 @@ describeEE("formatting > sandboxes", () => {
       });
 
       cy.signInAsSandboxedUser();
-      visitDashboard(ORDERS_DASHBOARD_ID);
-      cy.findByLabelText("subscriptions").click();
+      visitDashboard(1);
+      cy.icon("subscription").click();
+      // We're starting without email or Slack being set up so it's expected to see the following:
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText("Create a dashboard subscription");
+      cy.findAllByRole("link", { name: "set up email" });
+      cy.findAllByRole("link", { name: "configure Slack" });
+    });
 
-      // should forward to email since that is the only one setup
-      sidebar().findByText("Email this dashboard").should("exist");
+    it.skip("sandboxed user should be able to send pulses to Slack (metabase#14844)", () => {
+      cy.viewport(1400, 1000);
+
+      cy.intercept("GET", "/api/collection/*").as("collection");
+
+      cy.sandboxTable({
+        table_id: ORDERS_ID,
+        attribute_remappings: {
+          attr_uid: ["dimension", ["field-id", ORDERS.USER_ID]],
+        },
+      });
+
+      cy.signOut();
+      cy.signInAsSandboxedUser();
+
+      cy.visit("/pulse/create");
+      cy.wait("@collection");
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText("Where should this data go?")
+        .parent()
+        .within(() => {
+          cy.findByText("Email");
+          cy.findByText("Slack");
+        });
     });
 
     it.skip("should be able to visit ad-hoc/dirty question when permission is granted to the linked table column, but not to the linked table itself (metabase#15105)", () => {
@@ -1027,13 +1037,13 @@ describeEE("formatting > sandboxes", () => {
         });
 
         cy.signInAsSandboxedUser();
-        visitDashboard(ORDERS_DASHBOARD_ID);
-        cy.findByLabelText("subscriptions").click();
-
-        sidebar()
-          .findByPlaceholderText("Enter user names or email addresses")
-          .click();
-        popover().findByText("User 1").click();
+        visitDashboard(1);
+        cy.icon("subscription").click();
+        // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+        cy.findByText("Email it").click();
+        cy.findByPlaceholderText("Enter user names or email addresses").click();
+        // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+        cy.findByText("User 1").click();
         sendEmailAndAssert(email => {
           expect(email.html).to.include("Orders in a dashboard");
           expect(email.html).to.include("37.65");

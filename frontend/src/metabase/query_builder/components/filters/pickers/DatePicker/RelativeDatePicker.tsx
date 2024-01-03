@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { t } from "ttag";
 import { assoc } from "icepick";
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
-import type { DurationInputArg2 } from "moment-timezone";
+
+import { DurationInputArg2 } from "moment-timezone";
 import { isValidTimeInterval } from "metabase/lib/time";
 import TippyPopover from "metabase/components/Popover/TippyPopover";
 import {
@@ -15,7 +15,7 @@ import {
   toTimeInterval,
 } from "metabase-lib/queries/utils/query-time";
 
-import type Filter from "metabase-lib/queries/structured/Filter";
+import Filter from "metabase-lib/queries/structured/Filter";
 import {
   GridContainer,
   GridText,
@@ -200,7 +200,6 @@ const RelativeDatePicker = (props: RelativeDatePickerProps) => {
         primaryColor={primaryColor}
         style={SELECT_STYLE}
         data-ui-tag="relative-date-input"
-        aria-label={t`Interval`}
         data-testid="relative-datetime-value"
         value={typeof intervals === "number" ? Math.abs(intervals) : intervals}
         onChange={handleChangeDateNumericInput}
@@ -212,7 +211,6 @@ const RelativeDatePicker = (props: RelativeDatePickerProps) => {
         onChange={newUnit =>
           handleChangeUnitInput(newUnit as DurationInputArg2)
         }
-        aria-label={t`Unit`}
         testId="relative-datetime-unit"
         intervals={intervals}
         formatter={formatter}
@@ -227,7 +225,6 @@ const RelativeDatePicker = (props: RelativeDatePickerProps) => {
         >
           <MoreButton
             icon="ellipsis"
-            aria-label={t`Options`}
             primaryColor={primaryColor}
             onClick={() => setOptionsVisible(!optionsVisible)}
           />
@@ -242,7 +239,6 @@ const RelativeDatePicker = (props: RelativeDatePickerProps) => {
             className="text-right"
             primaryColor={primaryColor}
             style={SELECT_STYLE}
-            aria-label={t`Starting from interval`}
             data-ui-tag="relative-date-input"
             data-testid="starting-from-value"
             value={
@@ -273,13 +269,11 @@ const RelativeDatePicker = (props: RelativeDatePickerProps) => {
             intervals={Math.abs(startingFrom[0])}
             formatter={formatter}
             periods={getStartingFromUnits(unit, startingFrom[1])}
-            aria-label={t`Starting from unit`}
             testId="starting-from-unit"
           />
           <MoreButton
             icon="close"
             primaryColor={primaryColor}
-            aria-label={t`Remove offset`}
             onClick={() => {
               onFilterChange(toTimeInterval(filter));
             }}

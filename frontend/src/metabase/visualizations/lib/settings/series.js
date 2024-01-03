@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { t } from "ttag";
 import _ from "underscore";
 import { getIn } from "icepick";

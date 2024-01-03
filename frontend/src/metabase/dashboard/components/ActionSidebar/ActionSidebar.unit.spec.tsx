@@ -1,16 +1,11 @@
-import type * as React from "react";
+import * as React from "react";
 import userEvent from "@testing-library/user-event";
-import {
-  screen,
-  waitFor,
-  renderWithProviders,
-  waitForLoaderToBeRemoved,
-} from "__support__/ui";
+import { screen, waitFor, renderWithProviders } from "__support__/ui";
 
 import {
   createMockDashboard,
   createMockActionDashboardCard,
-  createMockDashboardCard,
+  createMockDashboardOrderedCard,
   createMockQueryAction,
   createMockCard,
   createMockDatabase,
@@ -23,9 +18,9 @@ import {
   setupDatabasesEndpoints,
   setupSearchEndpoints,
 } from "__support__/server-mocks";
-import { ActionSidebar } from "./ActionSidebar";
+import { ActionSidebarFn } from "./ActionSidebar";
 
-const dashcard = createMockDashboardCard();
+const dashcard = createMockDashboardOrderedCard();
 const actionDashcard = createMockActionDashboardCard({ id: 2 });
 const actionDashcardWithAction = createMockActionDashboardCard({
   id: 3,
@@ -40,11 +35,11 @@ const actionsDatabase = createMockDatabase({
   settings: { "database-enable-actions": true },
 });
 const dashboard = createMockDashboard({
-  dashcards: [dashcard, actionDashcard, actionDashcardWithAction],
+  ordered_cards: [dashcard, actionDashcard, actionDashcardWithAction],
 });
 
 const setup = (
-  options?: Partial<React.ComponentProps<typeof ActionSidebar>>,
+  options?: Partial<React.ComponentProps<typeof ActionSidebarFn>>,
 ) => {
   setupDatabasesEndpoints([actionsDatabase]);
   setupSearchEndpoints([collectionItem]);
@@ -55,7 +50,7 @@ const setup = (
   const closeSpy = jest.fn();
 
   renderWithProviders(
-    <ActionSidebar
+    <ActionSidebarFn
       onUpdateVisualizationSettings={vizUpdateSpy}
       onClose={closeSpy}
       dashboard={dashboard}
@@ -69,10 +64,15 @@ const setup = (
 
 const navigateToActionCreatorModal = async () => {
   userEvent.click(screen.getByText("Pick an action"));
-  await waitForLoaderToBeRemoved();
+  await waitFor(() => {
+    expect(screen.queryByTestId("loading-spinner")).not.toBeInTheDocument();
+  });
   userEvent.click(screen.getByText(collectionItem.name));
   userEvent.click(screen.getByText("Create new action"));
-  await waitForLoaderToBeRemoved();
+
+  await waitFor(() => {
+    expect(screen.queryByTestId("loading-spinner")).not.toBeInTheDocument();
+  });
 };
 
 describe("Dashboard > ActionSidebar", () => {

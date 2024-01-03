@@ -1,13 +1,9 @@
 import { useState } from "react";
 import { t } from "ttag";
 
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
-import type { Moment } from "moment-timezone";
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
-import moment from "moment-timezone";
+import moment, { Moment } from "moment-timezone";
 import { getDateStyleFromSettings } from "metabase/lib/time";
-import type { SelectAll } from "metabase/components/Calendar";
-import Calendar from "metabase/components/Calendar";
+import Calendar, { SelectAll } from "metabase/components/Calendar";
 import InputBlurChange from "metabase/components/InputBlurChange";
 import ExpandingContent from "metabase/components/ExpandingContent";
 import {
@@ -70,7 +66,7 @@ const SpecificDatePicker = ({
           value={date ? date.format(dateFormat) : ""}
           autoFocus={autoFocus}
           onFocus={onFocus}
-          onBlurChange={({ target: { value } }) => {
+          onBlurChange={({ target: { value } }: any) => {
             const date = moment(value, dateFormat);
             if (date.isValid()) {
               handleChange(date, hours, minutes);

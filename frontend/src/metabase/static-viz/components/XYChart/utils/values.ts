@@ -1,5 +1,5 @@
 import type { TextProps } from "@visx/text";
-import { measureTextWidth } from "metabase/static-viz/lib/text";
+import { measureText } from "metabase/static-viz/lib/text";
 import type { HydratedSeries } from "../types";
 import { getY } from "./series";
 
@@ -26,7 +26,7 @@ export function getValueStep(
   const totalWidth = sample.reduce(
     (sum, sampledData) =>
       sum +
-      measureTextWidth(
+      measureText(
         valueFormatter(getY(sampledData)),
         valueProps.fontSize as number,
       ),

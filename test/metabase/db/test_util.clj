@@ -15,7 +15,6 @@
 
   javax.sql.DataSource
   (getConnection [_]
-    #_{:clj-kondo/ignore [:discouraged-var]}
     (jdbc/get-connection jdbc-spec))
 
   (getConnection [_ _user _password]

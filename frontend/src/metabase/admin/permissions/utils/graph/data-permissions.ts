@@ -1,7 +1,10 @@
 import { getIn, setIn } from "icepick";
 import _ from "underscore";
 
-import { PLUGIN_ADMIN_PERMISSIONS_TABLE_FIELDS_PERMISSION_VALUE } from "metabase/plugins";
+import {
+  PLUGIN_ADMIN_PERMISSIONS_TABLE_FIELDS_PERMISSION_VALUE,
+  PLUGIN_ADVANCED_PERMISSIONS,
+} from "metabase/plugins";
 import type { GroupsPermissions, ConcreteTableId } from "metabase-types/api";
 import type Database from "metabase-lib/metadata/Database";
 import type Table from "metabase-lib/metadata/Table";
@@ -14,7 +17,7 @@ import type {
 } from "../../types";
 
 export const isRestrictivePermission = (value: string) =>
-  value === "block" || value === "none";
+  PLUGIN_ADVANCED_PERMISSIONS.isBlockPermission(value) || value === "none";
 
 export function getPermission(
   permissions: GroupsPermissions,
@@ -42,7 +45,7 @@ export function updatePermission(
   permissions: GroupsPermissions,
   groupId: number,
   path: Array<number | string>,
-  value: string | undefined,
+  value: string | number,
   entityIds?: any[],
 ) {
   const fullPath = [groupId, ...path];

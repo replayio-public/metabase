@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-set -euo pipefail
+set -euxo pipefail
 
 # Convenience for running clj-kondo against all the appropriate directories.
 
@@ -12,10 +12,10 @@ rm -rf .clj-kondo/metosin/malli-types-clj/
 rm -rf .clj-kondo/.cache
 
 # Run Kondo against all of our Clojure files in the various directories they might live.
-find modules/drivers enterprise/backend \
+find modules/drivers shared enterprise/backend \
      -maxdepth 2 \
      -type d \
      -name src -or -name test \
     | xargs clj-kondo \
             --parallel \
-            --lint bin src test
+            --lint src test

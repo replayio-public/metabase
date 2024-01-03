@@ -4,7 +4,7 @@ import { setupMetricsEndpoints } from "__support__/server-mocks";
 import {
   renderWithProviders,
   screen,
-  waitForLoaderToBeRemoved,
+  waitForElementToBeRemoved,
 } from "__support__/ui";
 import { useMetricQuery } from "./use-metric-query";
 
@@ -30,12 +30,12 @@ const setup = () => {
 describe("useMetricQuery", () => {
   it("should be initially loading", () => {
     setup();
-    expect(screen.getByTestId("loading-spinner")).toBeInTheDocument();
+    expect(screen.getByText("Loading...")).toBeInTheDocument();
   });
 
   it("should show data from the response", async () => {
     setup();
-    await waitForLoaderToBeRemoved();
+    await waitForElementToBeRemoved(() => screen.queryByText("Loading..."));
     expect(screen.getByText(TEST_METRIC.name)).toBeInTheDocument();
   });
 });

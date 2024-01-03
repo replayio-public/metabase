@@ -1,5 +1,4 @@
-import type { ChangeEventHandler } from "react";
-import { useState } from "react";
+import { ChangeEventHandler, useState } from "react";
 import { t } from "ttag";
 
 import Toggle from "metabase/core/components/Toggle";

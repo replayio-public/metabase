@@ -55,6 +55,7 @@ export const createAlert = alert => {
 
     dispatch(
       addUndo({
+        // eslint-disable-next-line react/display-name
         message: () => (
           <div className="flex align-center text-bold">
             <Icon name="alert_confirm" size="19" className="mr2 text-success" />
@@ -95,6 +96,7 @@ export const updateAlert = alert => {
 
     dispatch(
       addUndo({
+        // eslint-disable-next-line react/display-name
         message: () => (
           <div className="flex align-center text-bold">
             <Icon name="alert_confirm" size="19" className="mr2 text-success" />
@@ -143,6 +145,7 @@ export const deleteAlert = alertId => {
 
     dispatch(
       addUndo({
+        // eslint-disable-next-line react/display-name
         message: () => (
           <div className="flex align-center text-bold">
             <Icon name="alert_confirm" size="19" className="mr2 text-success" />

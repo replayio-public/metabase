@@ -14,7 +14,7 @@ Archive a Segment. (DEPRECATED -- Just pass updated value of `:archived` to the 
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`** 
 
 *  **`revision_message`** value must be a non-blank string.
 
@@ -36,7 +36,7 @@ Return related entities.
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`**
 
 ## `GET /api/segment/:id/revisions`
 
@@ -44,7 +44,7 @@ Fetch `Revisions` for `Segment` with ID.
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`**
 
 ## `POST /api/segment/`
 
@@ -54,11 +54,11 @@ Create a new `Segment`.
 
 *  **`name`** value must be a non-blank string.
 
-*  **`description`** nullable string
+*  **`description`** value may be nil, or if non-nil, value must be a string.
 
 *  **`table_id`** value must be an integer greater than zero.
 
-*  **`definition`** Value must be a map.
+*  **`definition`** value must be a map.
 
 ## `POST /api/segment/:id/revert`
 
@@ -66,7 +66,7 @@ Revert a `Segement` to a prior `Revision`.
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`** 
 
 *  **`revision_id`** value must be an integer greater than zero.
 
@@ -76,23 +76,23 @@ Update a `Segment` with ID.
 
 ### PARAMS:
 
-*  **`points_of_interest`** nullable string
+*  **`points_of_interest`** value may be nil, or if non-nil, value must be a string.
 
-*  **`description`** nullable string
+*  **`description`** value may be nil, or if non-nil, value must be a string.
 
-*  **`archived`** nullable boolean
+*  **`archived`** value may be nil, or if non-nil, value must be a boolean.
 
-*  **`definition`** nullable map
+*  **`definition`** value may be nil, or if non-nil, value must be a map.
 
 *  **`revision_message`** value must be a non-blank string.
 
-*  **`show_in_getting_started`** nullable boolean
+*  **`show_in_getting_started`** value may be nil, or if non-nil, value must be a boolean.
 
-*  **`name`** nullable value must be a non-blank string.
+*  **`name`** value may be nil, or if non-nil, value must be a non-blank string.
 
-*  **`caveats`** nullable string
+*  **`caveats`** value may be nil, or if non-nil, value must be a string.
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`**
 
 ---
 

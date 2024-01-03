@@ -61,7 +61,7 @@ export function PermissionsEditorContent({
   const handleFilterChange = e => setFilter(e.target.value);
 
   return (
-    <PermissionEditorContentRoot data-testid="permissions-editor">
+    <PermissionEditorContentRoot>
       <Subhead>
         {title}{" "}
         {breadcrumbs && (

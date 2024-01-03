@@ -1,9 +1,8 @@
 import { createMockEntitiesState } from "__support__/store";
-import {
-  setupDatabasesEndpoints,
-  setupSearchEndpoints,
-} from "__support__/server-mocks";
+import { setupDatabasesEndpoints } from "__support__/server-mocks/database";
+import { setupSearchEndpoints } from "__support__/server-mocks/search";
 import { renderWithProviders, screen, getIcon } from "__support__/ui";
+
 import type { DatasetQuery } from "metabase-types/api";
 import {
   createMockStructuredDatasetQuery,

@@ -1,6 +1,6 @@
 import userEvent from "@testing-library/user-event";
 
-import { screen, waitForLoaderToBeRemoved } from "__support__/ui";
+import { screen, waitForElementToBeRemoved } from "__support__/ui";
 
 import { generateSchemaId } from "metabase-lib/metadata/utils/schema";
 
@@ -24,7 +24,9 @@ describe("DataPicker — picking raw data", () => {
     await setup();
 
     userEvent.click(screen.getByText(/Raw Data/i));
-    await waitForLoaderToBeRemoved();
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId("loading-spinner"),
+    );
 
     expect(screen.getByText(SAMPLE_DATABASE.name)).toBeInTheDocument();
     SAMPLE_DATABASE.tables?.forEach(table => {
@@ -68,7 +70,9 @@ describe("DataPicker — picking raw data", () => {
     await setup();
 
     userEvent.click(screen.getByText(/Raw Data/i));
-    await waitForLoaderToBeRemoved();
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId("loading-spinner"),
+    );
     userEvent.click(screen.getByRole("button", { name: /Back/i }));
 
     expect(screen.getByText(/Models/i)).toBeInTheDocument();

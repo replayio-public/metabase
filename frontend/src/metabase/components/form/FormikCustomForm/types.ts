@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import type {
+import {
   FieldName,
   BaseFieldValues,
   DefaultFieldValue,

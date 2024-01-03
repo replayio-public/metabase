@@ -38,7 +38,6 @@
   font-size: 12px;
   border-radius: 6px;
   box-shadow: 0 4px 10px var(--color-shadow);
-  overflow-wrap: break-word;
 }
 
 .tippy-box[data-theme~="tooltip"] .tippy-content {
@@ -177,7 +176,7 @@
   border-bottom-right-radius: 6px;
   border-bottom-left-radius: 6px;
   padding-top: 8px;
-  width: 100%;
+  width: calc(100% - 2px);
   /* Without z-index; calendar days, if selected, scroll above this component */
   z-index: 1;
 }

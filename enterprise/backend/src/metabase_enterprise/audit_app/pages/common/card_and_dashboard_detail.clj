@@ -6,11 +6,11 @@
    [metabase.models.dashboard :refer [Dashboard]]
    [metabase.models.revision :as revision]
    [metabase.util.honey-sql-2 :as h2x]
-   [metabase.util.malli :as mu]
-   [metabase.util.malli.schema :as ms]))
+   [metabase.util.schema :as su]
+   [schema.core :as s]))
 
 (def ^:private ModelName
-  [:enum "card" "dashboard"])
+  (s/enum "card" "dashboard"))
 
 ;; SELECT {{group-fn(timestamp}} AS "date", count(*) AS views
 ;; FROM view_log
@@ -18,11 +18,9 @@
 ;;   AND model_id = {{model-id}}
 ;; GROUP BY {{group-fn(timestamp}}
 ;; ORDER BY {{group-fn(timestamp}} ASC
-(mu/defn views-by-time
+(s/defn views-by-time
   "Get views of a Card or Dashboard broken out by a time `unit`, e.g. `day` or `day-of-week`."
-  [model    :- ModelName
-   model-id :- ms/PositiveInt
-   unit     :- common/DateTimeUnitStr]
+  [model :- ModelName, model-id :- su/IntGreaterThanZero, unit :- common/DateTimeUnitStr]
   {:metadata [[:date  {:display_name "Date",  :base_type (common/datetime-unit-str->base-type unit)}]
               [:views {:display_name "Views", :base_type :type/Integer}]]
    :results (let [grouped-timestamp (common/grouped-datetime unit :timestamp)]
@@ -37,11 +35,10 @@
                      :order-by [[grouped-timestamp :asc]]}
                     (common/add-45-days-clause :timestamp))))})
 
-(mu/defn cached-views-by-time
+(s/defn cached-views-by-time
   "Get number of views of a Card broken out by a time `unit`, e.g. `day` or `day-of-week` and by cache status.
   Still here instead of in cards because of similarity to views-by-time"
-  [card-id :- ms/PositiveInt
-   unit    :- common/DateTimeUnitStr]
+  [card-id :- su/IntGreaterThanZero, unit :- common/DateTimeUnitStr]
   {:metadata [[:date           {:display_name "Date",
                                 :base_type (common/datetime-unit-str->base-type unit)}]
               [:cached-views   {:display_name "Cached Views",
@@ -62,11 +59,10 @@
                    :order-by  [[grouped-timestamp :asc]]}
                   (common/add-45-days-clause :started_at))))})
 
-(mu/defn avg-execution-time-by-time
+(s/defn avg-execution-time-by-time
   "Get average execution time of a Card broken out by a time `unit`, e.g. `day` or `day-of-week`.
   Still here instead of in cards because of similarity to views-by-time"
-  [card-id :- ms/PositiveInt
-   unit    :- common/DateTimeUnitStr]
+  [card-id :- su/IntGreaterThanZero, unit :- common/DateTimeUnitStr]
   {:metadata [[:date        {:display_name "Date",            :base_type (common/datetime-unit-str->base-type unit)}]
               [:avg_runtime {:display_name "Average Runtime", :base_type :type/Number}]]
    :results (let [grouped-timestamp (common/grouped-datetime unit :started_at)]
@@ -79,10 +75,10 @@
                      :order-by [[grouped-timestamp :asc]]}
                     (common/add-45-days-clause :started_at))))})
 
-(mu/defn revision-history
+(s/defn revision-history
   "Get a revision history table for a Card or Dashboard."
-  [model    :- [:enum Card Dashboard]
-   model-id :- ms/PositiveInt]
+  [model    :- (s/enum Card Dashboard)
+   model-id :- su/IntGreaterThanZero]
   {:metadata [[:timestamp   {:display_name "Edited on",   :base_type :type/DateTime}]
               [:user_id     {:display_name "User ID",     :base_type :type/Integer, :remapped_to   :user_name}]
               [:user_name   {:display_name "Edited by",   :base_type :type/Name,    :remapped_from :user_id}]
@@ -95,10 +91,9 @@
                :change_made (-> revision :description)
                :revision_id (-> revision :id)})})
 
-(mu/defn audit-log
+(s/defn audit-log
   "Get a view log for a Card or Dashboard."
-  [model    :- ModelName
-   model-id :- ms/PositiveInt]
+  [model :- ModelName, model-id :- su/IntGreaterThanZero]
   {:metadata [[:when    {:display_name "When",    :base_type :type/DateTime}]
               [:user_id {:display_name "User ID", :base_type :type/Integer, :remapped_to   :who}]
               [:who     {:display_name "Who",     :base_type :type/Name,    :remapped_from :user_id}]

@@ -4,9 +4,8 @@
   `metabase.driver.sql-jdbc.connection.ssh-tunnel` or something like that."
   (:require
    [metabase.driver :as driver]
-   [metabase.models.setting :refer [defsetting]]
+   [metabase.public-settings :as public-settings]
    [metabase.util :as u]
-   [metabase.util.i18n :refer [deferred-tru]]
    [metabase.util.log :as log])
   (:import
    (java.io ByteArrayInputStream)
@@ -15,10 +14,7 @@
    (org.apache.sshd.client.future ConnectFuture)
    (org.apache.sshd.client.session ClientSession)
    (org.apache.sshd.client.session.forward PortForwardingTracker)
-   (org.apache.sshd.common.config.keys FilePasswordProvider
-                                       FilePasswordProvider$Decoder
-                                       FilePasswordProvider$ResourceDecodeResult)
-   (org.apache.sshd.common.future CancelOption)
+   (org.apache.sshd.common.config.keys FilePasswordProvider FilePasswordProvider$ResourceDecodeResult)
    (org.apache.sshd.common.session SessionHeartbeatController$HeartbeatType SessionHolder)
    (org.apache.sshd.common.util GenericUtils)
    (org.apache.sshd.common.util.io.resource AbstractIoResource)
@@ -26,18 +22,7 @@
    (org.apache.sshd.common.util.security SecurityUtils)
    (org.apache.sshd.server.forward AcceptAllForwardingFilter)))
 
-(defsetting ssh-heartbeat-interval-sec
-  (deferred-tru "Controls how often the heartbeats are sent when an SSH tunnel is established (in seconds).")
-  :visibility :public
-  :type       :integer
-  :default    180
-  :audit      :getter)
-
 (set! *warn-on-reflection* true)
-
-(def default-ssh-tunnel-port
-  "The default port for SSH tunnels (22) used if no port is specified"
-  22)
 
 (def ^:private ^Long default-ssh-timeout 30000)
 
@@ -45,9 +30,6 @@
   (doto (SshClient/setUpDefaultClient)
     (.start)
     (.setForwardingFilter AcceptAllForwardingFilter/INSTANCE)))
-
-(def ^:private ^"[Lorg.apache.sshd.common.future.CancelOption;" no-cancel-options
-  (make-array CancelOption 0))
 
 (defn- maybe-add-tunnel-password!
   [^ClientSession session ^String tunnel-pass]
@@ -62,9 +44,7 @@
                               (getPassword [_ _ _]
                                 tunnel-private-key-passphrase)
                               (handleDecodeAttemptResult [_ _ _ _ _]
-                                FilePasswordProvider$ResourceDecodeResult/TERMINATE)
-                              (decode [_ _ ^FilePasswordProvider$Decoder decoder]
-                                (.decode decoder tunnel-private-key-passphrase)))
+                                FilePasswordProvider$ResourceDecodeResult/TERMINATE))
           ids               (with-open [is (ByteArrayInputStream. (.getBytes tunnel-private-key "UTF-8"))]
                               (SecurityUtils/loadKeyPairIdentities session resource-key is password-provider))
           keypair           (GenericUtils/head ids)]
@@ -76,17 +56,16 @@
   [{:keys [^String tunnel-host ^Integer tunnel-port ^String tunnel-user tunnel-pass tunnel-private-key
            tunnel-private-key-passphrase host port]}]
   {:pre [(integer? port)]}
-  (let [^Integer tunnel-port       (or tunnel-port default-ssh-tunnel-port)
-        ^ConnectFuture conn-future (.connect client tunnel-user tunnel-host tunnel-port)
-        ^SessionHolder conn-status (.verify conn-future default-ssh-timeout no-cancel-options)
-        hb-sec                     (ssh-heartbeat-interval-sec)
+  (let [^ConnectFuture conn-future (.connect client tunnel-user tunnel-host tunnel-port)
+        ^SessionHolder conn-status (.verify conn-future default-ssh-timeout)
+        hb-sec                     (public-settings/ssh-heartbeat-interval-sec)
         session                    (doto ^ClientSession (.getSession conn-status)
                                      (maybe-add-tunnel-password! tunnel-pass)
                                      (maybe-add-tunnel-private-key! tunnel-private-key tunnel-private-key-passphrase)
                                      (.setSessionHeartbeat SessionHeartbeatController$HeartbeatType/IGNORE
                                                            TimeUnit/SECONDS
                                                            hb-sec)
-                                     (.. auth (verify default-ssh-timeout no-cancel-options)))
+                                     (.. auth (verify default-ssh-timeout)))
         tracker                    (.createLocalPortForwardingTracker session
                                                                       (SshdSocketAddress. "" 0)
                                                                       (SshdSocketAddress. host port))

@@ -1,14 +1,10 @@
 (ns metabase.lib.temporal-bucket-test
   (:require
    [clojure.test :refer [are deftest is testing]]
-   [medley.core :as m]
    [metabase.lib.core :as lib]
+   [metabase.lib.metadata.calculation :as lib.metadata.calculation]
    [metabase.lib.temporal-bucket :as lib.temporal-bucket]
-   [metabase.lib.test-metadata :as meta]
-   [metabase.lib.test-util :as lib.tu]
-   #?@(:cljs ([metabase.test-runner.assert-exprs.approximately-equal]))))
-
-#?(:cljs (comment metabase.test-runner.assert-exprs.approximately-equal/keep-me))
+   [metabase.lib.test-metadata :as meta]))
 
 (deftest ^:parallel describe-temporal-interval-test
   (doseq [unit [:day nil]]
@@ -73,7 +69,7 @@
 
 (deftest ^:parallel available-temporal-buckets-test
   (let [column {:description nil
-                :lib/type :metadata/column
+                :lib/type :metadata/field
                 :database-is-auto-increment false
                 :fingerprint-version 5
                 :base-type :type/DateTimeWithLocalTZ
@@ -110,7 +106,7 @@
                          :minute-of-hour :hour-of-day
                          :day-of-week :day-of-month :day-of-year
                          :week-of-year :month-of-year :quarter-of-year}
-        expected-defaults [{:lib/type :option/temporal-bucketing, :unit :day, :default true}]]
+        expected-defaults [{:lib/type :type/temporal-bucketing-option, :unit :day, :default true}]]
     (testing "missing fingerprint"
       (let [column (dissoc column :fingerprint)
             options (lib.temporal-bucket/available-temporal-buckets-method nil -1 column)]
@@ -136,8 +132,8 @@
                    (filter :default options)))))))))
 
 (deftest ^:parallel temporal-bucketing-options-test
-  (let [query (-> (lib/query meta/metadata-provider (meta/table-metadata :products))
-                  (lib/with-fields [(meta/field-metadata :products :created-at)]))]
+  (let [query (-> (lib/query-for-table-name meta/metadata-provider "PRODUCTS")
+                  (lib/with-fields [(lib/field "PRODUCTS" "CREATED_AT")]))]
     (is (= [{:unit :minute}
             {:unit :hour}
             {:unit :day}
@@ -153,44 +149,7 @@
             {:unit :week-of-year}
             {:unit :month-of-year}
             {:unit :quarter-of-year}]
-           (->> (lib/returned-columns query)
+           (->> (lib.metadata.calculation/metadata query)
                 first
                 (lib/available-temporal-buckets query)
                 (mapv #(select-keys % [:unit :default])))))))
-
-(deftest ^:parallel temporal-bucketing-options-expressions-test
-  (testing "There should be no bucketing options for expressions as they are not supported (#31367)"
-    (let [query (-> lib.tu/venues-query
-                    (lib/expression "myadd" (lib/+ 1 (meta/field-metadata :venues :category-id))))]
-      (is (empty? (->> (lib/returned-columns query)
-                       (m/find-first (comp #{"myadd"} :name))
-                       (lib/available-temporal-buckets query)))))))
-
-(deftest ^:parallel option-raw-temporal-bucket-test
-  (let [option (m/find-first #(= (:unit %) :month)
-                             (lib.temporal-bucket/available-temporal-buckets lib.tu/venues-query (meta/field-metadata :checkins :date)))]
-    (is (=? {:lib/type :option/temporal-bucketing}
-            option))
-    (is (= :month
-           (lib.temporal-bucket/raw-temporal-bucket option)))))
-
-(deftest ^:parallel short-name-display-info-test
-  (let [query lib.tu/venues-query]
-    (is (= #{"minute"
-             "hour"
-             "day"
-             "week"
-             "month"
-             "quarter"
-             "year"
-             "minute-of-hour"
-             "hour-of-day"
-             "day-of-week"
-             "day-of-month"
-             "day-of-year"
-             "week-of-year"
-             "month-of-year"
-             "quarter-of-year"}
-           (into #{}
-                 (map #(:short-name (lib/display-info query -1 %)))
-                 (lib.temporal-bucket/available-temporal-buckets query (meta/field-metadata :products :created-at)))))))

@@ -14,7 +14,7 @@ Delete a [[Timeline]]. Will cascade delete its events as well.
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`**
 
 ## `GET /api/timeline/`
 
@@ -22,9 +22,9 @@ Fetch a list of [[Timelines]]. Can include `archived=true` to return archived ti
 
 ### PARAMS:
 
-*  **`include`** nullable enum of events
+*  **`include`** value may be nil, or if non-nil, value must be one of: `events`.
 
-*  **`archived`** nullable value must be a valid boolean string ('true' or 'false').
+*  **`archived`** value may be nil, or if non-nil, value must be a valid boolean string ('true' or 'false').
 
 ## `GET /api/timeline/:id`
 
@@ -33,15 +33,15 @@ Fetch the [[Timeline]] with `id`. Include `include=events` to unarchived events 
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`** 
 
-*  **`include`** nullable enum of events
+*  **`include`** value may be nil, or if non-nil, value must be one of: `events`.
 
-*  **`archived`** nullable value must be a valid boolean string ('true' or 'false').
+*  **`archived`** value may be nil, or if non-nil, value must be a valid boolean string ('true' or 'false').
 
-*  **`start`** nullable value must be a valid date string
+*  **`start`** value may be nil, or if non-nil, value must be a valid date string
 
-*  **`end`** nullable value must be a valid date string
+*  **`end`** value may be nil, or if non-nil, value must be a valid date string
 
 ## `POST /api/timeline/`
 
@@ -51,15 +51,15 @@ Create a new [[Timeline]].
 
 *  **`name`** value must be a non-blank string.
 
-*  **`default`** nullable boolean
+*  **`default`** value may be nil, or if non-nil, value must be a boolean.
 
-*  **`description`** nullable string
+*  **`description`** value may be nil, or if non-nil, value must be a string.
 
-*  **`icon`** nullable enum of star, cake, mail, warning, bell, cloud
+*  **`icon`** value may be nil, or if non-nil, value must be one of: `balloons`, `bell`, `cloud`, `mail`, `star`, `warning`.
 
-*  **`collection_id`** nullable value must be an integer greater than zero.
+*  **`collection_id`** value may be nil, or if non-nil, value must be an integer greater than zero.
 
-*  **`archived`** nullable boolean
+*  **`archived`** value may be nil, or if non-nil, value must be a boolean.
 
 ## `PUT /api/timeline/:id`
 
@@ -68,19 +68,19 @@ Update the [[Timeline]] with `id`. Returns the timeline without events. Archivin
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`** 
 
-*  **`name`** nullable value must be a non-blank string.
+*  **`name`** value may be nil, or if non-nil, value must be a non-blank string.
 
-*  **`default`** nullable boolean
+*  **`default`** value may be nil, or if non-nil, value must be a boolean.
 
-*  **`description`** nullable string
+*  **`description`** value may be nil, or if non-nil, value must be a string.
 
-*  **`icon`** nullable enum of star, cake, mail, warning, bell, cloud
+*  **`icon`** value may be nil, or if non-nil, value must be one of: `balloons`, `bell`, `cloud`, `mail`, `star`, `warning`.
 
-*  **`collection_id`** nullable value must be an integer greater than zero.
+*  **`collection_id`** value may be nil, or if non-nil, value must be an integer greater than zero.
 
-*  **`archived`** nullable boolean
+*  **`archived`** value may be nil, or if non-nil, value must be a boolean.
 
 *  **`timeline-updates`**
 

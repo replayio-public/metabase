@@ -44,7 +44,7 @@ export function createImplicitAction({ model_id, kind }) {
  * @param {number} actionParams.model_id
  */
 export function createImplicitActions({ modelId }) {
-  createImplicitAction({ model_id: modelId, kind: "create" });
-  createImplicitAction({ model_id: modelId, kind: "update" });
-  createImplicitAction({ model_id: modelId, kind: "delete" });
+  createImplicitAction({ modelId, kind: "create" });
+  createImplicitAction({ modelId, kind: "update" });
+  createImplicitAction({ modelId, kind: "delete" });
 }

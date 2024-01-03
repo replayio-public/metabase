@@ -1,6 +1,6 @@
 import { t } from "ttag";
 import FormInput from "metabase/core/components/FormInput";
-import type { Engine } from "metabase-types/api";
+import { Engine } from "metabase-types/api";
 
 export interface DatabaseNameFieldProps {
   engine: Engine;

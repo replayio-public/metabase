@@ -1,1 +1,1 @@
-export { AppBanner } from "./AppBanner";
+export { default } from "./AppBanner";

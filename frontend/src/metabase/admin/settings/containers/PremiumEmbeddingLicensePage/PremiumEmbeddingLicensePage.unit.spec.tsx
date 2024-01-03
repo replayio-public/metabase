@@ -1,4 +1,4 @@
-import type { StoreTokenStatus } from "metabase-types/api";
+import { StoreTokenStatus } from "metabase-types/api";
 import {
   createMockSettingDefinition,
   createMockSettings,
@@ -12,28 +12,33 @@ import {
 import {
   renderWithProviders,
   screen,
-  waitForLoaderToBeRemoved,
+  waitForElementToBeRemoved,
 } from "__support__/ui";
 import PremiumEmbeddingLicensePage from "./PremiumEmbeddingLicensePage";
 
 interface SetupOpts {
+  token?: string;
   tokenStatus?: StoreTokenStatus;
 }
 
 const setup = async ({
+  token,
   tokenStatus = createMockStoreTokenStatus(),
 }: SetupOpts = {}) => {
   setupPropertiesEndpoints(createMockSettings());
   setupSettingsEndpoints([
     createMockSettingDefinition({
       key: "premium-embedding-token",
+      value: token,
     }),
   ]);
   setupStoreTokenEndpoints(tokenStatus);
 
   renderWithProviders(<PremiumEmbeddingLicensePage />);
 
-  await waitForLoaderToBeRemoved();
+  await waitForElementToBeRemoved(() =>
+    screen.queryByTestId("loading-spinner"),
+  );
 };
 
 describe("PremiumEmbeddingLicensePage", () => {
@@ -48,7 +53,8 @@ describe("PremiumEmbeddingLicensePage", () => {
 
   it("should display a link to upgrade the license when the token is invalid", async () => {
     await setup({
-      tokenStatus: createMockStoreTokenStatus({ status: "invalid" }),
+      token: "ABC",
+      tokenStatus: createMockStoreTokenStatus({ valid: false }),
     });
 
     const link = screen.getByRole("link", {

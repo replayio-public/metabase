@@ -2,11 +2,13 @@ import { useMemo } from "react";
 
 import SidebarHeader from "metabase/query_builder/components/SidebarHeader";
 import type { Filter as FilterExpression } from "metabase-types/api";
-import type Filter from "metabase-lib/queries/structured/Filter";
+import Filter from "metabase-lib/queries/structured/Filter";
 
 import { ShortcutButton, Separator } from "./DatePickerShortcuts.styled";
-import type { DateShortcutOptions } from "./DatePickerShortcutOptions";
-import { DATE_SHORTCUT_OPTIONS } from "./DatePickerShortcutOptions";
+import {
+  DATE_SHORTCUT_OPTIONS,
+  DateShortcutOptions,
+} from "./DatePickerShortcutOptions";
 
 type Props = {
   className?: string;

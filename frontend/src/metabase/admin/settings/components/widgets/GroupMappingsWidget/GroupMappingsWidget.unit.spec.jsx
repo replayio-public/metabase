@@ -1,8 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import { FormProvider } from "metabase/forms";
-
 import GroupMappingsWidget from "./GroupMappingsWidget";
 
 const defaultGroups = [{ id: 1, name: "Administrators", member_count: 1 }];
@@ -15,22 +13,20 @@ const setup = ({
   deleteGroup = jest.fn(),
   updateSetting = jest.fn(),
   onSuccess = jest.fn(),
-  setting = { key: "key", value: true },
+  setting = { value: true },
   groups = defaultGroups,
 } = {}) => {
   render(
-    <FormProvider initialValues={{}} onSubmit={() => {}}>
-      <GroupMappingsWidget
-        allGroups={groups}
-        mappings={mappings}
-        mappingSetting={mappingSetting}
-        setting={setting}
-        clearGroupMember={clearGroupMember}
-        deleteGroup={deleteGroup}
-        updateSetting={updateSetting}
-        onSuccess={onSuccess}
-      />
-    </FormProvider>,
+    <GroupMappingsWidget
+      allGroups={groups}
+      mappings={mappings}
+      mappingSetting={mappingSetting}
+      setting={setting}
+      clearGroupMember={clearGroupMember}
+      deleteGroup={deleteGroup}
+      updateSetting={updateSetting}
+      onSuccess={onSuccess}
+    />,
   );
 };
 

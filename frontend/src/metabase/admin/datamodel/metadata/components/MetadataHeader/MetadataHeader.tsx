@@ -1,6 +1,7 @@
 import { useLayoutEffect } from "react";
 import { connect } from "react-redux";
-import { push, replace } from "react-router-redux";
+import { Link } from "react-router";
+import { push } from "react-router-redux";
 import { t } from "ttag";
 import _ from "underscore";
 import { PLUGIN_FEATURE_LEVEL_PERMISSIONS } from "metabase/plugins";
@@ -8,10 +9,9 @@ import * as Urls from "metabase/lib/urls";
 import Databases from "metabase/entities/databases";
 import { Icon } from "metabase/core/components/Icon";
 import { DatabaseDataSelector } from "metabase/query_builder/components/DataSelector";
-import type { DatabaseId, SchemaId, TableId } from "metabase-types/api";
-import type { Dispatch } from "metabase-types/store";
-import type Database from "metabase-lib/metadata/Database";
-import { TableSettingsLink } from "./MetadataHeader.styled";
+import { DatabaseId, SchemaId, TableId } from "metabase-types/api";
+import { Dispatch } from "metabase-types/store";
+import Database from "metabase-lib/metadata/Database";
 
 interface OwnProps {
   selectedDatabaseId?: DatabaseId;
@@ -24,20 +24,12 @@ interface DatabaseLoaderProps {
 }
 
 interface DispatchProps {
-  onSelectDatabase: (
-    databaseId: DatabaseId,
-    options: { useReplace?: boolean },
-  ) => void;
+  onSelectDatabase: (databaseId: DatabaseId) => void;
 }
 
 const mapDispatchToProps = (dispatch: Dispatch): DispatchProps => ({
-  // When navigating programatically, use replace so that the browser back button works
-  onSelectDatabase: (databaseId, { useReplace = false } = {}) =>
-    dispatch(
-      useReplace
-        ? replace(Urls.dataModelDatabase(databaseId))
-        : push(Urls.dataModelDatabase(databaseId)),
-    ),
+  onSelectDatabase: databaseId =>
+    dispatch(push(Urls.dataModelDatabase(databaseId))),
 });
 
 type MetadataHeaderProps = OwnProps & DatabaseLoaderProps & DispatchProps;
@@ -51,7 +43,7 @@ const MetadataHeader = ({
 }: MetadataHeaderProps) => {
   useLayoutEffect(() => {
     if (databases.length > 0 && selectedDatabaseId == null) {
-      onSelectDatabase(databases[0].id, { useReplace: true });
+      onSelectDatabase(databases[0].id);
     }
   }, [databases, selectedDatabaseId, onSelectDatabase]);
 
@@ -72,7 +64,7 @@ const MetadataHeader = ({
       {selectedDatabaseId && selectedSchemaId && selectedTableId && (
         <div className="MetadataEditor-headerSection flex flex-align-right align-center flex-no-shrink">
           <span className="ml4 mr3">
-            <TableSettingsLink
+            <Link
               aria-label={t`Settings`}
               to={Urls.dataModelTableSettings(
                 selectedDatabaseId,
@@ -80,8 +72,8 @@ const MetadataHeader = ({
                 selectedTableId,
               )}
             >
-              <Icon name="gear" />
-            </TableSettingsLink>
+              <Icon name="gear" className="text-brand-hover" />
+            </Link>
           </span>
         </div>
       )}

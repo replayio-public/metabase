@@ -42,7 +42,7 @@ const getTitle = (dashboard, isShallowCopy) => {
   }
 };
 
-const DashboardCopyModal = ({
+const DashboardCopyModalInner = ({
   onClose,
   onReplaceLocation,
   copyDashboard,
@@ -81,7 +81,9 @@ const DashboardCopyModal = ({
   );
 };
 
-export const DashboardCopyModalConnected = _.compose(
+const DashboardCopyModal = _.compose(
   withRouter,
   connect(mapStateToProps, mapDispatchToProps),
-)(DashboardCopyModal);
+)(DashboardCopyModalInner);
+
+export default DashboardCopyModal;

@@ -9,14 +9,12 @@
    [metabase.mbql.util :as mbql.u]
    [metabase.query-processor.error-type :as qp.error-type]
    [metabase.util.i18n :refer [tru]]
-   [metabase.util.malli :as mu]
-   [metabase.util.malli.schema :as ms]))
+   [metabase.util.schema :as su]
+   [schema.core :as s]))
 
 (set! *warn-on-reflection* true)
 
-(mu/defn ^:private parse-value-for-base-type
-  [v         :- :string
-   base-type :- ms/FieldType]
+(s/defn ^:private parse-value-for-base-type [v :- s/Str, base-type :- su/FieldType]
   {:pre [(string? v)]}
   (try
     (condp #(isa? %2 %1) base-type

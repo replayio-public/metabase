@@ -1,9 +1,8 @@
 import _ from "underscore";
 
-import type Filter from "metabase-lib/queries/structured/Filter";
+import Filter from "metabase-lib/queries/structured/Filter";
 import { Container, BackButton, TabButton } from "./DatePickerHeader.styled";
-import type { DateOperator } from "./DatePicker";
-import { DATE_OPERATORS } from "./DatePicker";
+import { DateOperator, DATE_OPERATORS } from "./DatePicker";
 import { getHeaderText } from "./ExcludeDatePicker";
 
 type Props = {

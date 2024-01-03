@@ -10,7 +10,7 @@ import {
   renderWithProviders,
   screen,
   waitFor,
-  waitForLoaderToBeRemoved,
+  waitForElementToBeRemoved,
   within,
 } from "__support__/ui";
 import {
@@ -20,7 +20,7 @@ import {
   setupDatabasesEndpoints,
 } from "__support__/server-mocks";
 
-import { checkNotNull } from "metabase/lib/types";
+import { checkNotNull } from "metabase/core/utils/types";
 import { ActionsApi } from "metabase/services";
 
 import Actions from "metabase/entities/actions";
@@ -34,7 +34,6 @@ import type {
   Collection,
   Database,
   Field,
-  Settings,
   WritebackAction,
   WritebackQueryAction,
 } from "metabase-types/api";
@@ -58,12 +57,7 @@ import {
   createSavedStructuredCard,
   createStructuredModelCard as _createStructuredModelCard,
 } from "metabase-types/api/mocks/presets";
-import {
-  createMockSettingsState,
-  createMockState,
-} from "metabase-types/store/mocks";
 
-import * as ML_Urls from "metabase-lib/urls";
 import { TYPE } from "metabase-lib/types/constants";
 
 import ModelDetailPage from "./ModelDetailPage";
@@ -81,7 +75,6 @@ const TEST_TABLE_ID = 1;
 const TEST_FIELD = createMockField({
   id: 1,
   display_name: "Field 1",
-  semantic_type: TYPE.PK,
   table_id: TEST_TABLE_ID,
 });
 
@@ -127,13 +120,6 @@ const TEST_DATABASE = createMockDatabase({
   id: TEST_DATABASE_ID,
   name: "Test Database",
   tables: [TEST_TABLE, TEST_FK_TABLE_1],
-});
-
-const TEST_DATABASE_WITHOUT_NESTED_QUERIES = createMockDatabase({
-  ...TEST_DATABASE,
-  features: TEST_DATABASE.features.filter(
-    feature => feature !== "nested-queries",
-  ),
 });
 
 const TEST_DATABASE_WITH_ACTIONS = createMockDatabase({
@@ -204,7 +190,6 @@ type SetupOpts = {
   databases?: Database[];
   collections?: Collection[];
   usedBy?: Card[];
-  settings?: Partial<Settings>;
 };
 
 async function setup({
@@ -214,11 +199,7 @@ async function setup({
   databases = [TEST_DATABASE],
   collections = [],
   usedBy = [],
-  settings = {},
 }: SetupOpts) {
-  const storeInitialState = createMockState({
-    settings: createMockSettingsState(settings),
-  });
   const metadata = createMockMetadata({
     databases: databases,
     tables: [TEST_TABLE, TEST_FK_TABLE_1],
@@ -245,7 +226,7 @@ async function setup({
 
   setupCardsEndpoints([card]);
   setupModelActionsEndpoints(actions, model.id());
-  setupCollectionsEndpoints({ collections });
+  setupCollectionsEndpoints(collections);
 
   const name = model.displayName()?.toLowerCase();
   const slug = `${model.id()}-${name}`;
@@ -274,10 +255,10 @@ async function setup({
       </Route>
       <Route path="/question/:slug" component={() => null} />
     </>,
-    { withRouter: true, initialRoute, storeInitialState },
+    { withRouter: true, initialRoute },
   );
 
-  await waitForLoaderToBeRemoved();
+  await waitForElementToBeRemoved(() => screen.queryAllByText(/Loading/i));
 
   return { model, history, baseUrl, metadata, usedByQuestions, modelUpdateSpy };
 }
@@ -314,17 +295,17 @@ describe("ModelDetailPage", () => {
       expect(screen.getByLabelText("Description")).toHaveTextContent("Foo Bar");
     });
 
-    it("displays model creator", async () => {
+    it("displays model contact", async () => {
       const creator = createMockUser();
       await setup({ model: getModel({ creator }) });
 
-      expect(screen.getByLabelText("Created by")).toHaveTextContent(
+      expect(screen.getByLabelText("Contact")).toHaveTextContent(
         creator.common_name,
       );
     });
 
     describe("management", () => {
-      it("allows to rename model", async () => {
+      it("allows to rename modal", async () => {
         const { model, modelUpdateSpy } = await setup({ model: getModel() });
 
         const input = screen.getByDisplayValue(model.displayName() as string);
@@ -407,34 +388,10 @@ describe("ModelDetailPage", () => {
 
         expect(
           screen.getByRole("link", { name: /Create a new question/i }),
-        ).toHaveAttribute("href", ML_Urls.getUrl(model));
+        ).toHaveAttribute("href", model.getUrl());
         expect(
           screen.getByText(/This model is not used by any questions yet/i),
         ).toBeInTheDocument();
-      });
-
-      it("does not offer creating new questions if database does not support nested queries", async () => {
-        await setup({
-          model: getModel(),
-          databases: [TEST_DATABASE_WITHOUT_NESTED_QUERIES],
-        });
-
-        expect(
-          screen.queryByRole("link", { name: /Create a new question/i }),
-        ).not.toBeInTheDocument();
-      });
-
-      it("does not offer creating new questions if nested queries are disabled", async () => {
-        await setup({
-          model: getModel(),
-          settings: {
-            "enable-nested-queries": false,
-          },
-        });
-
-        expect(
-          screen.queryByRole("link", { name: /Create a new question/i }),
-        ).not.toBeInTheDocument();
       });
 
       it("lists questions based on the model", async () => {
@@ -449,11 +406,11 @@ describe("ModelDetailPage", () => {
 
         expect(screen.getByRole("link", { name: "Q1" })).toHaveAttribute(
           "href",
-          ML_Urls.getUrl(q1),
+          q1.getUrl(),
         );
         expect(screen.getByRole("link", { name: "Q2" })).toHaveAttribute(
           "href",
-          ML_Urls.getUrl(q2),
+          q2.getUrl(),
         );
 
         expect(
@@ -838,7 +795,7 @@ describe("ModelDetailPage", () => {
 
       expect(
         list.getByRole("link", { name: TABLE_1.displayName() }),
-      ).toHaveAttribute("href", ML_Urls.getUrl(TABLE_1.newQuestion()));
+      ).toHaveAttribute("href", TABLE_1.newQuestion().getUrl());
       expect(list.queryByText("Reviews")).not.toBeInTheDocument();
     });
 
@@ -1018,9 +975,7 @@ describe("ModelDetailPage", () => {
         model: createSavedStructuredCard(),
       });
 
-      expect(history?.getCurrentLocation().pathname).toBe(
-        ML_Urls.getUrl(question),
-      );
+      expect(history?.getCurrentLocation().pathname).toBe(question.getUrl());
     });
 
     it("shows 404 when opening an archived model", async () => {

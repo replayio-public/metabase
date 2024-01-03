@@ -28,17 +28,5 @@ export type MBQLClauseFunctionConfig = {
   type: string;
   args: string[];
   requiresFeature?: string;
-  hasOptions?: boolean;
-  multiple?: boolean;
-  tokenName?: string;
-  name?: string;
-
-  validator?: (...args: any) => string | undefined;
 };
 export type MBQLClauseMap = Record<string, MBQLClauseFunctionConfig>;
-
-export type ErrorWithMessage = {
-  message: string;
-  pos?: number | null;
-  len?: number | null;
-};

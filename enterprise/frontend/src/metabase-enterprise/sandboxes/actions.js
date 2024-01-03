@@ -13,6 +13,15 @@ import {
 import { GTAPApi } from "metabase/services";
 import { getPolicyKeyFromParams, getPolicyKey } from "./utils";
 
+export const FETCH_ATTRIBUTES =
+  "metabase-enterprise/sandboxes/FETCH_ATTRIBUTES";
+export const fetchAttributes = createThunkAction(
+  FETCH_ATTRIBUTES,
+  () => async () => {
+    return await GTAPApi.attributes();
+  },
+);
+
 export const FETCH_POLICY = "metabase-enterprise/sandboxes/FETCH_POLICY";
 export const fetchPolicy = withRequestState(params => [
   "plugins",
@@ -85,7 +94,19 @@ const originalGroupTableAccessPolicies = handleActions(
   {},
 );
 
+const attributes = handleActions(
+  {
+    [FETCH_ATTRIBUTES]: {
+      next(_state, { payload }) {
+        return payload;
+      },
+    },
+  },
+  null,
+);
+
 export default combineReducers({
   originalGroupTableAccessPolicies,
   groupTableAccessPolicies,
+  attributes,
 });

@@ -49,15 +49,8 @@ export default class TextPicker extends Component {
   }
 
   render() {
-    const {
-      validations,
-      multi,
-      onCommit,
-      isSingleLine,
-      autoFocus,
-      prefix,
-      "data-testid": testId,
-    } = this.props;
+    const { validations, multi, onCommit, isSingleLine, autoFocus, prefix } =
+      this.props;
     const hasInvalidValues = _.some(validations, v => v === false);
 
     const commitOnEnter = e => {
@@ -67,7 +60,7 @@ export default class TextPicker extends Component {
     };
 
     return (
-      <div data-testid={testId ?? "text-picker"}>
+      <div>
         <div className="FilterInput px1 pt1 relative flex align-center">
           {!!prefix && (
             <span

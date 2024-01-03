@@ -27,8 +27,5 @@ export const SAMLFormCaption = styled.div`
 
 export const SAMLFormFooter = styled.div`
   display: flex;
-  flex-direction: column;
-  align-items: start;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 0.5rem;
 `;

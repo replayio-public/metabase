@@ -1,5 +1,4 @@
 import type {
-  Collection,
   Parameter,
   ParameterId,
   ParameterTarget,
@@ -15,13 +14,12 @@ export type DashboardId = number | string;
 
 export interface Dashboard {
   id: DashboardId;
-  collection?: Collection | null;
   collection_id: number | null;
   name: string;
   description: string | null;
   model?: string;
-  dashcards: (DashboardCard | ActionDashboardCard)[];
-  tabs?: DashboardTab[];
+  ordered_cards: (DashboardOrderedCard | ActionDashboardCard)[];
+  ordered_tabs?: DashboardOrderedTab[];
   parameters?: Parameter[] | null;
   can_write: boolean;
   cache_ttl: number | null;
@@ -33,16 +31,11 @@ export interface Dashboard {
     timestamp: string;
   };
   auto_apply_filters: boolean;
-  archived: boolean;
-  public_uuid: string | null;
-
-  /* Indicates whether static embedding for this dashboard has been published */
-  enable_embedding: boolean;
 }
 
 export type DashCardId = number;
 
-export type BaseDashboardCard = {
+export type BaseDashboardOrderedCard = {
   id: DashCardId;
   dashboard_id: DashboardId;
   dashboard_tab_id?: DashboardTabId;
@@ -61,13 +54,13 @@ export type BaseDashboardCard = {
   updated_at: string;
 };
 
-export type VirtualCardDisplay = "text" | "action" | "link" | "heading";
+export type VirtualCardDisplay = "text" | "action" | "link";
 
 export type VirtualCard = Partial<Card> & {
   display: VirtualCardDisplay;
 };
 
-export type DashboardCard = BaseDashboardCard & {
+export type DashboardOrderedCard = BaseDashboardOrderedCard & {
   card_id: CardId | null;
   card: Card;
   parameter_mappings?: DashboardParameterMapping[] | null;
@@ -76,7 +69,7 @@ export type DashboardCard = BaseDashboardCard & {
 
 export type DashboardTabId = number;
 
-export type DashboardTab = {
+export type DashboardOrderedTab = {
   id: DashboardTabId;
   dashboard_id: DashboardId;
   entity_id: string;

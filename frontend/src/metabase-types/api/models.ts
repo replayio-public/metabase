@@ -1,4 +1,4 @@
-import type {
+import {
   BaseUser,
   CardId,
   CollectionId,

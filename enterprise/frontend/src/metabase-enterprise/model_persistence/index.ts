@@ -3,12 +3,12 @@ import { t } from "ttag";
 import { PLUGIN_MODEL_PERSISTENCE } from "metabase/plugins";
 import { hasPremiumFeature } from "metabase-enterprise/settings";
 
-import type Question from "metabase-lib/Question";
+import Question from "metabase-lib/Question";
 import ModelCacheControl, {
   toggleModelPersistence,
 } from "./components/ModelCacheControl";
 
-if (hasPremiumFeature("cache_granular_controls")) {
+if (hasPremiumFeature("advanced_config")) {
   PLUGIN_MODEL_PERSISTENCE.isModelLevelPersistenceEnabled = () => true;
 
   PLUGIN_MODEL_PERSISTENCE.ModelCacheControl = ModelCacheControl;

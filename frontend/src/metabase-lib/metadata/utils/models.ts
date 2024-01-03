@@ -1,4 +1,4 @@
-import type {
+import {
   Card,
   DatasetColumn,
   FieldReference,
@@ -9,9 +9,9 @@ import type {
   FieldId,
 } from "metabase-types/api";
 import { getQuestionVirtualTableId } from "metabase-lib/metadata/utils/saved-questions";
-import type Database from "metabase-lib/metadata/Database";
-import type Question from "metabase-lib/Question";
-import type NativeQuery from "metabase-lib/queries/NativeQuery";
+import Database from "metabase-lib/metadata/Database";
+import Question from "metabase-lib/Question";
+import NativeQuery from "metabase-lib/queries/NativeQuery";
 import { isSameField } from "metabase-lib/queries/utils/field-ref";
 import { isStructured } from "metabase-lib/queries/utils";
 

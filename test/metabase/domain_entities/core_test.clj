@@ -6,6 +6,7 @@
    [metabase.models.table :as table :refer [Table]]
    [metabase.test.data :as data]
    [metabase.test.domain-entities :as test.de]
+   [toucan.hydrate :as hydrate]
    [toucan2.core :as t2]))
 
 (deftest mbql-reference-test
@@ -18,7 +19,7 @@
 (defn- hydrated-table
   [table-name]
   (-> (t2/select-one Table :id (data/id table-name))
-      (t2/hydrate :fields)))
+      (hydrate/hydrate :fields)))
 
 (deftest satisfies-requierments?-test
   (is (de/satisfies-requierments? (hydrated-table :venues) (test.de/test-domain-entity-specs "Venues"))))

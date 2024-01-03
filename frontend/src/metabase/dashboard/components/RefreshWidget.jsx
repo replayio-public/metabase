@@ -6,7 +6,7 @@ import PopoverWithTrigger from "metabase/components/PopoverWithTrigger";
 import Tooltip from "metabase/core/components/Tooltip";
 import CountdownIcon from "metabase/components/icons/CountdownIcon";
 
-import { DashboardHeaderButton } from "metabase/dashboard/components/DashboardHeader/DashboardHeader.styled";
+import { DashboardHeaderButton } from "metabase/dashboard/containers/DashboardHeader.styled";
 import {
   RefreshOptionIcon,
   RefreshOptionItem,
@@ -24,7 +24,7 @@ const OPTIONS = [
   { name: t`60 minutes`, period: 60 * 60 },
 ];
 
-export class RefreshWidget extends Component {
+export default class RefreshWidget extends Component {
   constructor(props) {
     super(props);
 
@@ -59,10 +59,7 @@ export class RefreshWidget extends Component {
         triggerElement={
           elapsed == null ? (
             <Tooltip tooltip={t`Auto-refresh`}>
-              <DashboardHeaderButton
-                icon="clock"
-                aria-label={t`Auto Refresh`}
-              />
+              <DashboardHeaderButton icon="clock" />
             </Tooltip>
           ) : (
             <Tooltip
@@ -83,7 +80,6 @@ export class RefreshWidget extends Component {
                     percent={Math.min(0.95, (period - elapsed) / period)}
                   />
                 }
-                aria-label={t`Auto Refresh`}
               />
             </Tooltip>
           )
@@ -121,6 +117,7 @@ const RefreshOption = ({ name, period, selected, onClick }) => (
     onClick={onClick}
   >
     <RefreshOptionIcon name="check" />
-    <span>{name}</span>
+    <span>{name.split(" ")[0]}</span>
+    <span>{name.split(" ")[1]}</span>
   </RefreshOptionItem>
 );

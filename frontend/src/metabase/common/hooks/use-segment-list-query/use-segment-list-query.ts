@@ -1,10 +1,10 @@
 import Segments from "metabase/entities/segments";
-import type {
+import {
+  useEntityListQuery,
   UseEntityListQueryProps,
   UseEntityListQueryResult,
 } from "metabase/common/hooks/use-entity-list-query";
-import { useEntityListQuery } from "metabase/common/hooks/use-entity-list-query";
-import type Segment from "metabase-lib/metadata/Segment";
+import Segment from "metabase-lib/metadata/Segment";
 
 export const useSegmentListQuery = (
   props: UseEntityListQueryProps = {},
@@ -15,6 +15,5 @@ export const useSegmentListQuery = (
     getLoading: Segments.selectors.getLoading,
     getLoaded: Segments.selectors.getLoaded,
     getError: Segments.selectors.getError,
-    getListMetadata: Segments.selectors.getListMetadata,
   });
 };

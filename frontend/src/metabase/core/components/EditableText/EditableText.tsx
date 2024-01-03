@@ -1,16 +1,23 @@
-import type {
+import {
   ChangeEvent,
   KeyboardEvent,
+  forwardRef,
   HTMLAttributes,
   Ref,
+  useCallback,
+  useEffect,
+  useState,
+  useRef,
   MouseEvent,
 } from "react";
-import { forwardRef, useCallback, useEffect, useState, useRef } from "react";
 
 import { usePrevious } from "react-use";
 
-import Markdown from "metabase/core/components/Markdown";
-import { EditableTextArea, EditableTextRoot } from "./EditableText.styled";
+import {
+  EditableTextArea,
+  EditableTextRoot,
+  Markdown,
+} from "./EditableText.styled";
 
 export type EditableTextAttributes = Omit<
   HTMLAttributes<HTMLDivElement>,
@@ -72,18 +79,21 @@ const EditableText = forwardRef(function EditableText(
     }
   }, [isInFocus, isMarkdown]);
 
-  const handleBlur = useCallback(() => {
-    setIsInFocus(false);
+  const handleBlur = useCallback(
+    e => {
+      setIsInFocus(false);
 
-    if (!isOptional && !inputValue) {
-      setInputValue(submitValue);
-    } else if (inputValue !== submitValue && submitOnBlur.current) {
-      setSubmitValue(inputValue);
-      onChange?.(inputValue);
-    }
+      if (!isOptional && !inputValue) {
+        setInputValue(submitValue);
+      } else if (inputValue !== submitValue && submitOnBlur.current) {
+        setSubmitValue(inputValue);
+        onChange?.(inputValue);
+      }
 
-    onBlur?.();
-  }, [inputValue, submitValue, isOptional, onChange, onBlur, setIsInFocus]);
+      onBlur?.();
+    },
+    [inputValue, submitValue, isOptional, onChange, onBlur, setIsInFocus],
+  );
 
   const handleChange = useCallback(
     (event: ChangeEvent<HTMLTextAreaElement>) => {
@@ -123,7 +133,6 @@ const EditableText = forwardRef(function EditableText(
       ref={ref}
       isEditing={isEditing}
       isDisabled={isDisabled}
-      isEditingMarkdown={!shouldShowMarkdown}
       data-value={`${displayValue}\u00A0`}
       data-testid="editable-text"
     >

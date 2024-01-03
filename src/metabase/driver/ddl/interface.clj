@@ -2,24 +2,22 @@
   (:require
    [clojure.string :as str]
    [metabase.driver :as driver]
-   [metabase.lib.schema.common :as lib.schema.common]
-   [metabase.lib.schema.id :as lib.schema.id]
    [metabase.public-settings :as public-settings]
-   [metabase.util.i18n :refer [tru]]
-   [metabase.util.malli :as mu])
+   [metabase.util.i18n :refer [tru]])
   (:import
    (java.time Instant)
    (java.time.format DateTimeFormatter)))
 
 (set! *warn-on-reflection* true)
 
-(mu/defn schema-name :- ::lib.schema.common/non-blank-string
+
+
+(defn schema-name
   "Returns a schema name for persisting models. Needs the database to use the db id and the site-uuid to ensure that
   multiple connections from multiple metabae remain distinct. The UUID will have the first character of each section taken.
 
   (schema-name {:id 234} \"143dd8ce-e116-4c7f-8d6d-32e99eaefbbc\") ->  \"metabase_cache_1e483_1\""
-  [{:keys [id] :as _database} :- [:map [:id ::lib.schema.id/database]]
-   site-uuid-string           :- ::lib.schema.common/non-blank-string]
+  [{:keys [id] :as _database} site-uuid-string]
   (let [instance-string (apply str (map first (str/split site-uuid-string #"-")))]
     (format "metabase_cache_%s_%s" instance-string id)))
 
@@ -31,7 +29,7 @@
   This is actually ultimately used to format any name that comes back
   from [[metabase.test.data.sql/qualified-name-components]] -- so if you include the Database name there, it will get
   formatted by this as well."
-  {:changelog-test/ignore true :added "0.44.0" :arglists '([driver table-or-field-name])}
+  {:arglists '([driver table-or-field-name])}
   driver/dispatch-on-initialized-driver
   :hierarchy #'driver/hierarchy)
 
@@ -47,7 +45,7 @@
   - [false :persist.check/create-table]
   - [false :persist.check/read-table]
   - [false :persist.check/delete-table]"
-  {:changelog-test/ignore true :added "0.44.0" :arglists '([database])}
+  {:arglists '([database])}
   (fn [database] (driver/dispatch-on-initialized-driver (:engine database)))
   :hierarchy #'driver/hierarchy)
 
@@ -90,12 +88,12 @@
   database. Assumes that the destination schema is populated and permissions are correct. This should all be true
   if `(driver/database-supports engine :persisted-models database)` returns true. Returns a map with :state that
   is :success or :error. If :state is :error, includes a key :error with a string message."
-  {:changelog-test/ignore true :added "0.44.0" :arglists '([driver database definition dataset-query])}
+  {:arglists '([driver database definition dataset-query])}
   driver/dispatch-on-initialized-driver
   :hierarchy #'driver/hierarchy)
 
 (defmulti unpersist!
   "Unpersist a persisted model. Responsible for removing the persisted table."
-  {:changelog-test/ignore true :added "0.44.0" :arglists '([driver database persisted-info])}
+  {:arglists '([driver database persisted-info])}
   driver/dispatch-on-initialized-driver
   :hierarchy #'driver/hierarchy)

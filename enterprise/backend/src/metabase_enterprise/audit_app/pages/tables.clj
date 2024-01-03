@@ -2,16 +2,14 @@
   (:require
    [metabase-enterprise.audit-app.interface :as audit.i]
    [metabase-enterprise.audit-app.pages.common :as common]
-   [metabase.models.permissions :as perms]
    [metabase.util.honey-sql-2 :as h2x]
-   [metabase.util.malli :as mu]))
+   [schema.core :as s]))
 
 ;; WITH table_executions AS (
 ;;     SELECT t.id AS table_id, count(*) AS executions
 ;;     FROM query_execution qe
 ;;     JOIN report_card card ON qe.card_id = card.id
 ;;     JOIN metabase_table t ON card.table_id = t.id
-;;     WHERE t.db_id != audit-db-id
 ;;     GROUP BY t.id
 ;;     ORDER BY count(*) {{asc-or-desc}}
 ;;     LIMIT 10
@@ -27,14 +25,13 @@
               [:table_name {:display_name "Table",      :base_type :type/Title,   :remapped_from :table_id}]
               [:executions {:display_name "Executions", :base_type :type/Integer}]]
    :results  (common/reducible-query
-              {:with [[:table_executions {:select   [[:t.id :table_id]
-                                                     [:%count.* :executions]]
-                                          :from     [[:query_execution :qe]]
-                                          :join     [[:report_card :card]     [:= :qe.card_id :card.id]
-                                                     [:metabase_table :t]     [:= :card.table_id :t.id]]
+              {:with [[:table_executions {:select [[:t.id :table_id]
+                                                   [:%count.* :executions]]
+                                          :from   [[:query_execution :qe]]
+                                          :join   [[:report_card :card]     [:= :qe.card_id :card.id]
+                                                   [:metabase_table :t]     [:= :card.table_id :t.id]]
                                           :group-by [:t.id]
                                           :order-by [[:%count.* asc-or-desc]]
-                                          :where    [:not= :t.db_id perms/audit-db-id]
                                           :limit    10}]]
                :select [:tx.table_id
                         [(h2x/concat :db.name (h2x/literal " ") :t.schema (h2x/literal " ") :t.name) :table_name]
@@ -55,10 +52,10 @@
   (query-counts :asc))
 
 ;; A table of Tables.
-(mu/defmethod audit.i/internal-query ::table
+(s/defmethod audit.i/internal-query ::table
   ([query-type]
    (audit.i/internal-query query-type nil))
-  ([_query-type query-string :- [:maybe :string]]
+  ([_ query-string :- (s/maybe s/Str)]
    {:metadata [[:database_id        {:display_name "Database ID",        :base_type :type/Integer, :remapped_to   :database_name}]
                [:database_name      {:display_name "Database",           :base_type :type/Text,    :remapped_from :database_id}]
                [:schema_id          {:display_name "Schema ID",          :base_type :type/Text,   :remapped_to   :schema_name}]
@@ -80,7 +77,5 @@
                 :order-by [[[:lower :db.name]  :asc]
                            [[:lower :t.schema] :asc]
                            [[:lower :t.name]   :asc]]
-                :where    [:and
-                           [:= :t.active true]
-                           [:not= :t.db_id perms/audit-db-id]]}
+                :where    [:= :t.active true]}
                (common/add-search-clause query-string :db.name :t.schema :t.name :t.display_name)))}))

@@ -10,7 +10,7 @@ import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
 
 const { ORDERS, PRODUCTS_ID } = SAMPLE_DATABASE;
 
-const foreignKeyColumnName = "Surprisingly long and awesome Product ID";
+const newColumnName = "Product ID with a very long name";
 const newTableName = "Products with a very long name";
 
 describe("issue 20627", () => {
@@ -18,7 +18,7 @@ describe("issue 20627", () => {
     restore();
     cy.signInAsAdmin();
 
-    renameColumn(ORDERS.PRODUCT_ID, foreignKeyColumnName);
+    renameColumn(ORDERS.PRODUCT_ID, newColumnName);
     renameTable(PRODUCTS_ID, newTableName);
   });
 
@@ -38,7 +38,7 @@ describe("issue 20627", () => {
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
     cy.findByText("Pick a column to group by").click();
     popover().within(() => {
-      cy.findByText(newTableName).click();
+      cy.contains(newTableName).click();
 
       cy.findByText("Category").click();
     });

@@ -1,8 +1,4 @@
 import { t } from "ttag";
-import {
-  getDefaultSize,
-  getMinSize,
-} from "metabase/visualizations/shared/utils/sizes";
 import LineAreaBarChart from "../components/LineAreaBarChart.jsx";
 import { comboRenderer } from "../lib/LineAreaBarRenderer";
 import { GRAPH_GOAL_SETTINGS } from "../lib/settings/goal";
@@ -20,9 +16,6 @@ export default class LineChart extends LineAreaBarChart {
   static identifier = "combo";
   static iconName = "lineandbar";
   static noun = t`line and bar chart`;
-
-  static minSize = getMinSize("combo");
-  static defaultSize = getDefaultSize("combo");
 
   static settings = {
     ...LINE_SETTINGS,

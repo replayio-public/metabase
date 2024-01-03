@@ -3,7 +3,7 @@
   to queries ran internally e.g. as part of the sync process).
   These include things like saving QueryExecutions and adding query ViewLogs, storing exceptions and formatting the results."
   (:require
-   [java-time.api :as t]
+   [java-time :as t]
    [metabase.events :as events]
    [metabase.models.query :as query]
    [metabase.models.query-execution
@@ -12,7 +12,6 @@
    [metabase.query-processor.util :as qp.util]
    [metabase.util.i18n :refer [trs]]
    [metabase.util.log :as log]
-   #_{:clj-kondo/ignore [:discouraged-namespace]}
    [toucan2.core :as t2]))
 
 (set! *warn-on-reflection* true)
@@ -59,12 +58,8 @@
                                                              (catch Throwable e
                                                                (log/error e (trs "Error saving query execution info"))))))))
 
-(defn- save-successful-query-execution! [cache-details is_sandboxed? query-execution result-rows]
-  (let [qe-map (assoc query-execution
-                      :cache_hit    (boolean (:cached cache-details))
-                      :cache_hash   (:hash cache-details)
-                      :result_rows  result-rows
-                      :is_sandboxed (boolean is_sandboxed?))]
+(defn- save-successful-query-execution! [cached? query-execution result-rows]
+  (let [qe-map (assoc query-execution :cache_hit (boolean cached?) :result_rows result-rows)]
     (save-query-execution! qe-map)))
 
 (defn- save-failed-query-execution! [query-execution message]
@@ -75,15 +70,14 @@
 ;;; |                                                   Middleware                                                   |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
-(defn- success-response [{query-hash :hash, :as query-execution} {cache :cache/details :as result}]
+(defn- success-response [{query-hash :hash, :as query-execution} {cached? :cached, :as result}]
   (merge
    (-> query-execution
        add-running-time
-       (dissoc :error :hash :executor_id :action_id :is_sandboxed :card_id :dashboard_id :pulse_id :result_rows :native))
-   (dissoc result :cache/details)
-   {:cached                 (boolean (:cached cache))
-    :status                 :completed
-    :average_execution_time (when (:cached cache)
+       (dissoc :error :hash :executor_id :card_id :dashboard_id :pulse_id :result_rows :native))
+   result
+   {:status                 :completed
+    :average_execution_time (when cached?
                               (query/average-execution-time-ms query-hash))}))
 
 (defn- add-and-save-execution-info-xform! [execution-info rf]
@@ -97,10 +91,12 @@
       ([acc]
        ;; We don't actually have a guarantee that it's from a card just because it's userland
        (when (integer? (:card_id execution-info))
-         (events/publish-event! :event/card-query {:user-id      (:executor_id execution-info)
-                                                   :card-id      (:card_id execution-info)
-                                                   :context      (:context execution-info)}))
-       (save-successful-query-execution! (:cache/details acc) (get-in acc [:data :is_sandboxed]) execution-info @row-count)
+         (events/publish-event! :card-query {:card_id      (:card_id execution-info)
+                                             :actor_id     (:executor_id execution-info)
+                                             :cached       (:cached acc)
+                                             :context      (:context execution-info)
+                                             :ignore_cache (get-in execution-info [:json_query :middleware :ignore-cached-results?])}))
+       (save-successful-query-execution! (:cached acc) execution-info @row-count)
        (rf (if (map? acc)
              (success-response execution-info acc)
              acc)))
@@ -112,14 +108,13 @@
 (defn- query-execution-info
   "Return the info for the QueryExecution entry for this `query`."
   {:arglists '([query])}
-  [{{:keys [executed-by query-hash context action-id card-id dashboard-id pulse-id]} :info
-    database-id                                                                      :database
-    query-type                                                                       :type
-    :as                                                                              query}]
+  [{{:keys [executed-by query-hash context card-id dashboard-id pulse-id]} :info
+    database-id                                                            :database
+    query-type                                                             :type
+    :as                                                                    query}]
   {:pre [(instance? (Class/forName "[B") query-hash)]}
   {:database_id       database-id
    :executor_id       executed-by
-   :action_id         action-id
    :card_id           card-id
    :dashboard_id      dashboard-id
    :pulse_id          pulse-id

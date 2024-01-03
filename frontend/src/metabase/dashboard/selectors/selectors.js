@@ -17,13 +17,10 @@ import { getEmbedOptions, getIsEmbedded } from "metabase/selectors/embed";
 import Question from "metabase-lib/Question";
 
 import { isVirtualDashCard } from "../utils";
-import {
-  getDashboardId,
-  getDashCardById,
-  getDashcards,
-} from "./selectors-typed";
+import { getDashboardId } from "./selectors_typed";
 
 export const getIsEditing = state => !!state.dashboard.isEditing;
+export const getDashboardBeforeEditing = state => state.dashboard.isEditing;
 export const getClickBehaviorSidebarDashcard = state => {
   const { sidebar, dashcards } = state.dashboard;
   return sidebar.name === SIDEBAR_NAME.clickBehavior
@@ -31,6 +28,7 @@ export const getClickBehaviorSidebarDashcard = state => {
     : null;
 };
 export const getDashboards = state => state.dashboard.dashboards;
+export const getDashcards = state => state.dashboard.dashcards;
 export const getCardData = state => state.dashboard.dashcardData;
 export const getSlowCards = state => state.dashboard.slowCards;
 export const getParameterValues = state => state.dashboard.parameterValues;
@@ -79,9 +77,6 @@ export const getIsShowDashboardInfoSidebar = createSelector(
   sidebar => sidebar.name === SIDEBAR_NAME.info,
 );
 
-/**
- * @type {(state: import("metabase-types/store").State) => import("metabase-types/api").Dashboard}
- */
 export const getDashboard = createSelector(
   [getDashboardId, getDashboards],
   (dashboardId, dashboards) => dashboards[dashboardId],
@@ -92,6 +87,11 @@ export const getLoadingDashCards = state => state.dashboard.loadingDashCards;
 export const getDashboardById = (state, dashboardId) => {
   const dashboards = getDashboards(state);
   return dashboards[dashboardId];
+};
+
+export const getDashCardById = (state, dashcardId) => {
+  const dashcards = getDashcards(state);
+  return dashcards[dashcardId];
 };
 
 export const getSingleDashCardData = (state, dashcardId) => {
@@ -115,33 +115,13 @@ export const getDashCardTable = (state, dashcardId) => {
 
 export const getDashboardComplete = createSelector(
   [getDashboard, getDashcards],
-  (dashboard, dashcards) => {
-    if (!dashboard) {
-      return null;
-    }
-
-    const orderedDashcards = dashboard.dashcards
-      .map(id => dashcards[id])
-      .filter(dc => !dc.isRemoved)
-      .sort((a, b) => {
-        const rowDiff = a.row - b.row;
-
-        // sort by y position first
-        if (rowDiff !== 0) {
-          return rowDiff;
-        }
-
-        // for items on the same row, sort by x position
-        return a.col - b.col;
-      });
-
-    return (
-      dashboard && {
-        ...dashboard,
-        dashcards: orderedDashcards,
-      }
-    );
-  },
+  (dashboard, dashcards) =>
+    dashboard && {
+      ...dashboard,
+      ordered_cards: dashboard.ordered_cards
+        .map(id => dashcards[id])
+        .filter(dc => !dc.isRemoved),
+    },
 );
 
 export const getAutoApplyFiltersToastId = state =>
@@ -175,22 +155,21 @@ const getIsParameterValuesEmpty = createSelector(
 
 export const getCanShowAutoApplyFiltersToast = createSelector(
   [
-    getDashboard,
+    getDashboardId,
     getAutoApplyFiltersToastDashboardId,
     getIsAutoApplyFilters,
     getIsSlowDashboard,
     getIsParameterValuesEmpty,
   ],
   (
-    dashboard,
+    dashboardId,
     toastDashboardId,
     isAutoApply,
     isSlowDashboard,
     isParameterValuesEmpty,
   ) => {
     return (
-      dashboard.can_write &&
-      dashboard.id !== toastDashboardId &&
+      dashboardId !== toastDashboardId &&
       isAutoApply &&
       isSlowDashboard &&
       !isParameterValuesEmpty
@@ -201,7 +180,7 @@ export const getCanShowAutoApplyFiltersToast = createSelector(
 export const getDocumentTitle = state =>
   state.dashboard.loadingControls.documentTitle;
 
-export const getIsNavigatingBackToDashboard = state =>
+export const getisNavigatingBackToDashboard = state =>
   state.dashboard.isNavigatingBackToDashboard;
 
 export const getIsBookmarked = (state, props) =>
@@ -217,7 +196,7 @@ export const getIsDirty = createSelector(
       dashboard &&
       (dashboard.isDirty ||
         _.some(
-          dashboard.dashcards,
+          dashboard.ordered_cards,
           id =>
             !(dashcards[id].isAdded && dashcards[id].isRemoved) &&
             (dashcards[id].isDirty ||
@@ -282,6 +261,18 @@ export const getParameterMappingOptions = createSelector(
   (metadata, parameter, card, dashcard) => {
     return _getParameterMappingOptions(metadata, parameter, card, dashcard);
   },
+);
+
+export const getDefaultParametersById = createSelector(
+  [getDashboard],
+  dashboard =>
+    ((dashboard && dashboard.parameters) || []).reduce((map, parameter) => {
+      if (parameter.default) {
+        map[parameter.id] = parameter.default;
+      }
+
+      return map;
+    }, {}),
 );
 
 export const getIsHeaderVisible = createSelector(

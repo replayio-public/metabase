@@ -1,17 +1,17 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
-import _ from "underscore";
 import type { DependentMetadataItem, DatasetQuery } from "metabase-types/api";
-import type Metadata from "metabase-lib/metadata/Metadata";
-import type Question from "metabase-lib/Question";
+import Metadata from "metabase-lib/metadata/Metadata";
+import Question from "metabase-lib/Question";
 import Dimension from "metabase-lib/Dimension";
-import type Variable from "metabase-lib/variables/Variable";
+import Variable from "metabase-lib/variables/Variable";
+import { memoizeClass } from "metabase-lib/utils";
 import DimensionOptions from "metabase-lib/DimensionOptions";
 
 /**
  * An abstract class for all query types (StructuredQuery & NativeQuery)
  */
-class Query {
+class QueryInner {
   _metadata: Metadata;
 
   /**
@@ -31,9 +31,9 @@ class Query {
    * Returns a question updated with the current dataset query.
    * Can only be applied to query that is a direct child of the question.
    */
-  question = _.once((): Question => {
+  question(): Question {
     return this._originalQuestion.setQuery(this);
-  });
+  }
 
   /**
    * Returns a "clean" version of this query with invalid parts removed
@@ -63,7 +63,7 @@ class Query {
     return this._datasetQuery;
   }
 
-  setDatasetQuery(_datasetQuery: DatasetQuery): Query {
+  setDatasetQuery(datasetQuery: DatasetQuery): QueryInner {
     return this;
   }
 
@@ -94,7 +94,7 @@ class Query {
    * NOTE: Ideally we'd also have `dimensions()` that returns a flat list, but currently StructuredQuery has it's own `dimensions()` for another purpose.
    */
   dimensionOptions(
-    _filter?: (dimension: Dimension) => boolean,
+    filter: (dimension: Dimension) => boolean,
   ): DimensionOptions {
     return new DimensionOptions();
   }
@@ -102,7 +102,7 @@ class Query {
   /**
    * Variables exposed by this query
    */
-  variables(_filter?: (variable: Variable) => boolean): Variable[] {
+  variables(filter: (variable: Variable) => boolean): Variable[] {
     return [];
   }
 
@@ -113,7 +113,7 @@ class Query {
     return [];
   }
 
-  setDefaultQuery(): Query {
+  setDefaultQuery(): QueryInner {
     return this;
   }
 
@@ -123,4 +123,6 @@ class Query {
 }
 
 // eslint-disable-next-line import/no-default-export -- deprecated usage
-export default Query;
+export default class Query extends memoizeClass<QueryInner>("question")(
+  QueryInner,
+) {}

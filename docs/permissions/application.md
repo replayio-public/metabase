@@ -29,11 +29,11 @@ Settings access defines which groups can view and edit the settings under the Ad
 
 ## Monitoring access
 
-Monitoring access sets permissions for the following:
+Monitoring access sets permissions on the following Admin tabs:
 
 - [Tools](../usage-and-performance-tools/tools.md)
-- [Troubleshooting](../troubleshooting-guide/index.md)
 - [Auditing](../usage-and-performance-tools/audit.md)
+- [Troubleshooting](../troubleshooting-guide/index.md)
 
 ## Subscriptions and alerts
 

@@ -1,4 +1,4 @@
-import type { ParameterValues } from "metabase-types/api";
+import { ParameterValues } from "metabase-types/api";
 
 export type ParameterValuesCache = Record<string, ParameterValues>;
 

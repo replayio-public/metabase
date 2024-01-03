@@ -3,7 +3,7 @@ import { getIn } from "icepick";
 
 import type {
   Dashboard,
-  DashboardCard,
+  DashboardOrderedCard,
   DashCardId,
   CardId,
   ClickBehavior,
@@ -14,14 +14,14 @@ import type {
 import { isTableDisplay } from "metabase/lib/click-behavior";
 import type { UiParameter } from "metabase-lib/parameters/types";
 import { getClickBehaviorForColumn } from "./utils";
-import { ClickBehaviorSidebarMainView } from "./ClickBehaviorSidebarMainView/ClickBehaviorSidebarMainView";
-import { TableClickBehaviorView } from "./TableClickBehaviorView/TableClickBehaviorView";
-import { TypeSelector } from "./TypeSelector/TypeSelector";
+import ClickBehaviorSidebarMainView from "./ClickBehaviorSidebarMainView";
+import TableClickBehaviorView from "./TableClickBehaviorView";
+import TypeSelector from "./TypeSelector";
 import { SidebarContent } from "./ClickBehaviorSidebar.styled";
 
 interface Props {
   dashboard: Dashboard;
-  dashcard: DashboardCard;
+  dashcard: DashboardOrderedCard;
   dashcardData: Record<DashCardId, Record<CardId, DatasetData>>;
   parameters: UiParameter[];
   clickBehavior?: ClickBehavior;
@@ -32,7 +32,7 @@ interface Props {
   onTypeSelectorVisibilityChange: (isVisible: boolean) => void;
 }
 
-export function ClickBehaviorSidebarContent({
+function ClickBehaviorSidebar({
   dashboard,
   dashcard,
   dashcardData,
@@ -90,3 +90,6 @@ export function ClickBehaviorSidebarContent({
     />
   );
 }
+
+// eslint-disable-next-line import/no-default-export -- deprecated usage
+export default ClickBehaviorSidebar;

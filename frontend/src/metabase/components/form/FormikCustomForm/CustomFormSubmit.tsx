@@ -1,4 +1,4 @@
-import type * as React from "react";
+import * as React from "react";
 import { t } from "ttag";
 
 import ActionButton from "metabase/components/ActionButton";

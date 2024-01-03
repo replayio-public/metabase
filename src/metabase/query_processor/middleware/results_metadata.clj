@@ -4,13 +4,11 @@
    as a checksum in the API response."
   (:require
    [metabase.driver :as driver]
-   [metabase.lib.metadata :as lib.metadata]
    [metabase.query-processor.reducible :as qp.reducible]
    [metabase.query-processor.store :as qp.store]
    [metabase.sync.analyze.query-results :as qr]
    [metabase.util.i18n :refer [tru]]
    [metabase.util.log :as log]
-   #_{:clj-kondo/ignore [:discouraged-namespace]}
    [toucan2.core :as t2]))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
@@ -30,10 +28,10 @@
     ;; if its DB doesn't support nested queries in the first place
     (when (and metadata
                driver/*driver*
-               (driver/database-supports? driver/*driver* :nested-queries (lib.metadata/database (qp.store/metadata-provider)))
+               (driver/database-supports? driver/*driver* :nested-queries (qp.store/database))
                card-id
                (not source-card-id))
-      (t2/update! :model/Card card-id {:result_metadata metadata}))
+      (t2/update! 'Card card-id {:result_metadata metadata}))
     ;; if for some reason we weren't able to record results metadata for this query then just proceed as normal
     ;; rather than failing the entire query
     (catch Throwable e
@@ -69,8 +67,7 @@
        (record! metadata)
        (rf (cond-> result
              (map? result)
-             (update :data
-                     assoc
+             (update :data             assoc
                      :results_metadata {:columns metadata}
                      :insights         insights)))))))
 

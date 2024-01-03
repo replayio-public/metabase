@@ -1,7 +1,5 @@
 export * from "./admin";
 export * from "./app";
-export * from "./auth";
-export * from "./collection";
 export * from "./dashboard";
 export * from "./embed";
 export * from "./entities";

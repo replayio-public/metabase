@@ -4,15 +4,18 @@ import SavedQuestionLoader from "metabase/containers/SavedQuestionLoader";
 import { renderWithProviders } from "__support__/ui";
 import {
   setupCardEndpoints,
+  setupSchemaEndpoints,
   setupUnauthorizedSchemaEndpoints,
   setupUnauthorizedCardEndpoints,
-  setupDatabaseEndpoints,
 } from "__support__/server-mocks";
-import { createMockCard, createMockColumn } from "metabase-types/api/mocks";
-import { createSampleDatabase } from "metabase-types/api/mocks/presets";
+import {
+  createMockCard,
+  createMockColumn,
+  createMockDatabase,
+} from "metabase-types/api/mocks";
 import Question from "metabase-lib/Question";
 
-const databaseMock = createSampleDatabase();
+const databaseMock = createMockDatabase({ id: 1 });
 
 const childrenRenderFn = ({ loading, question, error }) => {
   if (error) {
@@ -45,7 +48,7 @@ const setupQuestion = ({ id, name, hasAccess }) => {
 
 const setup = ({ questionId, hasAccess }) => {
   if (hasAccess) {
-    setupDatabaseEndpoints(databaseMock);
+    setupSchemaEndpoints(databaseMock);
   } else {
     setupUnauthorizedSchemaEndpoints(databaseMock);
   }

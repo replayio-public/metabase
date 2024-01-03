@@ -1,5 +1,4 @@
 import styled from "@emotion/styled";
-import type { ComponentPropsWithRef } from "react";
 import { color } from "metabase/lib/colors";
 import { Icon } from "metabase/core/components/Icon";
 import { space } from "metabase/styled-components/theme";
@@ -56,15 +55,7 @@ interface SelectButtonIconProps {
   highlighted: boolean;
 }
 
-export const SelectButtonIcon = styled(
-  ({
-    hasValue,
-    highlighted,
-    ...rest
-  }: SelectButtonIconProps & ComponentPropsWithRef<typeof Icon>) => (
-    <Icon {...rest} />
-  ),
-)`
+export const SelectButtonIcon = styled(Icon)<SelectButtonIconProps>`
   display: flex;
   margin-left: auto;
   color: ${({ hasValue, highlighted }) =>

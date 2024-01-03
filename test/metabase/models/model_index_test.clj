@@ -1,24 +1,23 @@
 (ns metabase.models.model-index-test
-  (:require
-   [clojure.set :as set]
-   [clojure.test :refer :all]
-   [clojurewerkz.quartzite.conversion :as qc]
-   [clojurewerkz.quartzite.scheduler :as qs]
-   [malli.core :as mc]
-   [malli.error :as me]
-   [metabase.driver :as driver]
-   [metabase.models.card :refer [Card]]
-   [metabase.models.model-index :as model-index :refer [ModelIndex
-                                                        ModelIndexValue]]
-   [metabase.query-processor :as qp]
-   [metabase.task :as task]
-   [metabase.task.index-values :as task.index-values]
-   [metabase.task.sync-databases :as task.sync-databases]
-   [metabase.test :as mt]
-   [metabase.test.util :as tu]
-   [metabase.util :as u]
-   [toucan2.core :as t2]
-   [toucan2.tools.with-temp :as t2.with-temp]))
+  (:require [clojure.set :as set]
+            [clojure.test :refer :all]
+            [clojurewerkz.quartzite.conversion :as qc]
+            [clojurewerkz.quartzite.scheduler :as qs]
+            [malli.core :as mc]
+            [malli.error :as me]
+            [metabase.driver :as driver]
+            [metabase.models.card :refer [Card]]
+            [metabase.models.model-index :as model-index :refer [ModelIndex
+                                                                 ModelIndexValue]]
+            [metabase.query-processor :as qp]
+            [metabase.task :as task]
+            [metabase.task.index-values :as task.index-values]
+            [metabase.task.sync-databases :as task.sync-databases]
+            [metabase.test :as mt]
+            [metabase.test.util :as tu]
+            [metabase.util :as u]
+            [toucan2.core :as t2]
+            [toucan2.tools.with-temp :as t2.with-temp]))
 
 (defmacro with-scheduler-setup [& body]
   `(let [scheduler# (#'tu/in-memory-scheduler)]
@@ -37,7 +36,7 @@
 
 (deftest quick-run-through
   (with-scheduler-setup
-    (mt/dataset test-data
+    (mt/dataset sample-dataset
       (let [query     (mt/mbql-query products)
             pk_ref    (mt/$ids $products.id)
             value_ref (mt/$ids $products.title)]
@@ -140,14 +139,10 @@
 
 (deftest fetch-values-test
   (mt/test-drivers (disj (mt/normal-drivers) :mongo)
-    (mt/dataset test-data
+    (mt/dataset sample-dataset
       (doseq [[scenario query [field-refs]]
               (remove nil?
                       [[:mbql (mt/mbql-query products {:fields [$id $title]})]
-                       [:mbql-custom-column (mt/mbql-query products {:expressions
-                                                                     {"full-name"
-                                                                      [:concat $title "custom"]}})
-                        [(mt/$ids [$products.id [:expression "full-name"]])]]
                        [:native (mt/native-query
                                  (qp/compile
                                   (mt/mbql-query products {:fields [$id $title]})))]
@@ -158,17 +153,18 @@
                                              :joins        [{:fields       :all,
                                                              :source-table $$orders,
                                                              :condition    [:=
-                                                                            $people.id
-                                                                            &Orders.orders.user_id],
+                                                                            [:field $people.id nil]
+                                                                            [:field $orders.user_id {:join-alias "Orders"}]],
                                                              :alias        "Orders"}
                                                             {:fields       :all,
                                                              :source-table $$products,
                                                              :condition    [:=
-                                                                            &Orders.orders.product_id
-                                                                            &Products.products.id],
+                                                                            [:field $orders.product_id {:join-alias "Orders"}]
+                                                                            [:field $products.id {:join-alias "Products"}]],
                                                              :alias        "Products"}]},
                                   :database (mt/id)})
-                          [(mt/$ids [&Products.products.id &Products.products.title])]])])]
+                          [(mt/$ids [[:field $products.id {:join-alias "Products"}]
+                                     [:field $products.title {:join-alias "Products"}]])]])])]
         (t2.with-temp/with-temp [Card model (mt/card-with-source-metadata-for-query
                                              query)]
           (testing (str "scenario: " scenario)
@@ -213,7 +209,7 @@
         (mt/user-http-request :rasta :delete 200 (str "/model-index/" (:id model-index)))))))
 
 (deftest model-index-test
-  (mt/dataset test-data
+  (mt/dataset sample-dataset
     (testing "Simple queries"
       (test-index {:query      (mt/mbql-query products)
                    :pk-name    "id"

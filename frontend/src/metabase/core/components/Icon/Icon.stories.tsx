@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Box, TextInput, Stack } from "metabase/ui";
+/* eslint-disable react/display-name */
+import type { StoryObj } from "@storybook/react";
+import styled from "@emotion/styled";
 import { Icon } from "./Icon";
 import { iconNames } from "./icons";
 
@@ -8,31 +9,25 @@ export default {
   component: Icon,
 };
 
-const Template = () => {
-  const [searchQuery, setSearchQuery] = useState("");
+type Story = StoryObj<typeof Icon>;
 
-  const filteredIconNames = iconNames.filter(name =>
-    name.includes(searchQuery.toLowerCase()),
-  );
-
-  return (
-    <Stack>
-      <TextInput
-        value={searchQuery}
-        type="search"
-        placeholder="Search"
-        onChange={e => setSearchQuery(e.target.value)}
-      />
-      <Box>
-        {filteredIconNames.map(icon => (
-          <Box key={icon} display="inline-block" w="100px" m="20px" ta="center">
-            <p>{icon}</p>
-            <Icon name={icon} />
-          </Box>
-        ))}
-      </Box>
-    </Stack>
-  );
+export const Default: Story = {
+  render: () => (
+    <div>
+      {iconNames.map(icon => (
+        <IconBlock key={icon}>
+          <p>{icon}</p>
+          <Icon name={icon} />
+        </IconBlock>
+      ))}
+    </div>
+  ),
 };
 
-export const Default = Template.bind({});
+const IconBlock = styled.div`
+  display: inline-block;
+  width: 100px;
+  margin: 20px;
+
+  text-align: center;
+`;

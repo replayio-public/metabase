@@ -6,8 +6,6 @@ import {
   visitQuestion,
 } from "e2e/support/helpers";
 
-import { ORDERS_QUESTION_ID } from "e2e/support/cypress_sample_instance_data";
-
 /**
  * The list of issues this spec covers:
  *  - metabase#15648
@@ -24,7 +22,7 @@ describe("scenarios > binning > from a saved QB question using implicit joins", 
 
   context("via simple question", () => {
     beforeEach(() => {
-      visitQuestion(ORDERS_QUESTION_ID);
+      visitQuestion(1);
       summarize();
     });
 
@@ -41,11 +39,11 @@ describe("scenarios > binning > from a saved QB question using implicit joins", 
       });
 
       // Make sure time series assertQueryBuilderState works as well
-      cy.findByTestId("timeseries-bucket-button").contains("Year").click();
+      cy.findAllByTestId("select-button-content").contains("Year").click();
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.findByText("Month").click();
 
-      cy.get(".cellData").should("contain", "April 1958").and("contain", "37");
+      cy.get(".cellData").should("contain", "April, 1958").and("contain", "37");
     });
 
     it("should work for number", () => {
@@ -77,7 +75,7 @@ describe("scenarios > binning > from a saved QB question using implicit joins", 
 
   context("via custom question", () => {
     beforeEach(() => {
-      cy.visit(`/question/${ORDERS_QUESTION_ID}/notebook`);
+      cy.visit("/question/1/notebook");
       summarize({ mode: "notebook" });
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.findByText("Count of rows").click();
@@ -106,11 +104,11 @@ describe("scenarios > binning > from a saved QB question using implicit joins", 
       });
 
       // Make sure time series assertQueryBuilderStateter works as well
-      cy.findByTestId("timeseries-bucket-button").contains("Year").click();
+      cy.findAllByTestId("select-button-content").contains("Year").click();
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.findByText("Month").click();
 
-      cy.get(".cellData").should("contain", "April 1958").and("contain", "37");
+      cy.get(".cellData").should("contain", "April, 1958").and("contain", "37");
     });
 
     it("should work for number", () => {

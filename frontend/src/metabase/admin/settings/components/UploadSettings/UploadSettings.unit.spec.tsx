@@ -1,16 +1,15 @@
 import userEvent from "@testing-library/user-event";
 
-import { checkNotNull } from "metabase/lib/types";
+import { checkNotNull } from "metabase/core/utils/types";
 import { getMetadata } from "metabase/selectors/metadata";
-import type { Database } from "metabase-types/api";
+import { Database } from "metabase-types/api";
 import { createMockDatabase, createMockTable } from "metabase-types/api/mocks";
 import { createMockState } from "metabase-types/store/mocks";
 import { createMockEntitiesState } from "__support__/store";
 import { renderWithProviders, screen, waitFor } from "__support__/ui";
 import { setupSchemaEndpoints } from "__support__/server-mocks";
 
-import type { UploadSettings } from "./UploadSettings";
-import { UploadSettingsView } from "./UploadSettings";
+import { UploadSettingsView, UploadSettings } from "./UploadSettings";
 
 const TEST_DATABASES = [
   createMockDatabase({
@@ -39,6 +38,12 @@ const TEST_DATABASES = [
     settings: { "database-enable-actions": true },
     tables: [createMockTable({ schema: "public" })],
     features: ["schemas"],
+  }),
+  createMockDatabase({
+    id: 4,
+    name: "Db Cuatro",
+    engine: "mongo",
+    settings: { "database-enable-actions": false },
   }),
   createMockDatabase({
     id: 5,
@@ -100,16 +105,14 @@ describe("Admin > Settings > UploadSetting", () => {
   it("should render a description", async () => {
     setup();
     expect(
-      screen.getByText("Allow people to upload data to Collections"),
+      screen.getByText("Allow users to upload data to Collections"),
     ).toBeInTheDocument();
   });
 
-  it("should show an empty state if there are no databases", async () => {
-    setup({ databases: [] });
+  it("should show an empty state if there are no actions-enabled databases", async () => {
+    setup({ databases: [TEST_DATABASES[3]] });
     expect(
-      screen.getByText(
-        "None of your databases are compatible with this version of the uploads feature.",
-      ),
+      screen.getByText("No actions-enabled databases available."),
     ).toBeInTheDocument();
   });
 
@@ -120,7 +123,7 @@ describe("Admin > Settings > UploadSetting", () => {
     expect(await screen.findByText("Db Uno")).toBeInTheDocument();
     expect(await screen.findByText("Db Dos")).toBeInTheDocument();
     expect(await screen.findByText("Db Tres")).toBeInTheDocument();
-    expect(await screen.findByText("Db Cinco")).toBeInTheDocument();
+    expect(screen.queryByText("Db Cuatro")).not.toBeInTheDocument();
   });
 
   it("should populate a dropdown of schema for schema-enabled DBs", async () => {
@@ -171,9 +174,8 @@ describe("Admin > Settings > UploadSetting", () => {
     const dbItem = await screen.findByText("Db Dos");
     userEvent.click(dbItem);
 
-    const prefixInput = await screen.findByPlaceholderText("upload_");
+    const prefixInput = await screen.findByPlaceholderText("uploaded_");
 
-    userEvent.clear(prefixInput);
     userEvent.type(prefixInput, "my_prefix_");
 
     userEvent.click(
@@ -188,35 +190,6 @@ describe("Admin > Settings > UploadSetting", () => {
     });
   });
 
-  it("should be able to submit a table prefix for databases with schema", async () => {
-    const { updateSpy } = setup();
-    userEvent.click(await screen.findByText("Select a database"));
-
-    const dbItem = await screen.findByText("Db Uno");
-    userEvent.click(dbItem);
-
-    const schemaDropdown = await screen.findByText("Select a schema");
-    userEvent.click(schemaDropdown);
-
-    const schemaItem = await screen.findByText("uploads");
-    userEvent.click(schemaItem);
-
-    const prefixInput = await screen.findByPlaceholderText("upload_");
-    userEvent.clear(prefixInput);
-    userEvent.type(prefixInput, "my_prefix_");
-
-    userEvent.click(
-      await screen.findByRole("button", { name: "Enable uploads" }),
-    );
-
-    expect(updateSpy).toHaveBeenCalledWith({
-      "uploads-enabled": true,
-      "uploads-database-id": 1,
-      "uploads-schema-name": "uploads",
-      "uploads-table-prefix": "my_prefix_",
-    });
-  });
-
   it("should call update methods on saveStatusRef", async () => {
     const { savingSpy, savedSpy } = setup();
     userEvent.click(await screen.findByText("Select a database"));
@@ -224,9 +197,8 @@ describe("Admin > Settings > UploadSetting", () => {
     const dbItem = await screen.findByText("Db Dos");
     userEvent.click(dbItem);
 
-    const prefixInput = await screen.findByPlaceholderText("upload_");
+    const prefixInput = await screen.findByPlaceholderText("uploaded_");
 
-    userEvent.clear(prefixInput);
     userEvent.type(prefixInput, "my_prefix_");
 
     userEvent.click(
@@ -253,7 +225,7 @@ describe("Admin > Settings > UploadSetting", () => {
       "uploads-enabled": true,
       "uploads-database-id": 2,
       "uploads-schema-name": null,
-      "uploads-table-prefix": "upload_",
+      "uploads-table-prefix": null,
     });
 
     expect(await screen.findByText(/There was a problem/i)).toBeInTheDocument();
@@ -485,7 +457,7 @@ describe("Admin > Settings > UploadSetting", () => {
         },
       });
 
-      const prefixInput = await screen.findByPlaceholderText("upload_");
+      const prefixInput = await screen.findByPlaceholderText("uploaded_");
       userEvent.clear(prefixInput);
       userEvent.type(prefixInput, "my_prefix_");
 
@@ -507,7 +479,7 @@ describe("Admin > Settings > UploadSetting", () => {
         () => new Promise(resolve => setTimeout(resolve, 500)),
       );
 
-      const prefixInput = await screen.findByPlaceholderText("upload_");
+      const prefixInput = await screen.findByPlaceholderText("uploaded_");
       userEvent.clear(prefixInput);
       userEvent.type(prefixInput, "my_prefix_");
 
@@ -534,7 +506,7 @@ describe("Admin > Settings > UploadSetting", () => {
         () => new Promise(resolve => setTimeout(resolve, 500)),
       );
 
-      const prefixInput = await screen.findByPlaceholderText("upload_");
+      const prefixInput = await screen.findByPlaceholderText("uploaded_");
       userEvent.clear(prefixInput);
       userEvent.type(prefixInput, "my_prefix_");
 
@@ -547,22 +519,10 @@ describe("Admin > Settings > UploadSetting", () => {
         screen.queryByRole("button", { name: "Update settings" }),
       ).not.toBeInTheDocument();
 
-      userEvent.clear(prefixInput);
       userEvent.type(prefixInput, "_2");
       expect(
         screen.getByRole("button", { name: "Update settings" }),
       ).toBeInTheDocument();
     });
-  });
-
-  it("should show a warning for h2 databases", async () => {
-    setup();
-    userEvent.click(await screen.findByText("Select a database"));
-
-    userEvent.click(await screen.findByText("Db Cinco")); // h2
-
-    expect(
-      screen.getByText(/uploads to the Sample Database are for testing only/i),
-    ).toBeInTheDocument();
   });
 });

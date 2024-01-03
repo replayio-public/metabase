@@ -1,7 +1,6 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { getSetting } from "metabase/selectors/settings";
-import { redirect } from "metabase/lib/dom";
-import type { State } from "metabase-types/store";
+import { State } from "metabase-types/store";
 import { trackLoginSSO } from "./analytics";
 import { getSSOUrl } from "./utils";
 
@@ -16,8 +15,6 @@ export const loginSSO = createAsyncThunk<void, string | undefined, ThunkConfig>(
     trackLoginSSO();
 
     const siteUrl = getSetting(getState(), "site-url");
-    const ssoUrl = getSSOUrl(siteUrl, redirectUrl);
-
-    redirect(ssoUrl);
+    window.location.href = getSSOUrl(siteUrl, redirectUrl);
   },
 );

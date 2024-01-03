@@ -1,5 +1,5 @@
 import { getEngineNativeType } from "metabase/lib/engine";
-import type Database from "metabase-lib/metadata/Database";
+import Database from "metabase-lib/metadata/Database";
 
 export const canUseMetabotOnDatabase = (database: Database) => {
   return (

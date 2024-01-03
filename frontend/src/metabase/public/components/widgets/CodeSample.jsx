@@ -6,7 +6,6 @@ import Select, { Option } from "metabase/core/components/Select";
 import CopyButton from "metabase/components/CopyButton";
 
 import AceEditor from "metabase/components/TextEditor";
-import { CopyButtonContainer } from "./CodeSample.styled";
 
 export default class CodeSample extends Component {
   constructor(props) {
@@ -69,9 +68,9 @@ export default class CodeSample extends Component {
             readOnly
           />
           {source && (
-            <CopyButtonContainer>
+            <div className="absolute top right text-brand-hover cursor-pointer z2">
               <CopyButton className="p1" value={source} />
-            </CopyButtonContainer>
+            </div>
           )}
         </div>
       </div>

@@ -1,4 +1,4 @@
-import type { ChangeEvent } from "react";
+import { ChangeEvent } from "react";
 import { t } from "ttag";
 import { connect } from "react-redux";
 
@@ -27,7 +27,7 @@ import Modal from "metabase/components/Modal";
 import { useToggle } from "metabase/hooks/use-toggle";
 import CopyWidget from "metabase/components/CopyWidget";
 
-import { isActionPublic, isSavedAction } from "../../utils";
+import { isSavedAction } from "../../utils";
 import {
   ActionSettingsContent,
   CopyWidgetContainer,
@@ -134,7 +134,7 @@ const InlineActionSettings = ({
           >
             <Toggle
               id={`${id}-public`}
-              value={isActionPublic(action)}
+              value={action.public_uuid != null}
               onChange={handleTogglePublic}
             />
           </FormField>

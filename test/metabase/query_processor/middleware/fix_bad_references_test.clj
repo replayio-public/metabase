@@ -6,11 +6,11 @@
    [metabase.test :as mt]))
 
 (defn- fix-bad-refs [query]
-  (mt/with-metadata-provider (mt/id)
+  (mt/with-everything-store
     (fix-bad-refs/fix-bad-references query)))
 
 (deftest fix-bad-references-test
-  (mt/dataset test-data
+  (mt/dataset sample-dataset
     (is (query= (mt/mbql-query orders
                   {:source-query {:source-table $$orders
                                   :joins        [{:fields       :all

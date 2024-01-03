@@ -21,24 +21,22 @@ const categoryField = Dimension.parseMBQL(
   metadata,
 ).field();
 
+const mockFetchFieldValues = jest.fn();
 function setup({
   field,
   fieldValues,
   fingerprint,
-  fetchFieldValues = jest.fn().mockResolvedValue([]),
+  fetchFieldValues = mockFetchFieldValues,
 }) {
   categoryField.fingerprint = fingerprint;
-
-  return {
-    ...render(
-      <CategoryFingerprint
-        field={field}
-        fieldValues={fieldValues}
-        fetchFieldValues={fetchFieldValues}
-      />,
-    ),
-    mockFetchFieldValues: fetchFieldValues,
-  };
+  mockFetchFieldValues.mockReset();
+  return render(
+    <CategoryFingerprint
+      field={field}
+      fieldValues={fieldValues}
+      fetchFieldValues={mockFetchFieldValues}
+    />,
+  );
 }
 
 describe("CategoryFingerprint", () => {
@@ -48,10 +46,9 @@ describe("CategoryFingerprint", () => {
     });
 
     it("should not fetch field values when field values are empty", () => {
-      const { mockFetchFieldValues } = setup({
+      setup({
         field: categoryField,
       });
-
       expect(mockFetchFieldValues).not.toHaveBeenCalled();
     });
 
@@ -88,17 +85,16 @@ describe("CategoryFingerprint", () => {
     });
 
     it("should fetch field values when field values are empty", () => {
-      const { mockFetchFieldValues } = setup({
+      setup({
         field: categoryField,
       });
-
       expect(mockFetchFieldValues).toHaveBeenCalledWith({
         id: categoryField.id,
       });
     });
 
-    it("should not fetch field values when field values are present", () => {
-      const { mockFetchFieldValues } = setup({
+    it("should not fetch field values when field values are presnet", () => {
+      setup({
         field: categoryField,
         fieldValues: ["foo", "bar"],
       });
@@ -108,6 +104,7 @@ describe("CategoryFingerprint", () => {
     it("should show a loading state while fetching", () => {
       setup({
         field: categoryField,
+        fetchFieldValues: () => new Promise(),
       });
       expect(screen.getByText("Getting distinct values...")).toBeVisible();
     });

@@ -36,9 +36,9 @@ export const StatusBody = styled.div`
   background-color: ${color("white")};
 `;
 
-export const StatusCardRoot = styled.div<{ hasBody?: boolean }>`
+export const StatusCardRoot = styled.div`
   display: flex;
-  align-items: ${props => (props.hasBody ? "flex-start" : "center")};
+  align-items: center;
   margin: 0.75rem;
 `;
 

@@ -1,96 +1,127 @@
 import userEvent from "@testing-library/user-event";
-import { renderWithProviders, screen, within } from "__support__/ui";
+import { checkNotNull } from "metabase/core/utils/types";
+import { render, screen, within } from "__support__/ui";
+import { createMockEntitiesState } from "__support__/store";
+import { getMetadata } from "metabase/selectors/metadata";
 
-import * as Lib from "metabase-lib";
-import { createQuery, createQueryWithClauses } from "metabase-lib/test-helpers";
+import type { Expression } from "metabase-types/api";
+import { createMockState } from "metabase-types/store/mocks";
+import {
+  createSampleDatabase,
+  ORDERS_ID,
+} from "metabase-types/api/mocks/presets";
 
+import type { NotebookStepUiComponentProps } from "../types";
 import { createMockNotebookStep } from "../test-utils";
-import { ExpressionStep } from "./ExpressionStep";
-
-interface SetupOpts {
-  query?: Lib.Query;
-}
-
-function setup({ query = createQuery() }: SetupOpts = {}) {
-  const updateQuery = jest.fn();
-
-  const step = createMockNotebookStep({
-    type: "expression",
-    topLevelQuery: query,
-  });
-
-  function getRecentQuery(): Lib.Query {
-    expect(updateQuery).toHaveBeenCalledWith(expect.anything());
-    const [recentQuery] = updateQuery.mock.lastCall;
-    return recentQuery;
-  }
-
-  renderWithProviders(
-    <ExpressionStep
-      step={step}
-      color="#93A1AB"
-      query={step.query}
-      stageIndex={step.stageIndex}
-      topLevelQuery={step.topLevelQuery}
-      updateQuery={updateQuery}
-      isLastOpened={false}
-      reportTimezone="UTC"
-    />,
-  );
-
-  return { getRecentQuery };
-}
+import ExpressionStep from "./ExpressionStep";
 
 describe("Notebook Editor > Expression Step", () => {
-  it("should handle adding expression", async () => {
-    const { getRecentQuery } = setup();
-
-    userEvent.click(screen.getByRole("img", { name: "add icon" }));
-
-    userEvent.type(screen.getByLabelText("Expression"), "1 + 1");
-    userEvent.type(screen.getByLabelText("Name"), "new expression{enter}");
-
-    const recentQuery = getRecentQuery();
-    const expressions = Lib.expressions(recentQuery, 0);
-    expect(expressions).toHaveLength(1);
-    expect(Lib.displayInfo(recentQuery, 0, expressions[0]).displayName).toBe(
-      "new expression",
-    );
-  });
-
   it("should handle updating existing expression", async () => {
-    const query = createQueryWithClauses({
-      expressions: [{ name: "old name", operator: "+", args: [1, 1] }],
+    const expression: Expression = ["abs", ["field", 17, null]];
+    const {
+      props: { updateQuery },
+      mocks: { addExpression, updateExpression },
+    } = setup(undefined, {
+      // add an existing custom column expression
+      "old name": expression,
     });
-    const { getRecentQuery } = setup({ query });
 
     userEvent.click(screen.getByText("old name"));
 
-    const nameField = screen.getByLabelText("Name");
+    const nameField = await screen.findByPlaceholderText(
+      "Something nice and descriptive",
+    );
+
     userEvent.clear(nameField);
     userEvent.type(nameField, "new name{enter}");
 
-    const recentQuery = getRecentQuery();
-    const expressions = Lib.expressions(recentQuery, 0);
-    expect(expressions).toHaveLength(1);
-    expect(Lib.displayInfo(recentQuery, 0, expressions[0]).displayName).toBe(
+    expect(updateExpression).toHaveBeenCalledTimes(1);
+    expect(updateExpression).toHaveBeenCalledWith(
       "new name",
+      expression,
+      "old name",
     );
+    expect(addExpression).toHaveBeenCalledTimes(0);
+    expect(updateQuery).toHaveBeenCalledTimes(1);
   });
 
   it("should handle removing existing expression", () => {
-    const query = createQueryWithClauses({
-      expressions: [{ name: "expression name", operator: "+", args: [1, 1] }],
+    const expression: Expression = ["abs", ["field", 17, null]];
+    const {
+      mocks: { removeExpression },
+    } = setup(undefined, {
+      // add an existing custom column expression
+      "expr name": expression,
     });
-    const { getRecentQuery } = setup({ query });
 
-    const expressionItem = screen.getByText("expression name");
+    const expressionItem = screen.getByText("expr name");
     const closeIcon = within(expressionItem).getByRole("img", {
-      name: "close icon",
+      name: `close icon`,
     });
 
     userEvent.click(closeIcon);
 
-    expect(Lib.expressions(getRecentQuery(), 0)).toHaveLength(0);
+    expect(removeExpression).toHaveBeenCalledTimes(1);
+    expect(removeExpression).toHaveBeenCalledWith("expr name");
   });
 });
+
+const createMockQueryForExpressions = (
+  expressions?: Record<string, Expression>,
+) => {
+  const state = createMockState({
+    entities: createMockEntitiesState({
+      databases: [createSampleDatabase()],
+    }),
+  });
+
+  const metadata = getMetadata(state);
+  let query = checkNotNull(metadata.table(ORDERS_ID)).query();
+
+  if (expressions) {
+    Object.entries(expressions).forEach(([name, expression]) => {
+      query = query.addExpression(name, expression);
+    });
+  }
+
+  return query;
+};
+
+function setup(
+  additionalProps?: Partial<NotebookStepUiComponentProps>,
+  expressions?: Record<string, Expression>,
+) {
+  const updateQuery = jest.fn();
+  const addExpression = jest.fn();
+  const updateExpression = jest.fn();
+  const removeExpression = jest.fn();
+
+  const query = createMockQueryForExpressions(expressions);
+
+  query.addExpression = addExpression;
+  query.updateExpression = updateExpression;
+  query.removeExpression = removeExpression;
+
+  const step = createMockNotebookStep({
+    type: "expression",
+    query,
+  });
+
+  const props = {
+    step,
+    color: "#93A1AB",
+    query,
+    topLevelQuery: step.topLevelQuery,
+    updateQuery,
+    isLastOpened: false,
+    reportTimezone: "UTC",
+    ...additionalProps,
+  };
+
+  render(<ExpressionStep {...props} />);
+
+  return {
+    props,
+    mocks: { addExpression, updateExpression, removeExpression },
+  };
+}

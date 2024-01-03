@@ -1,6 +1,6 @@
 import { restore, openNativeEditor } from "e2e/support/helpers";
 
-describe("issue 20625", { tags: "@quarantine" }, () => {
+describe("issue 20625", () => {
   beforeEach(() => {
     restore();
     cy.signInAsAdmin();
@@ -13,7 +13,6 @@ describe("issue 20625", { tags: "@quarantine" }, () => {
     );
   });
 
-  // realpress messes with cypress 13
   it("should continue to request more prefix matches (metabase#20625)", () => {
     openNativeEditor().type("s");
 

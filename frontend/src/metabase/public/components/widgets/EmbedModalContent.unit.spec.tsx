@@ -1,52 +1,25 @@
 import { screen, waitFor, within } from "@testing-library/react";
 
-import { useState } from "react";
 import { renderWithProviders } from "__support__/ui";
-import type { Parameter } from "metabase-types/api";
 import { createMockUser } from "metabase-types/api/mocks";
 import { createMockSettingsState } from "metabase-types/store/mocks";
 
 import EmbedModalContent from "./EmbedModalContent";
 
-const TestEmbedModalContent = ({
-  resource,
-  resourceParameters,
-  getPublicUrl,
-  onUpdateEmbeddingParams,
-  onUpdateEnableEmbedding,
-}: {
-  resource: { embedding_params?: Record<string, unknown> };
-  resourceParameters: Partial<Parameter>[];
-  getPublicUrl: () => void;
-  onUpdateEmbeddingParams?: () => void;
-  onUpdateEnableEmbedding?: () => void;
-}) => {
-  const [embedType, setEmbedType] = useState(null);
-  return (
-    <EmbedModalContent
-      resource={resource}
-      resourceParameters={resourceParameters}
-      getPublicUrl={getPublicUrl}
-      onUpdateEmbeddingParams={onUpdateEmbeddingParams}
-      onUpdateEnableEmbedding={onUpdateEnableEmbedding}
-      embedType={embedType}
-      setEmbedType={setEmbedType}
-    />
-  );
-};
-
 describe("EmbedModalContent", () => {
   it("should render", () => {
     renderWithConfiguredProviders(
-      <TestEmbedModalContent
+      <EmbedModalContent
         resource={{}}
         resourceParameters={[]}
         getPublicUrl={jest.fn()}
       />,
     );
 
+    expect(screen.getByText("Sharing")).toBeInTheDocument();
+    expect(screen.getByText("Public link")).toBeInTheDocument();
     expect(screen.getByText("Public embed")).toBeInTheDocument();
-    expect(screen.getByText("Static embed")).toBeInTheDocument();
+    expect(screen.getByText("Embed in your application")).toBeInTheDocument();
   });
 
   it("should render parameters", () => {
@@ -55,7 +28,7 @@ describe("EmbedModalContent", () => {
     ];
 
     renderWithConfiguredProviders(
-      <TestEmbedModalContent
+      <EmbedModalContent
         resource={{}}
         resourceParameters={parameters}
         getPublicUrl={jest.fn()}
@@ -73,7 +46,7 @@ describe("EmbedModalContent", () => {
     ];
 
     renderWithConfiguredProviders(
-      <TestEmbedModalContent
+      <EmbedModalContent
         resource={{}}
         resourceParameters={parameters}
         getPublicUrl={jest.fn()}
@@ -96,7 +69,7 @@ describe("EmbedModalContent", () => {
     ];
 
     renderWithConfiguredProviders(
-      <TestEmbedModalContent
+      <EmbedModalContent
         resource={resource}
         resourceParameters={parameters}
         getPublicUrl={jest.fn()}
@@ -124,7 +97,7 @@ describe("EmbedModalContent", () => {
     ];
 
     renderWithConfiguredProviders(
-      <TestEmbedModalContent
+      <EmbedModalContent
         resource={resource}
         resourceParameters={parameters}
         getPublicUrl={jest.fn()}
@@ -148,7 +121,7 @@ describe("EmbedModalContent", () => {
     const onUpdateEmbeddingParams = jest.fn();
 
     renderWithConfiguredProviders(
-      <TestEmbedModalContent
+      <EmbedModalContent
         resource={resource}
         resourceParameters={parameters}
         onUpdateEmbeddingParams={onUpdateEmbeddingParams}
@@ -186,7 +159,7 @@ function renderWithConfiguredProviders(element: JSX.Element) {
 function openEmbedModal() {
   screen
     .getByRole("button", {
-      name: "Set this up",
+      name: "Set up",
     })
     .click();
 }

@@ -1,5 +1,5 @@
-import type { FormEvent, MouseEventHandler } from "react";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
+import * as React from "react";
 import { jt, t } from "ttag";
 import { useAsync } from "react-use";
 
@@ -75,7 +75,7 @@ const DeleteDatabaseModal = ({
     }
   };
 
-  const handleEditConnectionDetailsClick: MouseEventHandler = e => {
+  const handleEditConnectionDetailsClick: React.MouseEventHandler = e => {
     e.preventDefault();
     onClose();
   };

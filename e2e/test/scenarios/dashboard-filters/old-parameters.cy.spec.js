@@ -35,14 +35,14 @@ describe("scenarios > dashboard > OLD parameters", () => {
 
       cy.createQuestionAndDashboard({ questionDetails, dashboardDetails }).then(
         ({ body: { id, card_id, dashboard_id } }) => {
-          cy.request("PUT", `/api/dashboard/${dashboard_id}`, {
-            dashcards: [
+          cy.request("PUT", `/api/dashboard/${dashboard_id}/cards`, {
+            cards: [
               {
                 id,
                 card_id,
                 row: 0,
                 col: 0,
-                size_x: 11,
+                size_x: 8,
                 size_y: 6,
                 parameter_mappings: [
                   {
@@ -96,14 +96,14 @@ describe("scenarios > dashboard > OLD parameters", () => {
 
       cy.createQuestionAndDashboard({ questionDetails, dashboardDetails }).then(
         ({ body: { id, card_id, dashboard_id } }) => {
-          cy.request("PUT", `/api/dashboard/${dashboard_id}`, {
-            dashcards: [
+          cy.request("PUT", `/api/dashboard/${dashboard_id}/cards`, {
+            cards: [
               {
                 id,
                 card_id,
                 row: 0,
                 col: 0,
-                size_x: 11,
+                size_x: 8,
                 size_y: 6,
                 parameter_mappings: [
                   {
@@ -167,14 +167,14 @@ describe("scenarios > dashboard > OLD parameters", () => {
         questionDetails,
         dashboardDetails,
       }).then(({ body: { id, card_id, dashboard_id } }) => {
-        cy.request("PUT", `/api/dashboard/${dashboard_id}`, {
-          dashcards: [
+        cy.request("PUT", `/api/dashboard/${dashboard_id}/cards`, {
+          cards: [
             {
               id,
               card_id,
               row: 0,
               col: 0,
-              size_x: 11,
+              size_x: 8,
               size_y: 6,
               parameter_mappings: [
                 {

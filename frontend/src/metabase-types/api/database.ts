@@ -1,6 +1,7 @@
-import type { ScheduleSettings } from "./settings";
-import type { Table } from "./table";
-import type { ISO8601Time } from ".";
+import { NativePermissions } from "./permissions";
+import { ScheduleSettings } from "./settings";
+import { Table } from "./table";
+import { ISO8601Time } from ".";
 
 export type DatabaseId = number;
 
@@ -31,11 +32,7 @@ export type DatabaseFeature =
   | "left-join"
   | "right-join"
   | "inner-join"
-  | "full-join"
-  | "nested-field-columns"
-  | "advanced-math-expressions"
-  | "connection-impersonation"
-  | "connection-impersonation-requires-role";
+  | "full-join";
 
 export interface Database extends DatabaseData {
   id: DatabaseId;
@@ -43,13 +40,12 @@ export interface Database extends DatabaseData {
   features: DatabaseFeature[];
   creator_id?: number;
   timezone?: string;
-  native_permissions: "write" | "none";
+  native_permissions: NativePermissions;
   initial_sync_status: InitialSyncStatus;
   caveats?: string;
   points_of_interest?: string;
   created_at: ISO8601Time;
   updated_at: ISO8601Time;
-  can_upload: boolean;
 
   // Only appears in  GET /api/database/:id
   "can-manage"?: boolean;
@@ -91,6 +87,8 @@ export interface DatabaseQuery {
 
 export interface DatabaseListQuery {
   include?: "tables";
+  include_cards?: boolean;
+  include_tables?: boolean;
   saved?: boolean;
   include_editable_data_model?: boolean;
   exclude_uneditable_details?: boolean;

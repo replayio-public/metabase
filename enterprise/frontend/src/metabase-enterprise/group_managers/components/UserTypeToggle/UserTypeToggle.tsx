@@ -1,6 +1,7 @@
-import type { MouseEventHandler } from "react";
+import { MouseEventHandler } from "react";
 import { t } from "ttag";
-import type { Placement } from "tippy.js";
+// eslint-disable-next-line import/named
+import { Placement } from "tippy.js";
 
 import Tooltip from "metabase/core/components/Tooltip";
 import { Icon } from "metabase/core/components/Icon";

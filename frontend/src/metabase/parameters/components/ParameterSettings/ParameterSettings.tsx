@@ -1,13 +1,13 @@
-import { useCallback, useLayoutEffect, useState } from "react";
+import { ChangeEvent, useCallback } from "react";
 import { t } from "ttag";
+import InputBlurChange from "metabase/components/InputBlurChange";
 import Radio from "metabase/core/components/Radio";
-import type {
+import {
   Parameter,
   ValuesQueryType,
   ValuesSourceConfig,
   ValuesSourceType,
 } from "metabase-types/api";
-import { TextInput } from "metabase/ui";
 import { canUseCustomSource } from "metabase-lib/parameters/utils/parameter-source";
 import { getIsMultiSelect } from "../../utils/dashboards";
 import { isSingleOrMultiSelectable } from "../../utils/parameter-type";
@@ -27,7 +27,6 @@ const MULTI_SELECT_OPTIONS = [
 
 export interface ParameterSettingsProps {
   parameter: Parameter;
-  isParameterSlugUsed: (value: string) => boolean;
   onChangeName: (name: string) => void;
   onChangeDefaultValue: (value: unknown) => void;
   onChangeIsMultiSelect: (isMultiSelect: boolean) => void;
@@ -39,7 +38,6 @@ export interface ParameterSettingsProps {
 
 const ParameterSettings = ({
   parameter,
-  isParameterSlugUsed,
   onChangeName,
   onChangeDefaultValue,
   onChangeIsMultiSelect,
@@ -48,29 +46,12 @@ const ParameterSettings = ({
   onChangeSourceConfig,
   onRemoveParameter,
 }: ParameterSettingsProps): JSX.Element => {
-  const [tempLabelValue, setTempLabelValue] = useState(parameter.name);
-
-  useLayoutEffect(() => {
-    setTempLabelValue(parameter.name);
-  }, [parameter.name]);
-
-  const labelError = getLabelError({
-    labelValue: tempLabelValue,
-    isParameterSlugUsed,
-  });
-
-  const handleLabelChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setTempLabelValue(event.target.value);
-  };
-
-  const handleLabelBlur = (event: { target: HTMLInputElement }) => {
-    if (labelError) {
-      // revert to the value before editing
-      setTempLabelValue(parameter.name);
-    } else {
+  const handleNameChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
       onChangeName(event.target.value);
-    }
-  };
+    },
+    [onChangeName],
+  );
 
   const handleSourceSettingsChange = useCallback(
     (sourceType: ValuesSourceType, sourceConfig: ValuesSourceConfig) => {
@@ -84,12 +65,9 @@ const ParameterSettings = ({
     <SettingsRoot>
       <SettingSection>
         <SettingLabel>{t`Label`}</SettingLabel>
-        <TextInput
-          onChange={handleLabelChange}
-          value={tempLabelValue}
-          onBlur={handleLabelBlur}
-          error={labelError}
-          aria-label={t`Label`}
+        <InputBlurChange
+          value={parameter.name}
+          onBlurChange={handleNameChange}
         />
       </SettingSection>
       {canUseCustomSource(parameter) && (
@@ -129,22 +107,6 @@ const ParameterSettings = ({
     </SettingsRoot>
   );
 };
-
-function getLabelError({
-  labelValue,
-  isParameterSlugUsed,
-}: {
-  labelValue: string;
-  isParameterSlugUsed: (value: string) => boolean;
-}) {
-  if (!labelValue) {
-    return t`Required`;
-  }
-  if (isParameterSlugUsed(labelValue)) {
-    return t`This label is already in use`;
-  }
-  return null;
-}
 
 // eslint-disable-next-line import/no-default-export -- deprecated usage
 export default ParameterSettings;

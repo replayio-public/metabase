@@ -1,8 +1,6 @@
-import { t } from "ttag";
-
 export const mostQueried = () => ({
   card: {
-    name: t`Most-queried tables`,
+    name: "Most-queried tables",
     display: "row",
     dataset_query: {
       type: "internal",
@@ -18,7 +16,7 @@ export const mostQueried = () => ({
 
 export const leastQueried = () => ({
   card: {
-    name: t`Least-queried tables`,
+    name: "Least-queried tables",
     display: "row",
     dataset_query: {
       type: "internal",

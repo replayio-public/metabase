@@ -1,8 +1,7 @@
 import userEvent from "@testing-library/user-event";
 import { getIcon, render } from "__support__/ui";
-import { ModalContentActionIcon } from "./ModalContent.styled";
-import type { ModalContentProps } from "./ModalContent";
-import ModalContent from "./ModalContent";
+import { ActionIcon } from "./ModalContent.styled";
+import ModalContent, { ModalContentProps } from "./ModalContent";
 
 describe("ModalContent", () => {
   it("should render header action buttons", () => {
@@ -20,7 +19,7 @@ describe("ModalContent", () => {
     const headerActionsEl = (
       <>
         {headerActions.map(({ icon, onClick }) => (
-          <ModalContentActionIcon key={icon} name={icon} onClick={onClick} />
+          <ActionIcon key={icon} name={icon} onClick={onClick} />
         ))}
       </>
     );

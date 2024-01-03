@@ -1,5 +1,5 @@
 import type { State } from "metabase-types/store";
-import type { RawDataRouteParams } from "../../types";
+import { RawDataRouteParams } from "../../types";
 import { state as mockState } from "./data-permissions.unit.spec.fixtures";
 import { getDataFocusSidebar } from ".";
 

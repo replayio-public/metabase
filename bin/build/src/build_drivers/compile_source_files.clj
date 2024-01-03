@@ -7,9 +7,7 @@
    [clojure.tools.namespace.parse :as ns.parse]
    [metabuild-common.core :as u]))
 
-(set! *warn-on-reflection* true)
-
-(defn- driver-source-paths [driver edition]
+(defn driver-source-paths [driver edition]
   (let [dirs (:paths (c/driver-edn driver edition))]
     (assert (every? u/absolute? dirs)
             (format "All dirs should be absolute, got: %s" (pr-str dirs)))
@@ -29,9 +27,8 @@
    (ns.deps/graph)
    ns-decls))
 
-(defn source-path-namespaces
-  "Topologically sort the namespaces so we don't end up with weird compilation issues."
-  [source-paths]
+;; topologically sort the namespaces so we don't end up with weird compilation issues.
+(defn source-path-namespaces [source-paths]
   (let [ns-decls   (mapcat
                     (comp ns.find/find-ns-decls-in-dir io/file)
                     source-paths)
@@ -40,9 +37,7 @@
          ns.deps/topo-sort
          (filterv ns-symbols))))
 
-(defn compile-clojure-source-files!
-  "Compile the Clojure source files for a driver."
-  [driver edition]
+(defn compile-clojure-source-files! [driver edition]
   (u/step "Compile clojure source files"
     (let [start-time-ms (System/currentTimeMillis)
           source-paths  (driver-source-paths driver edition)

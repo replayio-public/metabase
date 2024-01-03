@@ -2,7 +2,7 @@
   (:require
    [clojure.string :as str]
    [clojure.test :refer :all]
-   [java-time.api :as t]
+   [java-time :as t]
    [metabase.models :refer [LoginHistory User]]
    [metabase.models.login-history :as login-history]
    [metabase.public-settings :as public-settings]
@@ -10,16 +10,17 @@
    [metabase.test :as mt]
    [metabase.util :as u]
    [metabase.util.date-2 :as u.date]
-   [metabase.util.malli.schema :as ms]
+   [metabase.util.schema :as su]
+   [schema.core :as s]
    [toucan2.tools.with-temp :as t2.with-temp]))
 
 (set! *warn-on-reflection* true)
 
 (deftest first-login-on-this-device?-test
-  (let [device-1 (str (random-uuid))
-        device-2 (str (random-uuid))]
-    (mt/with-temp [User         {user-id :id} {}
-                   LoginHistory history-1 {:user_id user-id, :device_id device-1}]
+  (let [device-1 (str (java.util.UUID/randomUUID))
+        device-2 (str (java.util.UUID/randomUUID))]
+    (mt/with-temp* [User         [{user-id :id}]
+                    LoginHistory [history-1 {:user_id user-id, :device_id device-1}]]
       (testing "one login to device 1 -- should be the first login with this device"
         (is (= true
                (#'login-history/first-login-on-this-device? history-1)))
@@ -40,8 +41,8 @@
 
 (deftest send-email-on-first-login-from-new-device-test
   (testing "User should get an email the first time they log in from a new device (#14313, #15603, #17495)"
-    (mt/with-temp! [User {user-id :id, email :email, first-name :first_name}]
-      (let [device              (str (random-uuid))
+    (t2.with-temp/with-temp [User {user-id :id, email :email, first-name :first_name}]
+      (let [device              (str (java.util.UUID/randomUUID))
             original-maybe-send (var-get #'login-history/maybe-send-login-from-new-device-email)]
         (testing "send email on first login from *new* device (but not first login ever)"
           (mt/with-fake-inbox
@@ -57,22 +58,20 @@
                             (when-let [futur (original-maybe-send login-history)]
                               ;; block in tests
                               (u/deref-with-timeout futur 10000)))]
-              (mt/with-temp [LoginHistory _ {:user_id   user-id
-                                             :device_id (str (random-uuid))}
-                             LoginHistory _ {:user_id   user-id
-                                             :device_id device
-                                             :timestamp #t "2021-04-02T15:52:00-07:00[US/Pacific]"}]
+              (mt/with-temp* [LoginHistory [_ {:user_id   user-id
+                                               :device_id (str (java.util.UUID/randomUUID))}]
+                              LoginHistory [_ {:user_id   user-id
+                                               :device_id device
+                                               :timestamp #t "2021-04-02T15:52:00-07:00[US/Pacific]"}]]
 
-                (is (malli= [:map-of [:= email]
-                             [:sequential
-                              [:map {:closed true}
-                               [:from ms/Email]
-                               [:to [:= [email]]]
-                               [:subject [:= (format "We've Noticed a New Metabase Login, %s" first-name)]]
-                               [:body [:sequential [:map
-                                                    [:type [:= "text/html; charset=utf-8"]]
-                                                    [:content :string]]]]]]]
-                            @mt/inbox))
+                (is (schema= {(s/eq email)
+                              [{:from    su/Email
+                                :to      (s/eq [email])
+                                :subject (s/eq (format "We've Noticed a New Metabase Login, %s" first-name))
+                                :body    [(s/one {:type    (s/eq "text/html; charset=utf-8")
+                                                  :content s/Str}
+                                                 "HTML body")]}]}
+                             @mt/inbox))
                 (let [message (-> @mt/inbox (get email) first :body first :content)
                       site-url (public-settings/site-url)]
                   (testing (format "\nMessage = %s\nsite-url = %s" (pr-str message) (pr-str site-url))
@@ -98,7 +97,7 @@
       (mt/with-fake-inbox
         ;; can't use `mt/with-temporary-setting-values` here because it's a read-only setting
         (mt/with-temp-env-var-value [mb-send-email-on-first-login-from-new-device "FALSE"]
-          (mt/with-temp [LoginHistory _ {:user_id user-id, :device_id (str (random-uuid))}
-                         LoginHistory _ {:user_id user-id, :device_id (str (random-uuid))}]
+          (mt/with-temp* [LoginHistory [_ {:user_id user-id, :device_id (str (java.util.UUID/randomUUID))}]
+                          LoginHistory [_ {:user_id user-id, :device_id (str (java.util.UUID/randomUUID))}]]
             (is (= {}
                    @mt/inbox))))))))

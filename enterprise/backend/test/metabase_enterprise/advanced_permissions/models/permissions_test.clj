@@ -50,90 +50,40 @@
           (is (nil? (download-perms-by-group-id group-id))))
 
         (testing "Download perms for individual tables can be set and revoked"
-          (let [[id-1 id-2 id-3 id-4 id-5 id-6 id-7 id-8] (map u/the-id (database/tables (mt/db)))]
+          (let [[id-1 id-2 id-3 id-4] (map u/the-id (database/tables (mt/db)))]
             (ee-perms/update-db-download-permissions! group-id (mt/id) {:schemas {"PUBLIC" {id-1 :full
                                                                                             id-2 :full
                                                                                             id-3 :full
-                                                                                            id-4 :full
-                                                                                            id-5 :full
-                                                                                            id-6 :full
-                                                                                            id-7 :full
-                                                                                            id-8 :full}}})
-            (is (= {:schemas {"PUBLIC" {id-1 :full
-                                        id-2 :full
-                                        id-3 :full
-                                        id-4 :full
-                                        id-5 :full
-                                        id-6 :full
-                                        id-7 :full
-                                        id-8 :full}}
+                                                                                            id-4 :full}}})
+            (is (= {:schemas {"PUBLIC" {id-1 :full id-2 :full id-3 :full id-4 :full}}
                     :native :full}
                    (download-perms-by-group-id group-id)))
 
             (ee-perms/update-db-download-permissions! group-id (mt/id) {:schemas {"PUBLIC" {id-1 :limited}}})
-            (is (= {:schemas {"PUBLIC" {id-1 :limited
-                                        id-2 :full
-                                        id-3 :full
-                                        id-4 :full
-                                        id-5 :full
-                                        id-6 :full
-                                        id-7 :full
-                                        id-8 :full}}
+            (is (= {:schemas {"PUBLIC" {id-1 :limited id-2 :full id-3 :full id-4 :full}}
                     :native :limited}
                    (download-perms-by-group-id group-id)))
 
             (ee-perms/update-db-download-permissions! group-id (mt/id) {:schemas {"PUBLIC" {id-2 :none}}})
-            (is (= {:schemas {"PUBLIC" {id-1 :limited
-                                        id-3 :full
-                                        id-4 :full
-                                        id-5 :full
-                                        id-6 :full
-                                        id-7 :full
-                                        id-8 :full}}}
+            (is (= {:schemas {"PUBLIC" {id-1 :limited id-3 :full id-4 :full}}}
                    (download-perms-by-group-id group-id)))
 
             (ee-perms/update-db-download-permissions! group-id (mt/id) {:schemas {"PUBLIC" {id-1 :none
                                                                                             id-3 :none
-                                                                                            id-4 :none
-                                                                                            id-5 :none
-                                                                                            id-6 :none
-                                                                                            id-7 :none
-                                                                                            id-8 :none}}})
+                                                                                            id-4 :none}}})
             (is (nil? (download-perms-by-group-id group-id)))
 
             (ee-perms/update-db-download-permissions! group-id (mt/id) {:schemas {"PUBLIC" {id-1 :full
                                                                                             id-2 :full
                                                                                             id-3 :limited
-                                                                                            id-4 :limited
-                                                                                            id-5 :limited
-                                                                                            id-6 :limited
-                                                                                            id-7 :limited
-                                                                                            id-8 :limited}}})
-            (is (= {:schemas {"PUBLIC" {id-1 :full
-                                        id-2 :full
-                                        id-3 :limited
-                                        id-4 :limited
-                                        id-5 :limited
-                                        id-6 :limited
-                                        id-7 :limited
-                                        id-8 :limited}}
+                                                                                            id-4 :limited}}})
+            (is (= {:schemas {"PUBLIC" {id-1 :full id-2 :full id-3 :limited id-4 :limited}}
                     :native :limited}
                    (download-perms-by-group-id group-id)))
 
             (ee-perms/update-db-download-permissions! group-id (mt/id) {:schemas {"PUBLIC" {id-3 :full
-                                                                                            id-4 :full
-                                                                                            id-5 :full
-                                                                                            id-6 :full
-                                                                                            id-7 :full
-                                                                                            id-8 :full}}})
-            (is (= {:schemas {"PUBLIC" {id-1 :full
-                                        id-2 :full
-                                        id-3 :full
-                                        id-4 :full
-                                        id-5 :full
-                                        id-6 :full
-                                        id-7 :full
-                                        id-8 :full}}
+                                                                                            id-4 :full}}})
+            (is (= {:schemas {"PUBLIC" {id-1 :full id-2 :full id-3 :full id-4 :full}}
                     :native :full}
                    (download-perms-by-group-id group-id)))))
 
@@ -173,7 +123,7 @@
       {:tables tables})))
 
 (deftest native-download-perms-sync-test
-  (mt/with-temp [Database {db-id :id :as database} {:engine ::download-permissions}]
+  (mt/with-temp* [Database [{db-id :id :as database} {:engine ::download-permissions}]]
     (replace-tables ["Table 1" "Table 2"])
     (letfn [(all-users-native-download-perms []
               (get-in (perms/data-perms-graph) [:groups (u/the-id (perms-group/all-users)) db-id :download :native]))]

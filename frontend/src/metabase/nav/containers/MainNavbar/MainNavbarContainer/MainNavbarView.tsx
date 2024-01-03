@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { t } from "ttag";
 import _ from "underscore";
 
-import type { IconName, IconProps } from "metabase/core/components/Icon";
+import { IconName, IconProps } from "metabase/core/components/Icon";
 import { Tree } from "metabase/components/tree";
 import TippyPopoverWithTrigger from "metabase/components/PopoverWithTrigger/TippyPopoverWithTrigger";
 
@@ -15,8 +15,7 @@ import * as Urls from "metabase/lib/urls";
 
 import type { Bookmark, Collection, User } from "metabase-types/api";
 
-import { WhatsNewNotification } from "metabase/nav/components/WhatsNewNotification";
-import type { SelectedItem } from "../types";
+import { SelectedItem } from "../types";
 import { SidebarCollectionLink, SidebarLink } from "../SidebarItems";
 
 import {
@@ -127,7 +126,6 @@ function MainNavbarView({
             onSelect={onItemSelect}
             TreeNode={SidebarCollectionLink}
             role="tree"
-            aria-label="collection-tree"
           />
         </SidebarSection>
 
@@ -163,7 +161,6 @@ function MainNavbarView({
           </SidebarSection>
         )}
       </div>
-      <WhatsNewNotification />
     </SidebarContentRoot>
   );
 }

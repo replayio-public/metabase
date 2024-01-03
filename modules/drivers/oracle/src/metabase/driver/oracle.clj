@@ -3,7 +3,7 @@
    [clojure.java.jdbc :as jdbc]
    [clojure.string :as str]
    [honey.sql :as sql]
-   [java-time.api :as t]
+   [java-time :as t]
    [metabase.config :as config]
    [metabase.driver :as driver]
    [metabase.driver.common :as driver.common]
@@ -44,10 +44,6 @@
                               :now              true
                               :convert-timezone true}]
   (defmethod driver/database-supports? [:oracle feature] [_driver _feature _db] supported?))
-
-(defmethod driver/prettify-native-form :oracle
-  [_ native-form]
-  (sql.u/format-sql-and-fix-params :plsql native-form))
 
 (def ^:private database-type->base-type
   (sql-jdbc.sync/pattern-based-database-type->base-type
@@ -182,7 +178,11 @@
   [_driver]
   :oracle)
 
-;;; Oracle mod is a function like mod(x, y) rather than an operator like x mod y
+(defmethod sql.qp/honey-sql-version :oracle
+  [_driver]
+  2)
+
+;; Oracle mod is a function like mod(x, y) rather than an operator like x mod y
 (defn- format-mod
   [_fn [x y]]
   (let [[x-sql & x-args] (sql/format-expr x {:nested true})
@@ -506,15 +506,16 @@
   [driver query context respond]
   ((get-method driver/execute-reducible-query :sql-jdbc) driver query context (partial remove-rownum-column respond)))
 
-(defmethod driver/db-default-timezone :oracle
-  [driver database]
-  (sql-jdbc.execute/do-with-connection-with-options
-   driver database nil
-   (fn [^Connection conn]
-     (with-open [stmt (.prepareStatement conn "SELECT DBTIMEZONE FROM dual")
-                 rset (.executeQuery stmt)]
-       (when (.next rset)
-         (.getString rset 1))))))
+(defmethod driver.common/current-db-time-date-formatters :oracle
+  [_]
+  (driver.common/create-db-time-formatters "yyyy-MM-dd HH:mm:ss.SSS zzz"))
+
+(defmethod driver.common/current-db-time-native-query :oracle
+  [_]
+  "select to_char(current_timestamp, 'YYYY-MM-DD HH24:MI:SS.FF3 TZD') FROM DUAL")
+
+(defmethod driver/current-db-time :oracle [& args]
+  (apply driver.common/current-db-time args))
 
 ;; don't redef if already definied -- test extensions override this impl
 (when-not (get (methods sql-jdbc.sync/excluded-schemas) :oracle)
@@ -554,9 +555,9 @@
 (defmethod sql-jdbc.describe-table/get-table-pks :oracle
   [_driver ^Connection conn _ table]
   (let [^DatabaseMetaData metadata (.getMetaData conn)]
-    (into [] (sql-jdbc.sync.common/reducible-results
-              #(.getPrimaryKeys metadata nil nil (:name table))
-              (fn [^ResultSet rs] #(.getString rs "COLUMN_NAME"))))))
+    (into #{} (sql-jdbc.sync.common/reducible-results
+               #(.getPrimaryKeys metadata nil nil (:name table))
+               (fn [^ResultSet rs] #(.getString rs "COLUMN_NAME"))))))
 
 (defmethod sql-jdbc.execute/set-timezone-sql :oracle
   [_]

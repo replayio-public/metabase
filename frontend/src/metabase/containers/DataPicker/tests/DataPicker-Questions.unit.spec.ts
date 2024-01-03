@@ -1,6 +1,6 @@
 import userEvent from "@testing-library/user-event";
 
-import { screen, waitForLoaderToBeRemoved } from "__support__/ui";
+import { screen, waitForElementToBeRemoved } from "__support__/ui";
 
 import { ROOT_COLLECTION } from "metabase/entities/collections";
 
@@ -119,7 +119,9 @@ describe("DataPicker — picking questions", () => {
     await setup();
 
     userEvent.click(screen.getByText(/Saved Questions/i));
-    await waitForLoaderToBeRemoved();
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId("loading-spinner"),
+    );
     userEvent.click(screen.getByRole("button", { name: /Back/i }));
 
     expect(screen.getByText(/Models/i)).toBeInTheDocument();
@@ -136,7 +138,9 @@ describe("DataPicker — picking questions", () => {
     const { onChange } = await setup();
 
     userEvent.click(screen.getByText(/Saved Questions/i));
-    await waitForLoaderToBeRemoved();
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId("loading-spinner"),
+    );
     userEvent.click(screen.getByText(SAMPLE_COLLECTION.name));
 
     expect(onChange).toHaveBeenLastCalledWith({

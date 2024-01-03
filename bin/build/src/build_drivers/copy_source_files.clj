@@ -4,11 +4,7 @@
    [clojure.tools.build.api :as b]
    [metabuild-common.core :as u]))
 
-(set! *warn-on-reflection* true)
-
-(defn copy-source-files!
-  "Copy source files into the build driver JAR."
-  [driver edition]
+(defn copy-source-files! [driver edition]
   (u/step (format "Copy %s source files" driver)
     (let [start-time-ms (System/currentTimeMillis)
           dirs          (:paths (c/driver-edn driver edition))]

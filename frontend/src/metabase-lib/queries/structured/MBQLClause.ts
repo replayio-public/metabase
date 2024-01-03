@@ -1,6 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
-import type StructuredQuery from "../StructuredQuery";
+import StructuredQuery from "../StructuredQuery";
 // eslint-disable-next-line import/no-default-export -- deprecated usage
 export default class MBQLArrayClause extends Array {
   _index: number;
@@ -31,7 +31,7 @@ export default class MBQLArrayClause extends Array {
     return new this.constructor(mbql, this._index, this._query);
   }
 
-  replace(_replacement: Array<any>): StructuredQuery {
+  replace(replacement: Array<any>): StructuredQuery {
     throw new Error("Abstract method `replace` not implemented");
   }
 
@@ -85,7 +85,7 @@ export class MBQLObjectClause {
     return new this.constructor(mbql, this._index, this._query);
   }
 
-  replace(_replacement: any): StructuredQuery {
+  replace(replacement: any): StructuredQuery {
     throw new Error("Abstract method `replace` not implemented");
   }
 

@@ -2,7 +2,7 @@
   "Functions for sending Snowplow analytics events"
   (:require
    [clojure.string :as str]
-   [java-time.api :as t]
+   [java-time :as t]
    [medley.core :as m]
    [metabase.config :as config]
    [metabase.models.setting :as setting :refer [defsetting Setting]]
@@ -40,17 +40,16 @@
   :type       :boolean
   :visibility :public
   :default    config/is-prod?
-  :doc        false
-  :audit      :never)
+  :doc        false)
 
 (defsetting snowplow-enabled
   (deferred-tru
    (str "Boolean indicating whether analytics events are being sent to Snowplow. "
         "True if anonymous tracking is enabled for this instance, and a Snowplow collector is available."))
-  :type       :boolean
-  :setter     :none
-  :getter     (fn [] (and (snowplow-available)
-                          (public-settings/anon-tracking-enabled)))
+  :type   :boolean
+  :setter :none
+  :getter (fn [] (and (snowplow-available)
+                      (public-settings/anon-tracking-enabled)))
   :visibility :public
   :doc        false)
 
@@ -61,7 +60,6 @@
                 ;; See the iglu-schema-registry repo for instructions on how to run Snowplow Micro locally for development
                 "http://localhost:9090")
   :visibility :public
-  :audit      :never
   :doc        false)
 
 (defn- first-user-creation
@@ -137,15 +135,13 @@
 (def ^:private schema->version
   "The most recent version for each event schema. This should be updated whenever a new version of a schema is added
   to SnowcatCloud, at the same time that the data sent to the collector is updated."
-  {::account      "1-0-1"
+  {::account      "1-0-0"
    ::invite       "1-0-1"
-   ::csvupload    "1-0-0"
-   ::dashboard    "1-1-3"
-   ::database     "1-0-1"
-   ::instance     "1-1-2"
-   ::metabot      "1-0-1"
-   ::search       "1-0-1"
-   ::model        "1-0-0"
+   ::dashboard    "1-0-0"
+   ::dashboardtab "1-0-0"
+   ::database     "1-0-0"
+   ::instance     "1-1-0"
+   ::metabot      "1-0-0"
    ::timeline     "1-0-0"
    ::task         "1-0-0"
    ::action       "1-0-0"})
@@ -201,23 +197,18 @@
   {::new-instance-created           ::account
    ::new-user-created               ::account
    ::invite-sent                    ::invite
-   ::index-model-entities-enabled   ::model
    ::dashboard-created              ::dashboard
    ::question-added-to-dashboard    ::dashboard
-   ::dashboard-tab-created          ::dashboard
-   ::dashboard-tab-deleted          ::dashboard
    ::database-connection-successful ::database
    ::database-connection-failed     ::database
    ::new-event-created              ::timeline
    ::new-task-history               ::task
-   ::new-search-query               ::search
-   ::search-results-filtered        ::search
    ::action-created                 ::action
    ::action-updated                 ::action
    ::action-deleted                 ::action
    ::action-executed                ::action
-   ::csv-upload-successful          ::csvupload
-   ::csv-upload-failed              ::csvupload
+   ::dashboard-tabs-created         ::dashboardtab
+   ::dashboard-tabs-deleted         ::dashboardtab
    ::metabot-feedback-received      ::metabot})
 
 (defn track-event!
@@ -234,4 +225,4 @@
             ^SelfDescribing event (.build builder)]
         (track-event-impl! (tracker) event))
       (catch Throwable e
-        (log/error e (trs "Error sending Snowplow analytics event {0}" event-kw))))))
+        (log/debug e (trs "Error sending Snowplow analytics event {0}" event-kw))))))

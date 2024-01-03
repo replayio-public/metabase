@@ -1,4 +1,4 @@
-import type { Parameter, ParameterValues } from "metabase-types/api";
+import { Parameter, ParameterValues } from "metabase-types/api";
 
 export const createMockParameter = (opts?: Partial<Parameter>): Parameter => ({
   id: "1",

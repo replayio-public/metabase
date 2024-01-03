@@ -1,13 +1,13 @@
 import DatabaseCandidates from "metabase/entities/database-candidates";
-import type {
+import {
   DatabaseCandidateListQuery,
   DatabaseCandidate,
 } from "metabase-types/api";
-import type {
+import {
+  useEntityListQuery,
   UseEntityListQueryProps,
   UseEntityListQueryResult,
 } from "../use-entity-list-query";
-import { useEntityListQuery } from "../use-entity-list-query";
 
 export const useDatabaseCandidateListQuery = (
   props: UseEntityListQueryProps<DatabaseCandidateListQuery> = {},
@@ -18,6 +18,5 @@ export const useDatabaseCandidateListQuery = (
     getLoading: DatabaseCandidates.selectors.getLoading,
     getLoaded: DatabaseCandidates.selectors.getLoaded,
     getError: DatabaseCandidates.selectors.getError,
-    getListMetadata: DatabaseCandidates.selectors.getListMetadata,
   });
 };

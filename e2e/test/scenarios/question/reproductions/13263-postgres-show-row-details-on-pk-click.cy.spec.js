@@ -1,19 +1,16 @@
-import { WRITABLE_DB_ID } from "e2e/support/cypress_data";
-import { openTable, restore } from "e2e/support/helpers";
+import { restore, startNewQuestion, visualize } from "e2e/support/helpers";
+
+const PG_DB_NAME = "QA Postgres12";
 
 describe("postgres > user > query", { tags: "@external" }, () => {
   beforeEach(() => {
     restore("postgres-12");
     cy.signInAsAdmin();
-    cy.request(`/api/database/${WRITABLE_DB_ID}/schema/public`).then(
-      ({ body }) => {
-        const tableId = body.find(table => table.name === "orders").id;
-        openTable({
-          database: WRITABLE_DB_ID,
-          table: tableId,
-        });
-      },
-    );
+
+    startNewQuestion();
+    cy.findByTextEnsureVisible(PG_DB_NAME).click();
+    cy.findByTextEnsureVisible("Orders").click();
+    visualize();
   });
 
   it("should show row details when clicked on its entity key (metabase#13263)", () => {

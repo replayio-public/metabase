@@ -1,10 +1,8 @@
-import type {
-  PinDropTargetProps,
-  PinDropTargetRenderArgs,
-} from "./PinnedItemSortDropTarget.styled";
 import {
   StyledPinDropTarget,
   PinDropTargetIndicator,
+  PinDropTargetProps,
+  PinDropTargetRenderArgs,
 } from "./PinnedItemSortDropTarget.styled";
 
 function PinnedItemSortDropTarget(props: PinDropTargetProps) {

@@ -41,13 +41,12 @@
    [clojure.data :as data]
    [metabase-enterprise.audit-app.interface :as audit.i]
    [metabase.api.common.validation :as validation]
-   [metabase.public-settings.premium-features
-    :as premium-features
-    :refer [defenterprise]]
+   [metabase.public-settings.premium-features :as premium-features]
    [metabase.query-processor.context :as qp.context]
    [metabase.query-processor.error-type :as qp.error-type]
    [metabase.util.i18n :refer [tru]]
-   [metabase.util.malli :as mu]))
+   [metabase.util.schema :as su]
+   [schema.core :as s]))
 
 (defn- check-results-and-metadata-keys-match
   "Primarily for dev and debugging purposes. We can probably take this out when shipping the finished product."
@@ -69,9 +68,8 @@
   (for [[k v] metadata]
     (assoc v :name (name k))))
 
-(mu/defn ^:private format-results [{:keys [results metadata]} :- [:map
-                                                                  [:results  [:sequential :map]]
-                                                                  [:metadata audit.i/ResultsMetadata]]]
+(s/defn ^:private format-results [{:keys [results metadata]} :- {:results  [su/Map]
+                                                                 :metadata audit.i/ResultsMetadata}]
   (check-results-and-metadata-keys-match results metadata)
   {:cols (metadata->cols metadata)
    :rows (for [row results]
@@ -80,18 +78,10 @@
 
 (def InternalQuery
   "Schema for a valid `internal` type query."
-  [:map
-   [:type [:enum :internal "internal"]]
-   [:fn   [:and
-           :string
-           [:fn
-            {:error/message "namespace-qualified symbol serialized as a string"}
-            (fn [s]
-              (try
-                (when-let [symb (symbol s)]
-                  (qualified-symbol? symb))
-                (catch Throwable _)))]]]
-   [:args {:optional true} [:sequential :any]]])
+  {:type                    (s/enum :internal "internal")
+   :fn                      #"^([\w\d-]+\.)*[\w\d-]+/[\w\d-]+$" ; namespace-qualified symbol
+   (s/optional-key :args)   [s/Any]
+   s/Any                    s/Any})
 
 (def ^:dynamic *additional-query-params*
   "Additional `internal` query params beyond `type`, `fn`, and `args`. These are bound to this dynamic var which is a
@@ -119,7 +109,7 @@
      reduce-reducible-results
      reduce-legacy-results) rff context results))
 
-(mu/defn ^:private process-internal-query
+(s/defn ^:private process-internal-query
   [{qualified-fn-str :fn, args :args, :as query} :- InternalQuery rff context]
   ;; Make sure current user is a superuser or has monitoring permissions
   (validation/check-has-application-permission :monitoring)
@@ -132,11 +122,10 @@
     (let [resolved (apply audit.i/resolve-internal-query qualified-fn-str args)]
       (reduce-results rff context resolved))))
 
-(defenterprise handle-audit-app-internal-queries
-  "Middleware that handles `:internal` (Audit App) type queries."
-  :feature :audit-app
+(defn handle-internal-queries
+  "Middleware that handles `internal` type queries."
   [qp]
-  (fn [{query-type :type, :as query} rff context]
+  (fn [{query-type :type, :as query} xform context]
     (if (= :internal (keyword query-type))
-      (process-internal-query query rff context)
-      (qp query rff context))))
+      (process-internal-query query xform context)
+      (qp query xform context))))

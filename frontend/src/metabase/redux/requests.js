@@ -3,18 +3,7 @@ import { updateIn, assoc, getIn } from "icepick";
 
 export const setRequestLoading = createAction(
   "metabase/requests/SET_REQUEST_LOADING",
-  (statePath, queryKey) => ({
-    statePath,
-    queryKey,
-  }),
-);
-export const setRequestPromise = createAction(
-  "metabase/requests/SET_REQUEST_PROMISE",
-  (statePath, queryKey, queryPromise) => ({
-    statePath,
-    queryKey,
-    queryPromise,
-  }),
+  (statePath, queryKey) => ({ statePath, queryKey }),
 );
 export const setRequestLoaded = createAction(
   "metabase/requests/SET_REQUEST_LOADED",
@@ -40,20 +29,12 @@ const initialRequestState = {
 const requestStateReducer = handleActions(
   {
     [setRequestLoading]: {
-      next: (state, { payload: { queryKey, queryPromise } }) => ({
+      next: (state, { payload: { queryKey } }) => ({
         ...state,
         queryKey,
-        queryPromise,
         loading: true,
         loaded: false,
         error: null,
-      }),
-    },
-    [setRequestPromise]: {
-      next: (state, { payload: { queryKey, queryPromise } }) => ({
-        ...state,
-        queryKey,
-        queryPromise,
       }),
     },
     [setRequestLoaded]: {
@@ -80,7 +61,6 @@ const requestStateReducer = handleActions(
         ...state,
         loaded: false,
         error: null,
-        queryPromise: null,
       }),
     },
   },

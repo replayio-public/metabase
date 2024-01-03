@@ -1,27 +1,25 @@
 import _ from "underscore";
 import { t } from "ttag";
-import { isUUID, isJWT } from "metabase/lib/utils";
+import Utils from "metabase/lib/utils";
 import { SERVER_ERROR_TYPES } from "metabase/lib/errors";
 import {
   getGenericErrorMessage,
   getPermissionErrorMessage,
 } from "metabase/visualizations/lib/errors";
 import { IS_EMBED_PREVIEW } from "metabase/lib/embed";
-import type {
+import {
   Card,
   CardId,
   DashCardId,
   Dashboard,
-  DashboardCard,
+  DashboardOrderedCard,
   Database,
   Dataset,
   NativeDatasetQuery,
   Parameter,
   StructuredDatasetQuery,
   ActionDashboardCard,
-  EmbedDataset,
 } from "metabase-types/api";
-import type { SelectedTabId } from "metabase-types/store";
 import Question from "metabase-lib/Question";
 import {
   isDateParameter,
@@ -55,7 +53,7 @@ export function expandInlineDashboard(dashboard: Partial<Dashboard>) {
     name: "",
     parameters: [],
     ...dashboard,
-    dashcards: dashboard.dashcards?.map(dashcard => ({
+    ordered_cards: dashboard.ordered_cards?.map(dashcard => ({
       visualization_settings: {},
       parameter_mappings: [],
       ...dashcard,
@@ -77,26 +75,26 @@ export function expandInlineCard(card?: Card) {
   };
 }
 
-export function isVirtualDashCard(dashcard: DashboardCard) {
+export function isVirtualDashCard(dashcard: DashboardOrderedCard) {
   return _.isObject(dashcard?.visualization_settings?.virtual_card);
 }
 
-export function getVirtualCardType(dashcard: DashboardCard) {
+export function getVirtualCardType(dashcard: DashboardOrderedCard) {
   return dashcard?.visualization_settings?.virtual_card?.display;
 }
 
-export function isLinkDashCard(dashcard: DashboardCard) {
+export function isLinkDashCard(dashcard: DashboardOrderedCard) {
   return getVirtualCardType(dashcard) === "link";
 }
 
-export function isNativeDashCard(dashcard: DashboardCard) {
+export function isNativeDashCard(dashcard: DashboardOrderedCard) {
   return dashcard.card && new Question(dashcard.card).isNative();
 }
 
 // For a virtual (text) dashcard without any parameters, returns a boolean indicating whether we should display the
 // info text about parameter mapping in the card itself or as a tooltip.
 export function showVirtualDashCardInfoText(
-  dashcard: DashboardCard,
+  dashcard: DashboardOrderedCard,
   isMobile: boolean,
 ) {
   if (isVirtualDashCard(dashcard)) {
@@ -121,23 +119,12 @@ export function getNativeDashCardEmptyMappingText(parameter: Parameter) {
 export function getAllDashboardCards(dashboard: Dashboard) {
   const results = [];
   if (dashboard) {
-    for (const dashcard of dashboard.dashcards) {
+    for (const dashcard of dashboard.ordered_cards) {
       const cards = [dashcard.card].concat((dashcard as any).series || []);
       results.push(...cards.map(card => ({ card, dashcard })));
     }
   }
   return results;
-}
-
-export function getCurrentTabDashboardCards(
-  dashboard: Dashboard,
-  selectedTabId: SelectedTabId,
-) {
-  return getAllDashboardCards(dashboard).filter(
-    ({ dashcard }) =>
-      (dashcard.dashboard_tab_id == null && selectedTabId == null) ||
-      dashcard.dashboard_tab_id === selectedTabId,
-  );
 }
 
 export function hasDatabaseActionsEnabled(database: Database) {
@@ -148,9 +135,9 @@ export function getDashboardType(id: unknown) {
   if (id == null || typeof id === "object") {
     // HACK: support inline dashboards
     return "inline";
-  } else if (isUUID(id)) {
+  } else if (Utils.isUUID(id)) {
     return "public";
-  } else if (isJWT(id)) {
+  } else if (Utils.isJWT(id)) {
     return "embed";
   } else if (typeof id === "string" && /\/auto\/dashboard/.test(id)) {
     return "transient";
@@ -176,7 +163,7 @@ export function getDatasetQueryParams(
 }
 
 export function isDashcardLoading(
-  dashcard: DashboardCard,
+  dashcard: DashboardOrderedCard,
   dashcardsData: Record<DashCardId, Record<CardId, Dataset | null>>,
 ) {
   if (isVirtualDashCard(dashcard)) {
@@ -226,21 +213,19 @@ const isDashcardDataLoaded = (
   return data != null && Object.values(data).every(result => result != null);
 };
 
-const hasRows = (dashcardData: Record<CardId, Dataset | EmbedDataset>) => {
+const hasRows = (dashcardData: Record<CardId, Dataset>) => {
   const queryResults = dashcardData
     ? Object.values(dashcardData).filter(Boolean)
     : [];
 
   return (
     queryResults.length > 0 &&
-    queryResults.every(
-      queryResult => "data" in queryResult && queryResult.data.rows.length > 0,
-    )
+    queryResults.every(queryResult => queryResult.data.rows.length > 0)
   );
 };
 
 const shouldHideCard = (
-  dashcard: DashboardCard,
+  dashcard: DashboardOrderedCard,
   dashcardData: Record<CardId, Dataset | null>,
   wasVisible: boolean,
 ) => {
@@ -263,7 +248,7 @@ const shouldHideCard = (
 };
 
 export const getVisibleCardIds = (
-  cards: DashboardCard[],
+  cards: DashboardOrderedCard[],
   dashcardsData: Record<DashCardId, Record<CardId, Dataset | null>>,
   prevVisibleCardIds = new Set<number>(),
 ) => {
@@ -286,13 +271,3 @@ export const getActionIsEnabledInDatabase = (
 ): boolean => {
   return !!card.action?.database_enabled_actions;
 };
-
-/**
- * When you remove a dashcard from a dashboard (either via removing or via moving it to another tab),
- * another dashcard can take its place. This small offset ensures that the grid will put this dashcard
- * in the correct place, pushing back down the other card.
- * This is a "best effort" solution, it doesn't always work but it's good enough for the most common case
- * see https://github.com/metabase/metabase/pull/35502
- */
-export const calculateDashCardRowAfterUndo = (originalRow: number) =>
-  originalRow - 0.1;

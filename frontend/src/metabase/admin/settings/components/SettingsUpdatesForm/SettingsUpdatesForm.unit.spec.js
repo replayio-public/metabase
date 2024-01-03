@@ -1,12 +1,11 @@
+import { render, screen } from "@testing-library/react";
+import { setupEnterpriseTest } from "__support__/enterprise";
+import { mockSettings } from "__support__/settings";
 import {
-  createMockTokenStatus,
   createMockVersion,
   createMockVersionInfo,
   createMockVersionInfoRecord,
 } from "metabase-types/api/mocks";
-import { createMockState } from "metabase-types/store/mocks";
-import { mockSettings } from "__support__/settings";
-import { renderWithProviders, screen } from "__support__/ui";
 import SettingsUpdatesForm from "./SettingsUpdatesForm";
 
 const elements = [
@@ -18,7 +17,6 @@ const elements = [
 
 function setup({
   isHosted = false,
-  isPaid = false,
   currentVersion = "v1.0.0",
   latestVersion = "v2.0.0",
 } = {}) {
@@ -32,20 +30,13 @@ function setup({
       })
     : null;
 
-  const settings = mockSettings({
+  mockSettings({
     "is-hosted?": isHosted,
     version,
     "version-info": versionInfo,
-    "token-status": createMockTokenStatus({ valid: isPaid }),
   });
 
-  const state = createMockState({
-    settings,
-  });
-
-  renderWithProviders(<SettingsUpdatesForm elements={elements} />, {
-    storeInitialState: state,
-  });
+  render(<SettingsUpdatesForm elements={elements} />);
 }
 
 describe("SettingsUpdatesForm", () => {
@@ -73,8 +64,10 @@ describe("SettingsUpdatesForm", () => {
     expect(screen.getByText("Migrate to Metabase Cloud.")).toBeInTheDocument();
   });
 
-  it("does not show upgrade call-to-action if is a paid plan", () => {
-    setup({ currentVersion: "v1.0.0", latestVersion: "v2.0.0", isPaid: true });
+  it("does not show upgrade call-to-action if in Enterprise plan", () => {
+    setupEnterpriseTest();
+
+    setup({ currentVersion: "v1.0.0", latestVersion: "v2.0.0" });
 
     expect(
       screen.queryByText("Migrate to Metabase Cloud."),

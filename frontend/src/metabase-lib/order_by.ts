@@ -28,19 +28,22 @@ export function orderBy(
 }
 
 export function orderByClause(
+  query: Query,
+  stageNumber: number,
   column: ColumnMetadata,
   direction?: OrderByDirection,
 ): OrderByClause {
-  return ML.order_by_clause(column, direction);
+  return ML.order_by_clause(query, stageNumber, column, direction);
 }
 
 export function changeDirection(query: Query, clause: OrderByClause): Query {
   return ML.change_direction(query, clause);
 }
 
-export function removeOrderBys(query: Query, stageIndex: number): Query {
-  return orderBys(query, stageIndex).reduce(
-    (newQuery, orderBy) => removeClause(newQuery, stageIndex, orderBy),
-    query,
-  );
+export function clearOrderBys(query: Query, stageIndex: number): Query {
+  let current = query;
+  orderBys(query, stageIndex).forEach(clause => {
+    current = removeClause(query, stageIndex, clause);
+  });
+  return current;
 }

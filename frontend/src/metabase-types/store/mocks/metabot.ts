@@ -1,4 +1,4 @@
-import type { MetabotState, MetabotUiControls } from "metabase-types/store";
+import { MetabotState, MetabotUiControls } from "metabase-types/store";
 
 export const createMockMetabotState = (
   opts?: Partial<MetabotState>,

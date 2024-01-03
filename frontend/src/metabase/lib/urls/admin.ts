@@ -1,4 +1,4 @@
-import type {
+import {
   DatabaseId,
   FieldId,
   SchemaId,

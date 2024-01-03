@@ -25,11 +25,12 @@
      :location location)))
 
 (defn- create-collection!
-  ([collection-name description]
-   (create-collection! collection-name description (root-container-location)))
-  ([collection-name description location]
+  ([collection-name color description]
+   (create-collection! collection-name color description (root-container-location)))
+  ([collection-name color description location]
    (first (t2/insert-returning-pks! Collection
                                     {:name        collection-name
+                                     :color       color
                                      :description description
                                      :location    location}))))
 
@@ -39,7 +40,7 @@
   (let [location "/"
         name     "Automatically Generated Transforms"]
     (or (get-collection name location)
-        (create-collection! name nil location))))
+        (create-collection! name "#509EE3" nil location))))
 
 (defn fresh-collection-for-transform!
   "Create a new collection for all the artefacts belonging to transform, or reset it if it already
@@ -47,7 +48,7 @@
   [{:keys [name description]}]
   (if-let [collection-id (get-collection name)]
     (t2/delete! Card :collection_id collection-id)
-    (create-collection! name description)))
+    (create-collection! name "#509EE3" description)))
 
 (defn make-card-for-step!
   "Make and save a card for a given transform step and query."

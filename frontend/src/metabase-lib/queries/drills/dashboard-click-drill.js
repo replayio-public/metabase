@@ -9,8 +9,6 @@ import {
   getTargetForQueryParams,
 } from "metabase-lib/parameters/utils/click-behavior";
 import Question from "metabase-lib/Question";
-import * as ML_Urls from "metabase-lib/urls";
-import { isDate } from "metabase-lib/types/utils/isa";
 
 export function getDashboardDrillType(clicked) {
   const clickBehavior = getClickBehavior(clicked);
@@ -73,16 +71,11 @@ export function getDashboardDrillUrl(clicked) {
     clickBehavior,
   );
 
-  const baseQueryParams = getParameterValuesBySlug(parameterMapping, {
+  const queryParams = getParameterValuesBySlug(parameterMapping, {
     data,
     extraData,
     clickBehavior,
   });
-
-  const queryParams =
-    typeof clickBehavior.tabId === "undefined"
-      ? baseQueryParams
-      : { ...baseQueryParams, tab: clickBehavior.tabId };
 
   const path = Urls.dashboard({ id: targetId });
   return `${path}?${querystring.stringify(queryParams)}`;
@@ -106,7 +99,7 @@ export function getDashboardDrillQuestionUrl(question, clicked) {
       target: target.dimension,
       id,
       slug: id,
-      type: getTypeForSource(source, data, extraData),
+      type: getTypeForSource(source, extraData),
     }))
     .value();
 
@@ -117,8 +110,8 @@ export function getDashboardDrillQuestionUrl(question, clicked) {
   });
 
   return targetQuestion.isStructured()
-    ? ML_Urls.getUrlWithParameters(targetQuestion, parameters, queryParams)
-    : `${ML_Urls.getUrl(targetQuestion)}?${querystring.stringify(queryParams)}`;
+    ? targetQuestion.getUrlWithParameters(parameters, queryParams)
+    : `${targetQuestion.getUrl()}?${querystring.stringify(queryParams)}`;
 }
 
 function getClickBehavior(clicked) {
@@ -172,18 +165,12 @@ function getParameterValuesBySlug(
     .value();
 }
 
-function getTypeForSource(source, data, extraData) {
+function getTypeForSource(source, extraData) {
   if (source.type === "parameter") {
     const parameters = getIn(extraData, ["dashboard", "parameters"]) || [];
     const { type = "text" } = parameters.find(p => p.id === source.id) || {};
     return type;
   }
-
-  const datum = data[source.type][source.id.toLowerCase()] || [];
-  if (datum.column && isDate(datum.column)) {
-    return "date";
-  }
-
   return "text";
 }
 

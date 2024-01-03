@@ -4,19 +4,20 @@ import { useAsyncFn } from "react-use";
 import { t } from "ttag";
 import { PLUGIN_FEATURE_LEVEL_PERMISSIONS } from "metabase/plugins";
 import { Icon } from "metabase/core/components/Icon";
-import type { DownloadQueryResultsOpts } from "metabase/query_builder/actions";
-import { downloadQueryResults } from "metabase/query_builder/actions";
+import {
+  downloadQueryResults,
+  DownloadQueryResultsOpts,
+} from "metabase/query_builder/actions";
 import QueryDownloadPopover from "metabase/query_builder/components/QueryDownloadPopover";
 import { editQuestion } from "metabase/dashboard/actions";
 import { SAVING_DOM_IMAGE_HIDDEN_CLASS } from "metabase/visualizations/lib/save-chart-image";
-import type {
+import {
   DashboardId,
   DashCardId,
   Dataset,
   VisualizationSettings,
 } from "metabase-types/api";
-import type Question from "metabase-lib/Question";
-import InternalQuery from "metabase-lib/queries/InternalQuery";
+import Question from "metabase-lib/Question";
 import { CardMenuRoot } from "./DashCardMenu.styled";
 
 interface OwnProps {
@@ -124,18 +125,10 @@ const DashCardMenu = ({
 interface QueryDownloadWidgetOpts {
   question: Question;
   result?: Dataset;
-  isXray?: boolean;
-  isEmbed: boolean;
-  isPublic?: boolean;
-  isEditing: boolean;
 }
 
 const canEditQuestion = (question: Question) => {
-  return (
-    question.canWrite() &&
-    question.query() != null &&
-    question.query().isEditable()
-  );
+  return question.query() != null && question.query().isEditable();
 };
 
 const canDownloadResults = (result?: Dataset) => {
@@ -146,28 +139,9 @@ const canDownloadResults = (result?: Dataset) => {
   );
 };
 
-DashCardMenu.shouldRender = ({
-  question,
-  result,
-  isXray,
-  isEmbed,
-  isPublic,
-  isEditing,
-}: QueryDownloadWidgetOpts) => {
-  const isInternalQuery = question.query() instanceof InternalQuery;
-  if (isEmbed) {
-    return isEmbed;
-  }
-  return (
-    !isInternalQuery &&
-    !isPublic &&
-    !isEditing &&
-    !isXray &&
-    (canEditQuestion(question) || canDownloadResults(result))
-  );
+DashCardMenu.shouldRender = ({ question, result }: QueryDownloadWidgetOpts) => {
+  return canEditQuestion(question) || canDownloadResults(result);
 };
 
-export const DashCardMenuConnected = connect(
-  null,
-  mapDispatchToProps,
-)(DashCardMenu);
+// eslint-disable-next-line import/no-default-export -- deprecated usage
+export default connect(null, mapDispatchToProps)(DashCardMenu);

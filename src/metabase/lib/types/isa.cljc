@@ -1,30 +1,26 @@
 (ns metabase.lib.types.isa
   "Ported from frontend/src/metabase-lib/types/utils/isa.js"
-  (:refer-clojure :exclude [isa? any? boolean? number? string? integer?])
   (:require
    [medley.core :as m]
    [metabase.lib.types.constants :as lib.types.constants]
-   [metabase.lib.util :as lib.util]
-   [metabase.types]))
+   [metabase.lib.util :as lib.u]
+   [metabase.types])
+  (:refer-clojure :exclude [isa? any? boolean? number? string? integer?]))
 
 (comment metabase.types/keep-me)
 
 (defn ^:export isa?
   "Decide if `_column` is a subtype of the type denoted by the keyword `type-kw`.
   Both effective and semantic types are taken into account."
-  [{:keys [effective-type base-type semantic-type] :as _column} type-kw]
-  (or (clojure.core/isa? (or effective-type base-type) type-kw)
+  [{:keys [effective-type semantic-type] :as _column} type-kw]
+  (or (clojure.core/isa? effective-type type-kw)
       (clojure.core/isa? semantic-type type-kw)))
 
 (defn ^:export field-type?
   "Returns if `column` is of category `category`.
   The possible categories are the keys in [[metabase.lib.types.constants/type-hierarchies]]."
   [category column]
-  (let [type-definition (lib.types.constants/type-hierarchies category)
-        column          (cond-> column
-                          (and (map? column)
-                               (not (:effective-type column)))
-                          (assoc :effective-type (:base-type column)))]
+  (let [type-definition (lib.types.constants/type-hierarchies category)]
     (cond
       (nil? column) false
 
@@ -60,7 +56,7 @@
                  ::lib.types.constants/string_like
                  ::lib.types.constants/number]))
 
-(defn ^:export temporal?
+(defn ^:export date?
   "Is `column` of a temporal type?"
   [column]
   (field-type? ::lib.types.constants/temporal column))
@@ -109,13 +105,13 @@
   "Is `column` a dimension?"
   [column]
   (and column
-       (not= (:lib/source column) :source/aggregations)
+       (not= (:lib/source column) :source/aggregation)
        (not (description? column))))
 
 (defn ^:export metric?
   "Is `column` a metric?"
   [column]
-  (and (not= (:lib/source column) :source/breakouts)
+  (and (not= (:lib/source column) :source/breakout)
        (summable? column)))
 
 (defn ^:export foreign-key?
@@ -133,26 +129,6 @@
   [column]
   (clojure.core/isa? (:semantic-type column) :type/Name))
 
-(defn ^:export title?
-  "Is `column` a title column?"
-  [column]
-  (clojure.core/isa? (:semantic-type column) :type/Title))
-
-(defn ^:export json?
-  "Is `column` a serialized JSON column?"
-  [column]
-  (clojure.core/isa? (:semantic-type column) :type/SerializedJSON))
-
-(defn ^:export xml?
-  "Is `column` a serialized XML column?"
-  [column]
-  (clojure.core/isa? (:semantic-type column) :type/XML))
-
-(defn ^:export structured?
-  "Is `column` serialized structured data? (eg. JSON, XML)"
-  [column]
-  (clojure.core/isa? (:semantic-type column) :type/Structured))
-
 (defn ^:export any?
   "Is this `_column` whatever (including nil)?"
   [_column]
@@ -167,21 +143,6 @@
   "Is `column` a date without time?"
   [column]
   (clojure.core/isa? (:effective-type column) :type/Date))
-
-(defn ^:export creation-timestamp?
-  "Is `column` a creation timestamp column?"
-  [column]
-  (clojure.core/isa? (:semantic-type column) :type/CreationTimestamp))
-
-(defn ^:export creation-date?
-  "Is `column` a creation date column?"
-  [column]
-  (clojure.core/isa? (:semantic-type column) :type/CreationDate))
-
-(defn ^:export creation-time?
-  "Is `column` a creation time column?"
-  [column]
-  (clojure.core/isa? (:semantic-type column) :type/CreationTime))
 
 ;; ZipCode, ID, etc derive from Number but should not be formatted as numbers
 (defn ^:export number?
@@ -292,18 +253,6 @@
       ;; comment from isa.js:
       ;; > FIXME: columns of nested questions at this moment miss table_id value
       ;; > which makes it impossible to match them with their tables that are nested cards
-      (if (lib.util/legacy-string-table-id->card-id table-id)
+      (if (lib.u/string-table-id->card-id table-id)
         pk?
         (and pk? (= (:table-id column) table-id))))))
-
-;;; TODO -- This stuff should probably use the constants in [[metabase.lib.types.constants]], however this logic isn't
-;;; supposed to include things with semantic type = Category which the `::string` constant define there includes.
-(defn searchable?
-  "Is this column one that we should show a search widget for (to search its values) in the QB filter UI? If so, we can
-  give it a `has-field-values` value of `:search`."
-  [{:keys [base-type effective-type]}]
-  ;; For the time being we will consider something to be "searchable" if it's a text Field since the `starts-with`
-  ;; filter that powers the search queries (see [[metabase.api.field/search-values]]) doesn't work on anything else
-  (let [column-type (or effective-type base-type)]
-    (or (clojure.core/isa? column-type :type/Text)
-        (clojure.core/isa? column-type :type/TextLike))))

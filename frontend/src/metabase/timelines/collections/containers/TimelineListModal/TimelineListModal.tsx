@@ -2,10 +2,10 @@ import _ from "underscore";
 import * as Urls from "metabase/lib/urls";
 import Collections from "metabase/entities/collections";
 import Timelines from "metabase/entities/timelines";
-import type { State } from "metabase-types/store";
+import { State } from "metabase-types/store";
 import TimelineListModal from "../../components/TimelineListModal";
 import LoadingAndErrorWrapper from "../../components/LoadingAndErrorWrapper";
-import type { ModalParams } from "../../types";
+import { ModalParams } from "../../types";
 
 interface TimelineListModalProps {
   params: ModalParams;

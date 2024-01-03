@@ -2,7 +2,7 @@
   (:require
    [clojure.string :as str]
    [clojure.test :refer :all]
-   [java-time.api :as t]
+   [java-time :as t]
    [metabase.driver :as driver]
    [metabase.models :refer [Card]]
    [metabase.query-processor :as qp]
@@ -107,7 +107,7 @@
     :query-fn    (fn [op field-id] {:expressions {"expr" [op [:field field-id nil]]}
                                     :aggregation [[:count]]
                                     :breakout    [[:expression "expr"]]})}])
-(deftest ^:parallel extraction-function-tests
+(deftest extraction-function-tests
   (mt/dataset times-mixed
     (mt/test-drivers (mt/normal-drivers-with-feature :temporal-extract)
       (testing "with datetime columns"
@@ -191,10 +191,10 @@
                       ;; the timezone that they were inserted in
                       ;; maybe they need explicit convert-timezone to the report-tz before extraction?
                       :get-hour        (case driver/*driver*
-                                         (:sqlserver :snowflake :oracle) 5
+                                         (:sqlserver :presto-jdbc :snowflake :oracle) 5
                                          2)
                       :get-minute      (case driver/*driver*
-                                         (:sqlserver :snowflake :oracle) 19
+                                         (:sqlserver :presto-jdbc :snowflake :oracle) 19
                                          49)
                       :get-second      9}
                      {:get-year        2003
@@ -489,7 +489,7 @@
                                       :limit  1})
                                    (mt/formatted-rows [int int])
                                    first)
-                results-timezone (mt/with-metadata-provider (mt/id) (qp.timezone/results-timezone-id))
+                results-timezone (mt/with-everything-store (qp.timezone/results-timezone-id))
                 now              (t/local-date-time (t/zone-id results-timezone))]
             (is (true? (close-minute? minute (.getMinute now))))
             (is (true? (close-hour? hour (.getHour now))))))))))
@@ -728,7 +728,7 @@
 
 (deftest ^:parallel datetime-diff-base-test
   (mt/test-drivers (mt/normal-drivers-with-feature :datetime-diff)
-    (mt/dataset test-data
+    (mt/dataset sample-dataset
       (letfn [(query [x y unit]
                 (mt/mbql-query orders
                   {:limit 1
@@ -814,12 +814,12 @@
   ;; run another query with `datetime-diff` against it.
   (mt/test-driver :athena
     (testing "datetime-diff can compare `date`, `timestamp`, and `timestamp with time zone` args with Athena"
-      (mt/with-temp
-        [Card card (qp.test-util/card-with-source-metadata-for-query
-                    (mt/native-query {:query (str "select"
-                                                  " date '2022-01-01' as d,"
-                                                  " timestamp '2022-01-01 00:00:00.000' as dt,"
-                                                  " with_timezone(timestamp '2022-01-01 00:00:00.000', 'Africa/Lagos') as dt_tz")}))]
+      (mt/with-temp*
+        [Card [card (qp.test-util/card-with-source-metadata-for-query
+                     (mt/native-query {:query (str "select"
+                                                   " date '2022-01-01' as d,"
+                                                   " timestamp '2022-01-01 00:00:00.000' as dt,"
+                                                   " with_timezone(timestamp '2022-01-01 00:00:00.000', 'Africa/Lagos') as dt_tz")}))]]
         (let [d       [:field "d" {:base-type :type/Date}]
               dt      [:field "dt" {:base-type :type/DateTime}]
               dt_tz   [:field "dt_tz" {:base-type :type/DateTimeWithZoneID}]
@@ -1030,16 +1030,14 @@
                            (mt/formatted-rows (repeat (count units) int))
                            first
                            (zipmap units))))]
-        (run-datetime-diff-time-zone-tests diffs)))))
-
-(deftest datetime-diff-time-zones-test-athena
+        (run-datetime-diff-time-zone-tests diffs))))
   ;; Athena needs special treatment. It supports the `timestamp with time zone` type in query expressions
   ;; but not at rest. Here we create a native query that returns a `timestamp with time zone` type and then
   ;; run another query with `datetime-diff` against it.
   (mt/test-driver :athena
     (mt/dataset diff-time-zones-athena-cases
-      (mt/with-temp [Card card (qp.test-util/card-with-source-metadata-for-query
-                                (mt/native-query {:query diff-time-zones-athena-cases-query}))]
+      (mt/with-temp* [Card [card (qp.test-util/card-with-source-metadata-for-query
+                                  (mt/native-query {:query diff-time-zones-athena-cases-query}))]]
         (let [diffs
               (fn [a-str b-str]
                 (let [units   [:second :minute :hour :day :week :month :quarter :year]
@@ -1066,7 +1064,7 @@
 
 (deftest datetime-diff-expressions-test
   (mt/test-drivers (mt/normal-drivers-with-feature :datetime-diff)
-    (mt/dataset test-data
+    (mt/dataset sample-dataset
       (testing "Args can be expressions that return datetime values"
         (let [diffs (fn [x y]
                       (let [units [:second :minute :hour :day :week :month :quarter :year]]

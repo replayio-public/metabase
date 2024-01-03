@@ -1,6 +1,6 @@
 import { t } from "ttag";
 import NewItemMenu from "metabase/containers/NewItemMenu";
-import type { CollectionId } from "metabase-types/api";
+import { CollectionId } from "metabase-types/api";
 import { NewButton, NewButtonText } from "./NewItemButton.styled";
 
 export interface NewItemButtonProps {
@@ -15,7 +15,6 @@ const NewItemButton = ({ collectionId }: NewItemButtonProps) => {
           primary
           icon="add"
           data-metabase-event="NavBar;Create Menu Click"
-          aria-label={t`New`}
         >
           <NewButtonText>{t`New`}</NewButtonText>
         </NewButton>

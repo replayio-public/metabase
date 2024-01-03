@@ -11,7 +11,7 @@ describe("issue 18818", () => {
     cy.signInAsAdmin();
   });
 
-  it("should normally open notebook editor for queries joining on custom columns (metabase#18818)", () => {
+  it("should normally open notebook editor for queries joining on custom columns (metabase#18630)", () => {
     cy.createQuestion(
       {
         query: {

@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { Component } from "react";
 
 import * as React from "react";
@@ -5,9 +6,9 @@ import * as React from "react";
 import Popover from "metabase/components/Popover";
 import FilterComponent from "metabase/query_builder/components/Filter";
 
-import type Filter from "metabase-lib/queries/structured/Filter";
-import type StructuredQuery from "metabase-lib/queries/StructuredQuery";
-import { FilterPopover } from "./FilterPopover";
+import Filter from "metabase-lib/queries/structured/Filter";
+import StructuredQuery from "metabase-lib/queries/StructuredQuery";
+import FilterPopover from "./FilterPopover";
 import {
   FilterField,
   FilterOperator,

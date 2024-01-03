@@ -1,4 +1,4 @@
-import type { WritebackAction, Database } from "metabase-types/api";
+import { WritebackAction, Database } from "metabase-types/api";
 import {
   createMockDatabase,
   createMockQueryAction,
@@ -45,7 +45,7 @@ describe("canRunAction", () => {
   it("should be able to run an action if the database has actions enabled", () => {
     const { database, action } = setup({
       database: createMockDatabase({
-        native_permissions: "write",
+        native_permissions: "read",
         settings: { "database-enable-actions": true },
       }),
     });

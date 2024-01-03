@@ -2,7 +2,7 @@
   (:require
    [clojure.string :as str]
    [clojure.test :refer :all]
-   [java-time.api :as t]
+   [java-time :as t]
    [metabase.driver :as driver]
    [metabase.query-processor :as qp]
    [metabase.query-processor.middleware.optimize-temporal-filters

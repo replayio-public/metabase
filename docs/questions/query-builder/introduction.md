@@ -26,6 +26,7 @@ You can start a question from:
 Note that there are some kinds of saved questions that can't be used as source data:
 
 - Druid questions
+- Google Analytics questions
 - Mongo questions
 - Questions that use `Cumulative Sum` or `Cumulative Count` aggregations
 - Questions that have columns that are named the same or similar thing, like `Count` and `Count 2`
@@ -48,7 +49,7 @@ To the right of completed step is a **Preview** button (looks like a Play button
 
 ## Picking data
 
-The data section is where you select the data you want to work with. Here you'll pick a [model](../../data-modeling/models.md), a table from a database, or a saved question. You can click on a table to select which columns you want to include in your results. See also [adding or removing columns in a table](#adding-or-removing-columns-in-a-table).
+The data section is where you select the data you want to work with. Here you'll pick a [model](../../data-modeling/models.md), a table from a database, or a saved question. You can click on a table to select which columns you want to include in your results.
 
 ## Joining data
 
@@ -65,6 +66,8 @@ When you add a filter step, you can select one or more columns to filter on. Dep
 You can add subsequent filter steps after each summarize step. This lets you do things like summarize by the count of rows per month, and then add a filter on the `count` column to only include rows where the count is greater than 100. (This is basically like a SQL `HAVING` clause.)
 
 Once you're happy with your filter, click **Add filter**, and visualize your results. Your data will be updated with the filter applied.
+
+![An active filter](../images/filter-badge.png)
 
 If you want to edit your filter, just click the little purple filter at the top of the screen. If you click on the X, you'll remove your filter. You can add as many filters as you need.
 
@@ -164,14 +167,6 @@ Once you're done setting your metrics and groupings, click **Visualize** to see 
 
 If you want to jump ahead and learn about [how to change the visualization](../sharing/visualizing-results.md) of your results, by all means, feel free.
 
-## Drill-through menu
-
-You can also click through questions to explored the data in greater detail.
-
-![Drill-through menu](../images/drill-through-menu.png)
-
-The drill-through menu will present different options depending on what you click on. You can then optionally save that exploration as a new question. The drill-through menu is only available for questions built using the query builder. For more on how drill-through works, check out [Creating interactive charts](https://www.metabase.com/learn/questions/drill-through).
-
 ## Returning to the notebook editor
 
 To return to the notebook editor for a question, click on the show editor button in the upper right.
@@ -199,12 +194,6 @@ Custom expressions allow you to use spreadsheet-like functions and simple arithm
 Custom columns are helpful when you need to create a new column based on a calculation, such as subtracting the value of one column from another, or extracting a portion of an existing text column. Custom columns that you add aren't permanently added to your table; they'll only be present in the given question.
 
 You can use the following math operators in your formulas: `+`, `–`, `*` (multiplication), and `/` (division), along with a whole host of spreadsheet-like functions. You can also use parentheses to clarify the order of operations.
-
-## Adding or removing columns in a table
-
-When viewing tables, you can click on the **gear** icon in the bottom left to bring up the columns picker. Click **Add or remove columns** to search for and pick columns, including columns from related tables.
-
-![Adding or removing columns](../images/column-selection.png)
 
 ## Sorting results
 

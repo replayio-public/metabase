@@ -8,31 +8,23 @@
    [metabase.lib.schema.common :as lib.schema.common]
    [metabase.util.malli.registry :as mr]))
 
-(mr/def ::strategy
+(mr/def ::binning-strategies
   [:enum :bin-width :default :num-bins])
 
-(mr/def ::num-bins
-  ::lib.schema.common/positive-int)
-
-(mr/def ::bin-width
-  ::lib.schema.common/positive-number)
-
 (mr/def ::binning
-  [:merge
+  [:and
    [:map
-    [:strategy [:ref ::strategy]]]
-   [:multi {:dispatch :strategy
-            :error/fn (fn [{:keys [value]} _]
-                        (str "Invalid binning strategy" (pr-str value)))}
-    [:default   :map]
-    [:bin-width [:map
-                 [:bin-width [:ref ::bin-width]]]]
-    [:num-bins  [:map
-                 [:num-bins [:ref ::num-bins]]]]]])
+    [:strategy  [:ref ::binning-strategies]]
+    [:bin-width {:optional true} pos?]
+    [:num-bins  {:optional true} ::lib.schema.common/int-greater-than-zero]]
+   [:fn {:error/message "if :strategy is not :default, the matching key :bin-width or :num-bins must also be set"}
+    #(when-let [strat (:strategy %)]
+       (or (= strat :default)
+           (contains? % strat)))]])
 
 (mr/def ::binning-option
   [:map
-   [:lib/type [:= :option/binning]]
+   [:lib/type [:= :metabase.lib.binning/binning-option]]
    [:display-name :string]
    [:mbql [:maybe ::binning]]
    [:default {:optional true} :boolean]])

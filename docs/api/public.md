@@ -23,7 +23,7 @@ Fetch a publicly-accessible Card an return query results as well as `:card` info
 
 ### PARAMS:
 
-*  **`uuid`** value must be a valid UUID.
+*  **`uuid`**
 
 ## `GET /api/public/card/:uuid/field/:field-id/remapping/:remapped-id`
 
@@ -32,11 +32,11 @@ Fetch remapped Field values. This is the same as `GET /api/field/:id/remapping/:
 
 ### PARAMS:
 
-*  **`uuid`** value must be a valid UUID.
+*  **`uuid`** 
 
-*  **`field-id`** value must be an integer greater than zero.
+*  **`field-id`** 
 
-*  **`remapped-id`** value must be an integer greater than zero.
+*  **`remapped-id`** 
 
 *  **`value`** value must be a non-blank string.
 
@@ -46,15 +46,15 @@ Search for values of a Field that is referenced by a public Card.
 
 ### PARAMS:
 
-*  **`uuid`** value must be a valid UUID.
+*  **`uuid`** 
 
-*  **`field-id`** value must be an integer greater than zero.
+*  **`field-id`** 
 
-*  **`search-field-id`** value must be an integer greater than zero.
+*  **`search-field-id`** 
 
 *  **`value`** value must be a non-blank string.
 
-*  **`limit`** nullable value must be an integer greater than zero.
+*  **`limit`** value may be nil, or if non-nil, value must be a valid integer greater than zero.
 
 ## `GET /api/public/card/:uuid/field/:field-id/values`
 
@@ -62,9 +62,9 @@ Fetch FieldValues for a Field that is referenced by a public Card.
 
 ### PARAMS:
 
-*  **`uuid`** value must be a valid UUID.
+*  **`uuid`** 
 
-*  **`field-id`** value must be an integer greater than zero.
+*  **`field-id`**
 
 ## `GET /api/public/card/:uuid/params/:param-key/search/:query`
 
@@ -72,11 +72,11 @@ Fetch values for a parameter on a public card containing `query`.
 
 ### PARAMS:
 
-*  **`uuid`** value must be a valid UUID.
+*  **`uuid`** 
 
-*  **`param-key`** value must be a non-blank string.
+*  **`param-key`** 
 
-*  **`query`** value must be a non-blank string.
+*  **`query`**
 
 ## `GET /api/public/card/:uuid/params/:param-key/values`
 
@@ -84,9 +84,9 @@ Fetch values for a parameter on a public card.
 
 ### PARAMS:
 
-*  **`uuid`** value must be a valid UUID.
+*  **`uuid`** 
 
-*  **`param-key`** value must be a non-blank string.
+*  **`param-key`**
 
 ## `GET /api/public/card/:uuid/query`
 
@@ -95,22 +95,22 @@ Fetch a publicly-accessible Card an return query results as well as `:card` info
 
 ### PARAMS:
 
-*  **`uuid`** value must be a valid UUID.
+*  **`uuid`** 
 
-*  **`parameters`** nullable value must be a valid JSON string.
+*  **`parameters`** value may be nil, or if non-nil, value must be a valid JSON string.
 
 ## `GET /api/public/card/:uuid/query/:export-format`
 
 Fetch a publicly-accessible Card and return query results in the specified format. Does not require auth
-  credentials. Public sharing must be enabled.
+   credentials. Public sharing must be enabled.
 
 ### PARAMS:
 
-*  **`uuid`** value must be a valid UUID.
+*  **`uuid`** 
 
-*  **`export-format`** enum of csv, api, xlsx, json
+*  **`export-format`** value must be one of: `api`, `csv`, `json`, `xlsx`.
 
-*  **`parameters`** nullable value must be a valid JSON string.
+*  **`parameters`** value may be nil, or if non-nil, value must be a valid JSON string.
 
 ## `GET /api/public/dashboard/:uuid`
 
@@ -118,7 +118,7 @@ Fetch a publicly-accessible Dashboard. Does not require auth credentials. Public
 
 ### PARAMS:
 
-*  **`uuid`** value must be a valid UUID.
+*  **`uuid`**
 
 ## `GET /api/public/dashboard/:uuid/dashcard/:dashcard-id/card/:card-id`
 
@@ -127,13 +127,13 @@ Fetch the results for a Card in a publicly-accessible Dashboard. Does not requir
 
 ### PARAMS:
 
-*  **`uuid`** value must be a valid UUID.
+*  **`uuid`** 
 
-*  **`card-id`** value must be an integer greater than zero.
+*  **`card-id`** 
 
-*  **`dashcard-id`** value must be an integer greater than zero.
+*  **`dashcard-id`** 
 
-*  **`parameters`** nullable value must be a valid JSON string.
+*  **`parameters`** value may be nil, or if non-nil, value must be a valid JSON string.
 
 ## `GET /api/public/dashboard/:uuid/dashcard/:dashcard-id/execute`
 
@@ -141,7 +141,7 @@ Fetches the values for filling in execution parameters. Pass PK parameters and v
 
 ### PARAMS:
 
-*  **`uuid`** value must be a valid UUID.
+*  **`uuid`** 
 
 *  **`dashcard-id`** value must be an integer greater than zero.
 
@@ -154,11 +154,11 @@ Fetch remapped Field values. This is the same as `GET /api/field/:id/remapping/:
 
 ### PARAMS:
 
-*  **`uuid`** value must be a valid UUID.
+*  **`uuid`** 
 
-*  **`field-id`** value must be an integer greater than zero.
+*  **`field-id`** 
 
-*  **`remapped-id`** value must be an integer greater than zero.
+*  **`remapped-id`** 
 
 *  **`value`** value must be a non-blank string.
 
@@ -168,15 +168,15 @@ Search for values of a Field that is referenced by a Card in a public Dashboard.
 
 ### PARAMS:
 
-*  **`uuid`** value must be a valid UUID.
+*  **`uuid`** 
 
-*  **`field-id`** value must be an integer greater than zero.
+*  **`field-id`** 
 
-*  **`search-field-id`** value must be an integer greater than zero.
+*  **`search-field-id`** 
 
 *  **`value`** value must be a non-blank string.
 
-*  **`limit`** nullable value must be an integer greater than zero.
+*  **`limit`** value may be nil, or if non-nil, value must be a valid integer greater than zero.
 
 ## `GET /api/public/dashboard/:uuid/field/:field-id/values`
 
@@ -184,9 +184,9 @@ Fetch FieldValues for a Field that is referenced by a Card in a public Dashboard
 
 ### PARAMS:
 
-*  **`uuid`** value must be a valid UUID.
+*  **`uuid`** 
 
-*  **`field-id`** value must be an integer greater than zero.
+*  **`field-id`**
 
 ## `GET /api/public/dashboard/:uuid/params/:param-key/search/:query`
 
@@ -194,13 +194,13 @@ Fetch filter values for dashboard parameter `param-key`, containing specified `q
 
 ### PARAMS:
 
-*  **`uuid`** value must be a valid UUID.
+*  **`uuid`** 
 
-*  **`param-key`** value must be a non-blank string.
+*  **`param-key`** 
 
-*  **`query`** value must be a non-blank string.
+*  **`query`** 
 
-*  **`constraint-param-key->value`**
+*  **`query-params`**
 
 ## `GET /api/public/dashboard/:uuid/params/:param-key/values`
 
@@ -208,11 +208,11 @@ Fetch filter values for dashboard parameter `param-key`.
 
 ### PARAMS:
 
-*  **`uuid`** value must be a valid UUID.
+*  **`uuid`** 
 
-*  **`param-key`** value must be a non-blank string.
+*  **`param-key`** 
 
-*  **`constraint-param-key->value`**
+*  **`query-params`**
 
 ## `GET /api/public/oembed`
 
@@ -222,11 +222,11 @@ oEmbed endpoint used to retreive embed code and metadata for a (public) Metabase
 
 *  **`url`** value must be a non-blank string.
 
-*  **`format`** nullable enum of json
+*  **`format`** value may be nil, or if non-nil, value must be one of: `json`.
 
-*  **`maxheight`** nullable value must be a valid integer.
+*  **`maxheight`** value may be nil, or if non-nil, value must be a valid integer.
 
-*  **`maxwidth`** nullable value must be a valid integer.
+*  **`maxwidth`** value may be nil, or if non-nil, value must be a valid integer.
 
 ## `GET /api/public/pivot/card/:uuid/query`
 
@@ -235,24 +235,24 @@ Fetch a publicly-accessible Card an return query results as well as `:card` info
 
 ### PARAMS:
 
-*  **`uuid`** value must be a valid UUID.
+*  **`uuid`** 
 
-*  **`parameters`** nullable value must be a valid JSON string.
+*  **`parameters`** value may be nil, or if non-nil, value must be a valid JSON string.
 
 ## `GET /api/public/pivot/dashboard/:uuid/dashcard/:dashcard-id/card/:card-id`
 
 Fetch the results for a Card in a publicly-accessible Dashboard. Does not require auth credentials. Public
-  sharing must be enabled.
+   sharing must be enabled.
 
 ### PARAMS:
 
-*  **`uuid`** value must be a valid UUID.
+*  **`uuid`** 
 
-*  **`card-id`** value must be an integer greater than zero.
+*  **`card-id`** 
 
-*  **`dashcard-id`** value must be an integer greater than zero.
+*  **`dashcard-id`** 
 
-*  **`parameters`** nullable value must be a valid JSON string.
+*  **`parameters`** value may be nil, or if non-nil, value must be a valid JSON string.
 
 ## `POST /api/public/action/:uuid/execute`
 
@@ -276,11 +276,18 @@ Execute the associated Action in the context of a `Dashboard` and `DashboardCard
 
 ### PARAMS:
 
-*  **`uuid`** value must be a valid UUID.
+*  **`uuid`** 
 
 *  **`dashcard-id`** value must be an integer greater than zero.
 
-*  **`parameters`** nullable map from <keyword> to <anything>
+*  **`parameters`** value may be nil, or if non-nil, value must be a map with schema: (
+  value must be a map with schema: (
+    p? : 
+    pred-name : 
+  ) : value must be a map with schema: (
+    _ : 
+  )
+)
 
 *  **`_body`**
 

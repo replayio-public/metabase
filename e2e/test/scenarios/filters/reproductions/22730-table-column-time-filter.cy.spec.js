@@ -30,7 +30,11 @@ describe("issue 22730", () => {
 
     popover().within(() => {
       cy.findByText("Filter by this column").click();
-      cy.findByDisplayValue("00:00").clear().type("14:03");
+
+      cy.findByTestId("hours-input").clear().type("14").blur();
+
+      cy.findByTestId("minutes-input").clear().type("03").blur();
+
       cy.button("Add filter").click();
     });
 

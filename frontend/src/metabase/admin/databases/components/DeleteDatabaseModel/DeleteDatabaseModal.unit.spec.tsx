@@ -1,9 +1,11 @@
+import { render, waitForElementToBeRemoved } from "@testing-library/react";
 import fetchMock from "fetch-mock";
 import userEvent from "@testing-library/user-event";
-import { render, screen, waitForLoaderToBeRemoved } from "__support__/ui";
+import { screen } from "__support__/ui";
 import type Database from "metabase-lib/metadata/Database";
-import type { DeleteDatabaseModalProps } from "./DeleteDatabaseModal";
-import DeleteDatabaseModal from "./DeleteDatabaseModal";
+import DeleteDatabaseModal, {
+  DeleteDatabaseModalProps,
+} from "./DeleteDatabaseModal";
 
 const getUsageInfo = (hasContent: boolean) => ({
   question: hasContent ? 10 : 0,
@@ -30,7 +32,7 @@ const setup = async ({
     />,
   );
 
-  await waitForLoaderToBeRemoved();
+  await waitForElementToBeRemoved(() => screen.queryAllByText("Loading..."));
 
   return {
     onDelete,

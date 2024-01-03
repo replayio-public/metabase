@@ -15,7 +15,7 @@ import { useConfirmation } from "metabase/hooks/use-confirmation";
 import type { Card, WritebackAction } from "metabase-types/api";
 import type { Dispatch, State } from "metabase-types/store";
 import type Question from "metabase-lib/Question";
-import type Database from "metabase-lib/metadata/Database";
+import Database from "metabase-lib/metadata/Database";
 import {
   canArchiveAction,
   canEditAction,
@@ -39,6 +39,7 @@ import {
 
 interface OwnProps {
   model: Question;
+  canRunActions: boolean;
 }
 
 interface DispatchProps {

@@ -1,5 +1,4 @@
-import type { RefObject } from "react";
-import { useEffect } from "react";
+import { useEffect, RefObject } from "react";
 
 interface ValidRefTarget {
   contains(target: EventTarget | null): boolean;

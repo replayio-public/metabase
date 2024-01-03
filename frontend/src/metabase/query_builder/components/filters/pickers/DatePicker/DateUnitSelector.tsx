@@ -12,7 +12,6 @@ type Props = {
   formatter: (value: any) => any;
   formatDisplayName?: (period: string, intervals: number) => string;
   periods: string[];
-  "aria-label"?: string;
   testId?: string;
 };
 
@@ -24,7 +23,6 @@ const DateUnitSelector = ({
   formatter,
   formatDisplayName = defaultDisplayName,
   periods,
-  "aria-label": ariaLabel,
   testId,
 }: Props) => (
   <Select
@@ -33,11 +31,7 @@ const DateUnitSelector = ({
     onChange={(e: any) => onChange(e.target.value)}
     width={150}
     compact
-    buttonProps={
-      ariaLabel || testId
-        ? { "aria-label": ariaLabel, "data-testid": testId }
-        : undefined
-    }
+    buttonProps={testId ? { "data-testid": testId } : undefined}
   >
     {periods.map(period => (
       <Option value={period} key={period}>

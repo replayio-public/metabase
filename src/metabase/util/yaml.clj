@@ -25,10 +25,14 @@
     (sequential? x) (mapv vectorized x)
     :else           x))
 
-(extend-protocol yaml/YAMLCodec
-  Temporal
-  (encode [data]
-    (u.date/format data)))
+(defn- yamlize
+  "Returns x transformed for YAML output, converting dates to strings using a standard format."
+  [x]
+  (cond
+    (instance? Temporal x) (u.date/format x)
+    (map? x)               (update-vals x yamlize)
+    (sequential? x)        (map yamlize x)
+    :else                  x))
 
 (defn from-file
   "Returns YAML parsed from file/file-like/path f, with options passed to clj-yaml."
@@ -40,7 +44,7 @@
 (defn generate-string
   "Returns a YAML string from Clojure value x"
   [x & {:as opts}]
-  (yaml/generate-string x opts))
+  (yaml/generate-string (yamlize x) opts))
 
 (defn parse-string
   "Returns a Clojure object parsed from YAML in string s with opts passed to clj-yaml."

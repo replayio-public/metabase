@@ -19,8 +19,7 @@ import BookmarkToggle from "metabase/core/components/BookmarkToggle";
 import { getSetting } from "metabase/selectors/settings";
 import { canUseMetabotOnDatabase } from "metabase/metabot/utils";
 import { useDispatch, useSelector } from "metabase/lib/redux";
-import { trackTurnIntoModelClicked } from "metabase/query_builder/analytics";
-import type Question from "metabase-lib/Question";
+import Question from "metabase-lib/Question";
 
 import {
   checkCanBeModel,
@@ -70,7 +69,7 @@ const QuestionActions = ({
   const isMetabotEnabled = useSelector(state =>
     getSetting(state, "is-metabot-enabled"),
   );
-  const isModerator = useSelector(getUserIsAdmin) && question.canWrite?.();
+  const isModerator = useSelector(getUserIsAdmin);
 
   const dispatch = useDispatch();
 
@@ -108,7 +107,6 @@ const QuestionActions = ({
     const modal = checkCanBeModel(question)
       ? MODAL_TYPES.TURN_INTO_DATASET
       : MODAL_TYPES.CAN_NOT_CREATE_MODEL;
-    trackTurnIntoModelClicked(question);
     onOpenModal(modal);
   }, [onOpenModal, question]);
 
@@ -128,14 +126,14 @@ const QuestionActions = ({
   }
 
   extraButtons.push(
-    ...PLUGIN_MODERATION.getMenuItems(
+    PLUGIN_MODERATION.getMenuItems(
       question,
       isModerator,
       dispatchSoftReloadCard,
     ),
   );
 
-  if (canWrite && isDataset) {
+  if (isDataset) {
     extraButtons.push(
       {
         title: t`Edit query definition`,
@@ -237,14 +235,12 @@ const QuestionActions = ({
           />
         </ViewHeaderIconButtonContainer>
       </Tooltip>
-      {extraButtons.length > 0 && (
-        <EntityMenu
-          triggerAriaLabel={t`Move, archive, and more...`}
-          items={extraButtons}
-          triggerIcon="ellipsis"
-          tooltip={t`Move, archive, and more...`}
-        />
-      )}
+      <EntityMenu
+        triggerAriaLabel={t`Move, archive, and more...`}
+        items={extraButtons}
+        triggerIcon="ellipsis"
+        tooltip={t`Move, archive, and more...`}
+      />
     </>
   );
 };

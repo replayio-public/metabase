@@ -1,5 +1,4 @@
-import type { ChangeEvent } from "react";
-import { useCallback } from "react";
+import { useCallback, ChangeEvent } from "react";
 import { t } from "ttag";
 import _ from "underscore";
 
@@ -11,7 +10,7 @@ import type {
   FieldId,
 } from "metabase-types/api";
 import { getColumnKey } from "metabase-lib/queries/utils/get-column-key";
-import type Question from "metabase-lib/Question";
+import Question from "metabase-lib/Question";
 
 import {
   ColumnItemContainer,

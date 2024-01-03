@@ -12,7 +12,6 @@
    [metabase.driver.util :as driver.u]
    [metabase.mbql.util :as mbql.u]
    [metabase.plugins.classloader :as classloader]
-   [metabase.query-processor.context.default :as qp.context.default]
    [metabase.query-processor.error-type :as qp.error-type]
    [metabase.query-processor.middleware.add-default-temporal-unit
     :as qp.add-default-temporal-unit]
@@ -42,8 +41,6 @@
    [metabase.query-processor.middleware.cumulative-aggregations
     :as qp.cumulative-aggregations]
    [metabase.query-processor.middleware.desugar :as desugar]
-   [metabase.query-processor.middleware.enterprise
-    :as qp.middleware.enterprise]
    [metabase.query-processor.middleware.escape-join-aliases
     :as escape-join-aliases]
    [metabase.query-processor.middleware.expand-macros :as expand-macros]
@@ -98,11 +95,18 @@
    [metabase.query-processor.store :as qp.store]
    [metabase.util :as u]
    [metabase.util.i18n :refer [tru]]
-   [metabase.util.malli :as mu]))
+   [schema.core :as s]))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                                QUERY PROCESSOR                                                 |
 ;;; +----------------------------------------------------------------------------------------------------------------+
+
+(when config/ee-available?
+  (classloader/require '[metabase-enterprise.advanced-permissions.query-processor.middleware.permissions :as ee.perms]
+                       '[metabase-enterprise.audit-app.query-processor.middleware.handle-audit-queries :as ee.audit]
+                       '[metabase-enterprise.sandbox.query-processor.middleware
+                         [column-level-perms-check :as ee.sandbox.columns]
+                         [row-level-restrictions :as ee.sandbox.rows]]))
 
 ;;; This is a namespace that adds middleware to test MLv2 stuff every time we run a query. It lives in a `./test`
 ;;; namespace, so it's only around when running with `:dev` or the like.
@@ -128,7 +132,7 @@
    #'reconcile-bucketing/reconcile-breakout-and-order-by-bucketing
    #'qp.add-source-metadata/add-source-metadata-for-source-queries
    #'upgrade-field-literals/upgrade-field-literals
-   #'qp.middleware.enterprise/apply-sandboxing
+   (resolve 'ee.sandbox.rows/apply-sandboxing)
    #'qp.persistence/substitute-persisted-query
    #'qp.add-implicit-clauses/add-implicit-clauses
    #'qp.add-dimension-projections/add-remapped-columns
@@ -142,7 +146,7 @@
    #'fix-bad-refs/fix-bad-references
    #'escape-join-aliases/escape-join-aliases
    ;; yes, this is called a second time, because we need to handle any joins that got added
-   #'qp.middleware.enterprise/apply-sandboxing
+   (resolve 'ee.sandbox.rows/apply-sandboxing)
    #'qp.cumulative-aggregations/rewrite-cumulative-aggregations
    #'qp.pre-alias-aggregations/pre-alias-aggregations
    #'qp.wrap-value-literals/wrap-value-literals
@@ -150,7 +154,7 @@
    #'validate-temporal-bucketing/validate-temporal-bucketing
    #'optimize-temporal-filters/optimize-temporal-filters
    #'limit/add-default-limit
-   #'qp.middleware.enterprise/apply-download-limit
+   (resolve 'ee.perms/apply-download-limit)
    #'check-features/check-features])
 
 (defn- preprocess*
@@ -175,15 +179,11 @@
 (def ^:private execution-middleware
   "Middleware that happens after compilation, AROUND query execution itself. Has the form
 
-    (f qp) -> qp
-
-  e.g.
-
     (f (f query rff context)) -> (f query rff context)"
   [#'cache/maybe-return-cached-results
    #'qp.perms/check-query-permissions
-   #'qp.middleware.enterprise/check-download-permissions-middleware
-   #'qp.middleware.enterprise/maybe-apply-column-level-perms-check-middleware])
+   (resolve 'ee.perms/check-download-permissions)
+   (resolve 'ee.sandbox.columns/maybe-apply-column-level-perms-check)])
 
 (def ^:private post-processing-middleware
   "Post-processing middleware that transforms results. Has the form
@@ -196,11 +196,11 @@
   [#'results-metadata/record-and-return-metadata!
    (resolve 'metabase.query-processor-test.test-mlv2/post-processing-middleware)
    #'limit/limit-result-rows
-   #'qp.middleware.enterprise/limit-download-result-rows
+   (resolve 'ee.perms/limit-download-result-rows)
    #'qp.add-rows-truncated/add-rows-truncated
    #'splice-params-in-response/splice-params-in-response
    #'qp.add-timezone-info/add-timezone-info
-   #'qp.middleware.enterprise/merge-sandboxing-metadata
+   (resolve 'ee.sandbox.rows/merge-sandboxing-metadata)
    #'qp.add-dimension-projections/remap-results
    #'format-rows/format-rows
    #'large-int-id/convert-id-to-string
@@ -234,15 +234,14 @@
   ;; down any post-processing these around middlewares might do happens in reversed order.
   ;;
   ;; ↓↓↓ POST-PROCESSING ↓↓↓ happens from TOP TO BOTTOM
-  [#'fetch-source-query/resolve-card-id-source-tables
-   #'qp.resolve-database-and-driver/resolve-driver-and-database-local-values
+  [#'qp.resolve-database-and-driver/resolve-database-and-driver
+   #'fetch-source-query/resolve-card-id-source-tables
    #'store/initialize-store
-   #'qp.resolve-database-and-driver/resolve-database
    ;; `normalize` has to be done at the very beginning or `resolve-card-id-source-tables` and the like might not work.
    ;; It doesn't really need to be 'around' middleware tho.
    (resolve 'metabase.query-processor-test.test-mlv2/around-middleware)
    #'normalize/normalize
-   #'qp.middleware.enterprise/handle-audit-app-internal-queries-middleware])
+   (resolve 'ee.audit/handle-internal-queries)])
 ;; ↑↑↑ PRE-PROCESSING ↑↑↑ happens from BOTTOM TO TOP
 
 ;; query -> preprocessed = around + pre-process
@@ -287,27 +286,15 @@
   "Process a query synchronously, blocking until results are returned. Throws raised Exceptions directly."
   (qp.reducible/sync-qp process-query-async))
 
-(mu/defn process-query
+(defn process-query
   "Process an MBQL query. This is the main entrypoint to the magical realm of the Query Processor. Returns a *single*
   core.async channel if option `:async?` is true; otherwise returns results in the usual format. For async queries, if
   the core.async channel is closed, the query will be canceled."
-  ([query]
-   (process-query query nil))
-
-  ([query context]
-   (process-query query nil context))
-
-  ([{:keys [async?], :as query} :- :map
-    rff                         :- [:maybe fn?]
-    context                     :- [:maybe
-                                    [:and
-                                     :map
-                                     [:fn
-                                      {:error/message ":rff should no longer be included in context, pass it as a separate argument."}
-                                      (complement :rff)]]]]
-   (let [rff     (or rff qp.reducible/default-rff)
-         context (or context (qp.context.default/default-context))]
-     ((if async? process-query-async process-query-sync) query rff context))))
+  {:arglists '([query] [query context] [query rff context])}
+  [{:keys [async?], :as query} & args]
+  (apply (if async? process-query-async process-query-sync)
+         query
+         args))
 
 (defn preprocess
   "Return the fully preprocessed form for `query`, the way it would look immediately
@@ -334,15 +321,10 @@
                     {:type qp.error-type/qp})))
   ;; TODO - we should throw an Exception if the query has a native source query or at least warn about it. Need to
   ;; check where this is used.
-  (qp.store/with-metadata-provider (qp.resolve-database-and-driver/resolve-database-id query)
+  (qp.store/with-store
     (let [preprocessed (-> query preprocess restore-join-aliases)]
       (driver/with-driver (driver.u/database->driver (:database preprocessed))
-        (->> (annotate/merged-column-info preprocessed nil)
-             ;; remove MLv2 columns so we don't break a million tests. Once the whole QP is updated to use MLv2 metadata
-             ;; directly we can stop stripping these out
-             (mapv (fn [col]
-                     (dissoc col :lib/external_remap :lib/internal_remap)))
-             not-empty)))))
+        (not-empty (vec (annotate/merged-column-info preprocessed nil)))))))
 
 (defn compile
   "Return the native form for `query` (e.g. for a MBQL query on Postgres this would return a map containing the compiled
@@ -386,45 +368,39 @@
     #'process-userland-query/process-userland-query
     #'catch-exceptions/catch-exceptions]))
 
-(def ^{:arglists '([query] [query context] [query rff context])} ^:private process-userland-query-async
+(def ^{:arglists '([query] [query context])} process-userland-query-async
   "Like [[process-query-async]], but for 'userland' queries (e.g., queries ran via the REST API). Adds extra middleware."
   (base-qp userland-middleware))
 
-(def ^{:arglists '([query] [query context] [query rff context])} process-userland-query-sync
+(def ^{:arglists '([query] [query context])} process-userland-query-sync
   "Like [[process-query-sync]], but for 'userland' queries (e.g., queries ran via the REST API). Adds extra middleware."
   (qp.reducible/sync-qp process-userland-query-async))
 
 (defn process-userland-query
   "Like [[process-query]], but for 'userland' queries (e.g., queries ran via the REST API). Adds extra middleware."
-  {:arglists '([query] [query context] [query rff context])}
+  {:arglists '([query] [query context])}
   [{:keys [async?], :as query} & args]
   (apply (if async? process-userland-query-async process-userland-query-sync)
          query
          args))
 
-(defn process-query-and-save-execution!
+(s/defn process-query-and-save-execution!
   "Process and run a 'userland' MBQL query (e.g. one ran as the result of an API call, scheduled Pulse, etc). Returns
   results in a format appropriate for consumption by FE client. Saves QueryExecution row in application DB."
   ([query info]
    (process-userland-query (assoc query :info info)))
 
   ([query info context]
-   (process-userland-query (assoc query :info info) context))
-
-  ([query info rff context]
-   (process-userland-query (assoc query :info info) rff context)))
+   (process-userland-query (assoc query :info info) context)))
 
 (defn- add-default-constraints [query]
   (assoc-in query [:middleware :add-default-userland-constraints?] true))
 
-(defn process-query-and-save-with-max-results-constraints!
+(s/defn process-query-and-save-with-max-results-constraints!
   "Same as [[process-query-and-save-execution!]] but will include the default max rows returned as a constraint. (This
   function is ulitmately what powers most API endpoints that run queries, including `POST /api/dataset`.)"
   ([query info]
    (process-query-and-save-execution! (add-default-constraints query) info))
 
   ([query info context]
-   (process-query-and-save-execution! (add-default-constraints query) info context))
-
-  ([query info rff context]
-   (process-query-and-save-execution! (add-default-constraints query) info rff context)))
+   (process-query-and-save-execution! (add-default-constraints query) info context)))

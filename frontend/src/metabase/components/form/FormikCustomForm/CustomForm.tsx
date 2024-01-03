@@ -1,20 +1,17 @@
-import type * as React from "react";
+import * as React from "react";
 import { Form } from "formik";
 
-import type {
+import {
   BaseFieldValues,
   FormFieldDefinition,
   PopulatedFormObject,
 } from "metabase-types/forms";
 
-import type { BaseFormProps, OptionalFormViewProps } from "./types";
+import { BaseFormProps, OptionalFormViewProps } from "./types";
 
-import type { CustomFormFieldProps } from "./CustomFormField";
-import CustomFormField from "./CustomFormField";
-import type { CustomFormFooterProps } from "./CustomFormFooter";
-import CustomFormFooter from "./CustomFormFooter";
-import type { CustomFormMessageProps } from "./CustomFormMessage";
-import CustomFormMessage from "./CustomFormMessage";
+import CustomFormField, { CustomFormFieldProps } from "./CustomFormField";
+import CustomFormFooter, { CustomFormFooterProps } from "./CustomFormFooter";
+import CustomFormMessage, { CustomFormMessageProps } from "./CustomFormMessage";
 import CustomFormSubmit from "./CustomFormSubmit";
 
 import { FormContext } from "./context";

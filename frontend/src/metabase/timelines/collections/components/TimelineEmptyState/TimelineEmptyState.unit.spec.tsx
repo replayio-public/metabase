@@ -1,14 +1,11 @@
+import { render, screen } from "@testing-library/react";
 import {
   createMockCollection,
   createMockTimeline,
 } from "metabase-types/api/mocks";
-import { renderWithProviders, screen } from "__support__/ui";
-import type { TimelineEmptyStateProps } from "./TimelineEmptyState";
-import TimelineEmptyState from "./TimelineEmptyState";
-
-function setup(props: TimelineEmptyStateProps) {
-  renderWithProviders(<TimelineEmptyState {...props} />);
-}
+import TimelineEmptyState, {
+  TimelineEmptyStateProps,
+} from "./TimelineEmptyState";
 
 describe("TimelineEmptyState", () => {
   beforeEach(() => {
@@ -23,7 +20,7 @@ describe("TimelineEmptyState", () => {
   it("should render an empty state with the current date", () => {
     const props = getProps();
 
-    setup(props);
+    render(<TimelineEmptyState {...props} />);
 
     expect(screen.getByText("January 1, 2015")).toBeInTheDocument();
   });
@@ -40,7 +37,7 @@ describe("TimelineEmptyState", () => {
       }),
     });
 
-    setup(props);
+    render(<TimelineEmptyState {...props} />);
 
     expect(screen.queryByText("Add an event")).not.toBeInTheDocument();
   });
@@ -57,7 +54,7 @@ describe("TimelineEmptyState", () => {
       }),
     });
 
-    setup(props);
+    render(<TimelineEmptyState {...props} />);
 
     expect(screen.getByText("Add an event")).toBeInTheDocument();
   });
@@ -69,7 +66,7 @@ describe("TimelineEmptyState", () => {
       }),
     });
 
-    setup(props);
+    render(<TimelineEmptyState {...props} />);
 
     expect(screen.getByText("Add an event")).toBeInTheDocument();
   });

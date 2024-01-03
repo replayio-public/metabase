@@ -7,17 +7,23 @@
    [clojure.walk :as walk]
    [metabase.api.common :refer [*current-user-permissions-set*]]
    [metabase.models
-    :refer [Card Collection Dashboard NativeQuerySnippet Permissions
-            PermissionsGroup Pulse User]]
+    :refer [Card
+            Collection
+            Dashboard
+            NativeQuerySnippet
+            Permissions
+            PermissionsGroup
+            Pulse
+            User]]
    [metabase.models.collection :as collection]
-   [metabase.models.interface :as mi]
    [metabase.models.permissions :as perms]
    [metabase.models.serialization :as serdes]
-   [metabase.public-settings.premium-features-test :as premium-features-test]
    [metabase.test :as mt]
    [metabase.test.fixtures :as fixtures]
    [metabase.util :as u]
-   [metabase.util.malli.schema :as ms]
+   [metabase.util.schema :as su]
+   [schema.core :as s]
+   [toucan.hydrate :refer [hydrate]]
    [toucan2.core :as t2]
    [toucan2.tools.with-temp :as t2.with-temp]))
 
@@ -26,7 +32,7 @@
 (defn- lucky-collection-children-location []
   (collection/children-location (collection/user->personal-collection (mt/user->id :lucky))))
 
-(deftest ^:parallel format-personal-collection-name-test
+(deftest format-personal-collection-name-test
   (testing "test that the Personal collection name formatting outputs correct strings"
     (is (= "Meta Base's Personal Collection"
            (collection/format-personal-collection-name "Meta" "Base" "MetaBase@metabase.com" :site)))
@@ -37,27 +43,31 @@
     (is (= "MetaBase@metabase.com's Personal Collection"
            (collection/format-personal-collection-name nil nil "MetaBase@metabase.com" :site)))))
 
-(deftest format-personal-collection-name-length-test
-  (testing "test that an unrealistically long collection name with unicode letters is still less than the max length for a slug (metabase#33917)"
-    (mt/with-temporary-setting-values [site-locale "ru"]
-      (is (< (count (#'collection/slugify (collection/format-personal-collection-name (repeat 20 "\u0411") ; Cyrillic "b" character
-                                                                                      (repeat 20 "\u0411")
-                                                                                      "MetaBase@metabase.com"
-                                                                                      :site)))
-             (var-get #'collection/collection-slug-max-length))))))
-
 (deftest create-collection-test
   (testing "test that we can create a new Collection with valid inputs"
-    (t2.with-temp/with-temp [Collection collection {:name "My Favorite Cards"}]
+    (t2.with-temp/with-temp [Collection collection {:name "My Favorite Cards", :color "#ABCDEF"}]
       (is (partial= (merge
                      (mt/object-defaults Collection)
                      {:name              "My Favorite Cards"
                       :slug              "my_favorite_cards"
                       :description       nil
+                      :color             "#ABCDEF"
                       :archived          false
                       :location          "/"
                       :personal_owner_id nil})
                     collection)))))
+
+(deftest color-validation-test
+  (testing "Collection colors should be validated when inserted into the DB"
+    (doseq [[input msg] {nil        "Missing color"
+                         "#ABC"     "Too short"
+                         "#BCDEFG"  "Invalid chars"
+                         "#ABCDEFF" "Too long"
+                         "ABCDEF"   "Missing hash prefix"}]
+      (testing msg
+        (is (thrown?
+             Exception
+             (t2/insert! Collection {:name "My Favorite Cards", :color input})))))))
 
 (deftest with-temp-defaults-test
   (testing "double-check that `with-temp-defaults` are working correctly for Collection"
@@ -66,8 +76,8 @@
 
 (deftest duplicate-names-test
   (testing "test that duplicate names ARE allowed"
-    (t2.with-temp/with-temp [Collection c1 {:name "My Favorite Cards"}
-                             Collection c2 {:name "My Favorite Cards"}]
+    (mt/with-temp* [Collection [c1 {:name "My Favorite Cards"}]
+                    Collection [c2 {:name "My Favorite Cards"}]]
       (is (some? c1))
       (is (some? c2))
 
@@ -80,8 +90,8 @@
                  (:slug c2)))))))
 
   (testing "things with different names that would cause the same slug SHOULD be allowed"
-    (t2.with-temp/with-temp [Collection c1 {:name "My Favorite Cards"}
-                             Collection c2 {:name "my_favorite Cards"}]
+    (mt/with-temp* [Collection [c1 {:name "My Favorite Cards"}]
+                    Collection [c2 {:name "my_favorite Cards"}]]
       (is (some? c1))
       (is (some? c2))
       (is (= (:slug c1) (:slug c2))))))
@@ -92,23 +102,23 @@
       (is (some? (:entity_id collection)))))
 
   (testing "entity IDs are unique"
-    (t2.with-temp/with-temp [Collection c1 {:name "My Favorite Cards"}
-                             Collection c2 {:name "my_favorite Cards"}]
+    (mt/with-temp* [Collection [c1 {:name "My Favorite Cards"}]
+                    Collection [c2 {:name "my_favorite Cards"}]]
       (is (not= (:entity_id c1) (:entity_id c2))))))
 
 (deftest archive-cards-test
   (testing "check that archiving a Collection archives its Cards as well"
-    (t2.with-temp/with-temp [Collection collection {}
-                             Card       card       {:collection_id (u/the-id collection)}]
+    (mt/with-temp* [Collection [collection]
+                    Card       [card       {:collection_id (u/the-id collection)}]]
       (t2/update! Collection (u/the-id collection)
-                  {:archived true})
+        {:archived true})
       (is (true? (t2/select-one-fn :archived Card :id (u/the-id card))))))
 
   (testing "check that unarchiving a Collection unarchives its Cards as well"
-    (t2.with-temp/with-temp [Collection collection {:archived true}
-                             Card       card       {:collection_id (u/the-id collection), :archived true}]
+    (mt/with-temp* [Collection [collection {:archived true}]
+                    Card       [card       {:collection_id (u/the-id collection), :archived true}]]
       (t2/update! Collection (u/the-id collection)
-                  {:archived false})
+        {:archived false})
       (is (false? (t2/select-one-fn :archived Card :id (u/the-id card)))))))
 
 (deftest validate-name-test
@@ -132,13 +142,13 @@
 
 (defn do-with-collection-hierarchy [options a-fn]
   (mt/with-non-admin-groups-no-root-collection-perms
-    (t2.with-temp/with-temp [Collection a (merge options {:name "A"})
-                             Collection b (merge options {:name "B", :location (collection/location-path a)})
-                             Collection c (merge options {:name "C", :location (collection/location-path a)})
-                             Collection d (merge options {:name "D", :location (collection/location-path a c)})
-                             Collection e (merge options {:name "E", :location (collection/location-path a c d)})
-                             Collection f (merge options {:name "F", :location (collection/location-path a c)})
-                             Collection g (merge options {:name "G", :location (collection/location-path a c f)})]
+    (mt/with-temp* [Collection [a (merge options {:name "A"})]
+                    Collection [b (merge options {:name "B", :location (collection/location-path a)})]
+                    Collection [c (merge options {:name "C", :location (collection/location-path a)})]
+                    Collection [d (merge options {:name "D", :location (collection/location-path a c)})]
+                    Collection [e (merge options {:name "E", :location (collection/location-path a c d)})]
+                    Collection [f (merge options {:name "F", :location (collection/location-path a c)})]
+                    Collection [g (merge options {:name "G", :location (collection/location-path a c f)})]]
       (a-fn {:a a, :b b, :c c, :d d, :e e, :f f, :g g}))))
 
 (defmacro with-collection-hierarchy
@@ -192,7 +202,7 @@
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
 ;;
-(deftest ^:parallel location-path-test
+(deftest location-path-test
   (testing "Does our handy utility function for working with `location` paths work as expected?"
     (testing "valid input"
       (doseq [[args expected] {[1 2 3]                   "/1/2/3/"
@@ -215,7 +225,7 @@
                Exception
                (apply collection/location-path args))))))))
 
-(deftest ^:parallel location-path-ids-test
+(deftest location-path-ids-test
   (testing "valid input"
     (doseq [[path expected] {"/1/2/3/" [1 2 3]
                              "/"       []
@@ -244,7 +254,7 @@
              Exception
              (collection/location-path->parent-id path)))))))
 
-(deftest ^:parallel children-location-test
+(deftest children-location-test
   (testing "valid input"
     (doseq [[collection expected] {{:id 1000, :location "/1/2/3/"} "/1/2/3/1000/"
                                    {:id 1000, :location "/"}       "/1000/"
@@ -266,7 +276,7 @@
              Exception
              (collection/children-location collection)))))))
 
-(deftest ^:parallel permissions-set->visible-collection-ids-test
+(deftest permissions-set->visible-collection-ids-test
   (testing "Make sure we can look at the current user's permissions set and figure out which Collections they're allowed to see"
     (is (= #{8 9}
            (collection/permissions-set->visible-collection-ids
@@ -296,7 +306,7 @@
            (collection/permissions-set->visible-collection-ids
             #{"/collection/root/read/"})))))
 
-(deftest ^:parallel effective-location-path-test
+(deftest effective-location-path-test
   (testing "valid input"
     (doseq [[args expected] {["/10/20/30/" #{10 20}]    "/10/20/"
                              ["/10/20/30/" #{10 30}]    "/10/30/"
@@ -350,7 +360,7 @@
 (defmacro ^:private with-collection-in-location [[collection-binding location] & body]
   `(let [name# (mt/random-name)]
      (try
-       (let [~collection-binding (first (t2/insert-returning-instances! Collection :name name#, :location ~location))]
+       (let [~collection-binding (first (t2/insert-returning-instances! Collection :name name#, :color "#ABCDEF", :location ~location))]
          ~@body)
        (finally
          (t2/delete! Collection :name name#)))))
@@ -380,8 +390,8 @@
            (t2/update! Collection (u/the-id collection) {:location "/a/"})))))
 
   (testing "We should be able to UPDATE a Collection and give it a new, *valid* location"
-    (t2.with-temp/with-temp [Collection collection-1 {}
-                             Collection collection-2 {}]
+    (mt/with-temp* [Collection [collection-1]
+                    Collection [collection-2]]
       (is (pos? (t2/update! Collection (u/the-id collection-1) {:location (collection/location-path collection-2)}))))))
 
 (deftest crud-validate-ancestors-test
@@ -572,9 +582,9 @@
 
 (deftest descendant-ids-test
   (testing "double-check that descendant-ids is working right too"
-    (t2.with-temp/with-temp [Collection a {}
-                             Collection b {:location (collection/children-location a)}
-                             Collection c {:location (collection/children-location b)}]
+    (mt/with-temp* [Collection [a]
+                    Collection [b {:location (collection/children-location a)}]
+                    Collection [c {:location (collection/children-location b)}]]
       (is (= #{(u/the-id b) (u/the-id c)}
              (#'collection/descendant-ids a))))))
 
@@ -685,10 +695,10 @@
   ;; e.g. /123/ would become something like /A/
   ;; Do this by composing together a series of functions that will handle one string replacement for each ID + name
   ;; pair
-  (let [replace-ids-with-names (reduce comp identity (for [{:keys [id name]} (if (sequential? collections)
-                                                                               collections
-                                                                               (vals collections))]
-                                                       #(str/replace % (re-pattern (format "/%d/" id)) (str "/" name "/"))))]
+  (let [replace-ids-with-names (reduce comp (for [{:keys [id name]} (if (sequential? collections)
+                                                                      collections
+                                                                      (vals collections))]
+                                              #(str/replace % (re-pattern (format "/%d/" id)) (str "/" name "/"))))]
     (set (for [perms-path perms-set]
            (replace-ids-with-names perms-path)))))
 
@@ -734,23 +744,13 @@
 
 (deftest perms-for-archiving-exceptions-test
   (testing "If you try to calculate permissions to archive the Root Collection, throw an Exception!"
-    (is (thrown-with-msg?
+    (is (thrown?
          Exception
-         #"You cannot archive the Root Collection."
          (collection/perms-for-archiving collection/root-collection))))
 
-  (testing "Let's make sure we get an Exception when we try to archive the Custom Reports Collection"
-    (t2.with-temp/with-temp [Collection cr-collection {}]
-      (with-redefs [perms/default-custom-reports-collection (constantly cr-collection)]
-        (is (thrown-with-msg?
-             Exception
-             #"You cannot archive the Custom Reports Collection."
-             (collection/perms-for-archiving cr-collection))))))
-
   (testing "Let's make sure we get an Exception when we try to archive a Personal Collection"
-    (is (thrown-with-msg?
+    (is (thrown?
          Exception
-         #"You cannot archive a Personal Collection."
          (collection/perms-for-archiving (collection/user->personal-collection (mt/fetch-user :lucky))))))
 
   (testing "invalid input"
@@ -1179,14 +1179,14 @@
                    (group->perms [parent child] group))))))
 
       (testing "parent has no permissions"
-        (t2.with-temp/with-temp [Collection parent {:name "{parent}"}
-                                 Collection child  {:name "{child}", :location (collection/children-location parent)}]
+        (mt/with-temp* [Collection [parent {:name "{parent}"}]
+                        Collection [child {:name "{child}", :location (collection/children-location parent)}]]
           (is (= #{}
                  (group->perms [parent child] group)))))
 
       (testing "parent given read permissions after the fact -- should not update existing children"
-        (t2.with-temp/with-temp [Collection parent {:name "{parent}"}
-                                 Collection child  {:name "{child}", :location (collection/children-location parent)}]
+        (mt/with-temp* [Collection [parent {:name "{parent}"}]
+                        Collection [child {:name "{child}", :location (collection/children-location parent)}]]
           (perms/grant-collection-read-permissions! group parent)
           (is (= #{"/collection/{parent}/read/"}
                  (group->perms [parent child] group)))))
@@ -1205,8 +1205,8 @@
 
     (testing (str "Make sure that when creating a new Collection as grandchild of a Personal Collection, no group "
                   "permissions are created")
-      (t2.with-temp/with-temp [Collection child      {:location (lucky-collection-children-location)}
-                               Collection grandchild {:location (collection/children-location child)}]
+      (mt/with-temp* [Collection [child {:location (lucky-collection-children-location)}]
+                      Collection [grandchild {:location (collection/children-location child)}]]
         (is (not (t2/exists? Permissions :object [:like (format "/collection/%d/%%" (u/the-id child))])))
         (is (not (t2/exists? Permissions :object [:like (format "/collection/%d/%%" (u/the-id grandchild))])))))))
 
@@ -1224,8 +1224,8 @@
              (t2/update! Collection (u/the-id personal-collection) {:archived true}))))))
 
   (testing "Make sure we're not allowed to *move* a Personal Collection"
-    (t2.with-temp/with-temp [User       my-cool-user          {}
-                             Collection some-other-collection {}]
+    (mt/with-temp* [User       [my-cool-user]
+                    Collection [some-other-collection]]
       (let [personal-collection (collection/user->personal-collection my-cool-user)]
         (is (thrown?
              Exception
@@ -1249,34 +1249,10 @@
 
   (testing "Does hydrating `:personal_collection_id` force creation of Personal Collections?"
     (t2.with-temp/with-temp [User temp-user]
-      (is (malli= [:map [:personal_collection_id ms/PositiveInt]]
-                  (t2/hydrate temp-user :personal_collection_id))))))
+      (is (schema= {:personal_collection_id su/IntGreaterThanZero
+                    s/Keyword               s/Any}
+                   (hydrate temp-user :personal_collection_id))))))
 
-(deftest hydrate-is-personal-test
-  (binding [collection/*allow-deleting-personal-collections* true]
-    (mt/with-temp
-      [:model/User       {user-id :id}               {}
-       :model/Collection {personal-coll :id}         {:personal_owner_id user-id}
-       :model/Collection {nested-personal-coll :id}  {:location          (format "/%d/" personal-coll)
-                                                      :personal_owner_id nil}
-       :model/Collection {top-level-coll :id}        {:location "/"}
-       :model/Collection {nested-top-level-coll :id} {:location (format "/%d/" top-level-coll)}]
-      (let [check-is-personal (fn [id-or-ids]
-                                (if (int? id-or-ids)
-                                  (-> (t2/select-one :model/Collection id-or-ids)
-                                      (t2/hydrate :is_personal)
-                                      :is_personal)
-                                  (as-> (t2/select :model/Collection :id [:in id-or-ids] {:order-by [:id]}) collections
-                                    (t2/hydrate collections :is_personal)
-                                    (map :is_personal collections))))]
-
-        (testing "simple hydration and batched hydration should return correctly"
-          (is (= [true true false false]
-                 (map check-is-personal [personal-coll nested-personal-coll top-level-coll nested-top-level-coll])
-                 (check-is-personal [personal-coll nested-personal-coll top-level-coll nested-top-level-coll]))))
-        (testing "root collection shouldn't be hydrated"
-          (is (= nil (t2/hydrate nil :is_personal)))
-          (is (= [nil true] (map :is_personal (t2/hydrate [nil (t2/select-one :model/Collection personal-coll)] :is_personal)))))))))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                    Moving Collections "Across the Boundary"                                    |
@@ -1426,24 +1402,25 @@
       (is (= #{}
              (group->perms [a b c] group))))))
 
-(deftest ^:parallel valid-location-path?-test
-  (are [path expected] (= expected
-                          (#'collection/valid-location-path? path))
-    nil       false
-    ""        false
-    "/"       true
-    "/1"      false
-    "/1/"     true
-    "/1/2/"   true
-    "/1/1/"   false
-    "/1/2/1/" false
-    "/1/2/3/" true
-    "/abc/"   false
-    "1"       false
-    "/1.0/"   false
-    "/-1/"    false
-    1         false
-    1.0       false))
+(deftest valid-location-path?-test
+  (doseq [[path expected] {nil       false
+                           ""        false
+                           "/"       true
+                           "/1"      false
+                           "/1/"     true
+                           "/1/2/"   true
+                           "/1/1/"   false
+                           "/1/2/1/" false
+                           "/1/2/3/" true
+                           "/abc/"   false
+                           "1"       false
+                           "/1.0/"   false
+                           "/-1/"    false
+                           1         false
+                           1.0       false}]
+    (testing (pr-str path)
+      (is (= expected
+             (#'collection/valid-location-path? path))))))
 
 (deftest check-parent-collection-namespace-matches-test
   (doseq [[parent-namespace child-namespace] [[nil "x"]
@@ -1457,6 +1434,7 @@
              #"Collection must be in the same namespace as its parent"
              (t2/insert! Collection
                          {:location  (format "/%d/" (:id parent-collection))
+                          :color     "#F38630"
                           :name      "Child Collection"
                           :namespace child-namespace}))))
 
@@ -1482,7 +1460,8 @@
            clojure.lang.ExceptionInfo
            #"Personal Collections must be in the default namespace"
            (t2/insert! Collection
-                       {:name              "Personal Collection"
+                       {:color             "#F38630"
+                        :name              "Personal Collection"
                         :namespace         "x"
                         :personal_owner_id user-id}))))))
 
@@ -1497,7 +1476,7 @@
       (t2.with-temp/with-temp [Collection {collection-id :id} {:namespace "x"}]
         (is (thrown-with-msg?
              clojure.lang.ExceptionInfo
-             #"A Card can only go in Collections in the \"default\" or :analytics namespace."
+             #"A Card can only go in Collections in the \"default\" namespace"
              (collection/check-collection-namespace Card collection-id)))))
 
     (testing "Should throw exception if Collection does not exist"
@@ -1508,10 +1487,10 @@
 
 (deftest delete-collection-set-children-collection-id-to-null-test
   (testing "When deleting a Collection, should change collection_id of Children to nil instead of Cascading"
-    (t2.with-temp/with-temp [Collection {coll-id :id}      {}
-                             Card       {card-id :id}      {:collection_id coll-id}
-                             Dashboard  {dashboard-id :id} {:collection_id coll-id}
-                             Pulse      {pulse-id :id}     {:collection_id coll-id}]
+    (mt/with-temp* [Collection [{coll-id :id}]
+                    Card       [{card-id :id}      {:collection_id coll-id}]
+                    Dashboard  [{dashboard-id :id} {:collection_id coll-id}]
+                    Pulse      [{pulse-id :id}     {:collection_id coll-id}]]
       (t2/delete! Collection :id coll-id)
       (is (t2/exists? Card :id card-id)
           "Card")
@@ -1519,8 +1498,8 @@
           "Dashboard")
       (is (t2/exists? Pulse :id pulse-id)
           "Pulse"))
-    (t2.with-temp/with-temp [Collection         {coll-id :id}    {:namespace "snippets"}
-                             NativeQuerySnippet {snippet-id :id} {:collection_id coll-id}]
+    (mt/with-temp* [Collection         [{coll-id :id}    {:namespace "snippets"}]
+                    NativeQuerySnippet [{snippet-id :id} {:collection_id coll-id}]]
       (t2/delete! Collection :id coll-id)
       (is (t2/exists? NativeQuerySnippet :id snippet-id)
           "Snippet"))))
@@ -1570,7 +1549,7 @@
                                          [{:name nil, :location "/", :id 1}
                                           {:name "a", :location "/", :id 2}])))))
 
-(deftest ^:parallel collections->tree-missing-parents-test
+(deftest collections->tree-missing-parents-test
   (testing "collections->tree should 'pull' Collections up to a higher level if their parent isn't present (#14114)"
     ;; Imagine a hierarchy like:
     ;;
@@ -1588,7 +1567,7 @@
                                          [{:name "Child", :location "/1/", :id 2}
                                           {:name "Grandchild", :location "/1/2/", :id 3}])))))
 
-(deftest ^:parallel collections->tree-permutations-test
+(deftest collections->tree-permutations-test
   (testing "The tree should build a proper tree regardless of which order the Collections are passed in (#14280)"
     (doseq [collections (math.combo/permutations [{:id 1, :name "a", :location "/3/"}
                                                   {:id 2, :name "a", :location "/3/1/"}
@@ -1620,7 +1599,7 @@
                              :children []}]}]
                (collection/collections->tree {} collections)))))))
 
-(deftest ^:parallel annotate-collections-test
+(deftest annotate-collections-test
   (let [collections [{:id 1, :name "a", :location "/"}
                      {:id 2, :name "b", :location "/1/"}
                      {:id 3, :name "c", :location "/1/2/"}
@@ -1654,18 +1633,18 @@
 (deftest identity-hash-test
   (testing "Collection hashes are composed of the name, namespace, and parent collection's hash"
     (let [now #t "2022-09-01T12:34:56"]
-      (t2.with-temp/with-temp [Collection c1 {:name       "top level"
-                                              :created_at now
-                                              :namespace  "yolocorp"
-                                              :location   "/"}
-                               Collection c2 {:name       "nested"
-                                              :created_at now
-                                              :namespace  "yolocorp"
-                                              :location   (format "/%s/" (:id c1))}
-                               Collection c3 {:name       "grandchild"
-                                              :created_at now
-                                              :namespace  "yolocorp"
-                                              :location   (format "/%s/%s/" (:id c1) (:id c2))}]
+      (mt/with-temp* [Collection [c1  {:name       "top level"
+                                       :created_at now
+                                       :namespace  "yolocorp"
+                                       :location   "/"}]
+                      Collection [c2  {:name       "nested"
+                                       :created_at now
+                                       :namespace  "yolocorp"
+                                       :location   (format "/%s/" (:id c1))}]
+                      Collection [c3  {:name       "grandchild"
+                                       :created_at now
+                                       :namespace  "yolocorp"
+                                       :location   (format "/%s/%s/" (:id c1) (:id c2))}]]
         (let [c1-hash (serdes/identity-hash c1)
               c2-hash (serdes/identity-hash c2)]
           (is (= "f2620cc6"
@@ -1678,35 +1657,3 @@
           (is (= "e816af2d"
                  (serdes/raw-hash ["grandchild" :yolocorp c2-hash now])
                  (serdes/identity-hash c3))))))))
-
-(deftest instance-analytics-collections-test
-  (testing "Instance analytics and it's contents isn't writable, even for admins."
-    (t2.with-temp/with-temp [Collection audit-collection {:type "instance-analytics"}
-                             Card       audit-card       {:collection_id (:id audit-collection)}
-                             Dashboard  audit-dashboard  {:collection_id (:id audit-collection)}
-                             Collection cr-collection    {}
-                             Card       cr-card          {:collection_id (:id cr-collection)}
-                             Dashboard  cr-dashboard     {:collection_id (:id cr-collection)}]
-      (with-redefs [perms/default-audit-collection          (constantly audit-collection)
-                    perms/default-custom-reports-collection (constantly cr-collection)]
-        (mt/with-current-user (mt/user->id :crowberto)
-          (premium-features-test/with-additional-premium-features #{:audit-app}
-            (is (not (mi/can-write? audit-collection))
-                "Admin isn't able to write to audit collection")
-            (is (not (mi/can-write? audit-card))
-                "Admin isn't able to write to audit collection card")
-            (is (not (mi/can-write? audit-dashboard))
-                "Admin isn't able to write to audit collection dashboard"))
-          (premium-features-test/with-premium-features #{}
-            (is (not (mi/can-read? audit-collection))
-                "Admin isn't able to read audit collection when audit app isn't enabled")
-            (is (not (mi/can-read? audit-card))
-                "Admin isn't able to read audit collection card when audit app isn't enabled")
-            (is (not (mi/can-read? audit-dashboard))
-                "Admin isn't able to read audit collection dashboard when audit app isn't enabled")
-            (is (not (mi/can-read? cr-collection))
-                "Admin isn't able to read custom reports collection when audit app isn't enabled")
-            (is (not (mi/can-read? cr-card))
-                "Admin isn't able to read custom reports card when audit app isn't enabled")
-            (is (not (mi/can-read? cr-dashboard))
-                "Admin isn't able to read custom reports dashboard when audit app isn't enabled")))))))

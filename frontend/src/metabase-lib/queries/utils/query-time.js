@@ -1,5 +1,4 @@
 import _ from "underscore";
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
 import moment from "moment-timezone";
 import { assoc } from "icepick";
 import { t, ngettext, msgid } from "ttag";
@@ -435,8 +434,8 @@ export function setRelativeDatetimeValue(filter, value) {
   return filter;
 }
 
-export const DATE_FORMAT = "YYYY-MM-DD";
-export const DATE_TIME_FORMAT = "YYYY-MM-DDTHH:mm:ss";
+const DATE_FORMAT = "YYYY-MM-DD";
+const DATE_TIME_FORMAT = "YYYY-MM-DDTHH:mm:ss";
 
 export const getTimeComponent = value => {
   let hours = null;

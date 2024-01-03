@@ -1,7 +1,6 @@
-import { modal, popover, restore, describeOSS } from "e2e/support/helpers";
+import { modal, popover, restore } from "e2e/support/helpers";
 
-// this is only testable in OSS because EE always has models from auditv2
-describeOSS("issue 25144", { tags: "@OSS" }, () => {
+describe("issue 25144", () => {
   beforeEach(() => {
     restore("setup");
     cy.signInAsAdmin();
@@ -21,7 +20,6 @@ describeOSS("issue 25144", { tags: "@OSS" }, () => {
     modal().findByLabelText("Name").clear().type("Orders question");
     modal().button("Save").click();
     cy.wait("@createCard");
-    cy.wait(100);
     modal().button("Not now").click();
 
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
@@ -43,7 +41,6 @@ describeOSS("issue 25144", { tags: "@OSS" }, () => {
     modal().findByLabelText("Name").clear().type("Orders model");
     modal().button("Save").click();
     cy.wait("@createCard");
-    cy.wait(100);
     modal().button("Not now").click();
 
     cy.findByLabelText("Move, archive, and more...").click();

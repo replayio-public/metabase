@@ -1,15 +1,16 @@
-import { useCallback, useMemo } from "react";
+import { ChangeEvent, useCallback, useMemo } from "react";
 import { connect } from "react-redux";
 import { t } from "ttag";
 import * as MetabaseCore from "metabase/lib/core";
 import Fields from "metabase/entities/fields";
 import ActionButton from "metabase/components/ActionButton";
 import InputBlurChange from "metabase/components/InputBlurChange";
-import type { FieldId, FieldValuesType } from "metabase-types/api";
-import type { SelectChangeEvent } from "metabase/core/components/Select/Select";
-import Select from "metabase/core/components/Select/Select";
-import type Field from "metabase-lib/metadata/Field";
-import type Table from "metabase-lib/metadata/Table";
+import { FieldId, FieldValuesType } from "metabase-types/api";
+import Select, {
+  SelectChangeEvent,
+} from "metabase/core/components/Select/Select";
+import Field from "metabase-lib/metadata/Field";
+import Table from "metabase-lib/metadata/Table";
 import { discardFieldValues, rescanFieldValues } from "../../actions";
 import FieldRemappingSettings from "../FieldRemappingSettings";
 import FieldVisibilityPicker from "../FieldVisibilityPicker";
@@ -88,7 +89,7 @@ const FieldHeaderSection = ({
   onUpdateField,
 }: FieldHeaderSectionProps) => {
   const handleChangeName = useCallback(
-    (event: { target: HTMLInputElement }) => {
+    (event: ChangeEvent<HTMLInputElement>) => {
       if (event.target.value) {
         onUpdateField(field, { display_name: event.target.value });
       } else {
@@ -99,7 +100,7 @@ const FieldHeaderSection = ({
   );
 
   const handleChangeDescription = useCallback(
-    (event: { target: HTMLInputElement }) => {
+    (event: ChangeEvent<HTMLInputElement>) => {
       if (event.target.value) {
         onUpdateField(field, { description: event.target.value });
       } else {

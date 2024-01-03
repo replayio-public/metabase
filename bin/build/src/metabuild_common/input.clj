@@ -4,8 +4,6 @@
    [environ.core :as env]
    [metabuild-common.output :as out]))
 
-(set! *warn-on-reflection* true)
-
 (defn interactive?
   "Whether we're running these scripts interactively, and can prompt the user for input. By default, this is
   true (except when running in CI), but if the env var `INTERACTIVE=false` is set, these scripts will not prompt
@@ -23,8 +21,7 @@
   [prompt & {:keys [default validator]}]
   (if-not (interactive?)
     (or default
-        (throw (ex-info "Cannot prompt for a value when script is ran non-interactively; specify a :default value."
-                        {})))
+        (throw (ex-info "Cannot prompt for a value when script is ran non-interactively; specify a :default value.")))
     (loop []
       (print (str prompt " "))
       (when default

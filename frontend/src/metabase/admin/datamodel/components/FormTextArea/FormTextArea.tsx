@@ -1,5 +1,4 @@
-import type { Ref, TextareaHTMLAttributes } from "react";
-import { forwardRef } from "react";
+import { forwardRef, Ref, TextareaHTMLAttributes } from "react";
 import cx from "classnames";
 import { FormTextAreaRoot } from "./FormTextArea.styled";
 

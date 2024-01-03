@@ -1,7 +1,7 @@
 import { t } from "ttag";
 import _ from "underscore";
 
-import type { Location } from "history";
+import { Location } from "history";
 import { Grid } from "metabase/components/Grid";
 import NewModelOption from "metabase/models/components/NewModelOption";
 
@@ -11,8 +11,8 @@ import Databases from "metabase/entities/databases";
 import { getHasDataAccess, getHasNativeWrite } from "metabase/selectors/data";
 
 import { useSelector } from "metabase/lib/redux";
-import { NoDatabasesEmptyState } from "metabase/reference/databases/NoDatabasesEmptyState";
-import type Database from "metabase-lib/metadata/Database";
+import AdminAwareEmptyState from "metabase/components/AdminAwareEmptyState";
+import Database from "metabase-lib/metadata/Database";
 import {
   OptionsGridItem,
   OptionsRoot,
@@ -99,6 +99,16 @@ const NewModelOptions = (props: NewModelOptionsProps) => {
     </OptionsRoot>
   );
 };
+const NoDatabasesEmptyState = () => (
+  <AdminAwareEmptyState
+    title={t`Metabase is no fun without any data`}
+    adminMessage={t`Your databases will appear here once you connect one`}
+    message={t`Databases will appear here once your admins have added some`}
+    image="app/assets/img/databases-list"
+    adminAction={t`Connect a database`}
+    adminLink="/admin/databases/create"
+  />
+);
 // eslint-disable-next-line import/no-default-export -- deprecated usage
 export default _.compose(
   Databases.loadList({

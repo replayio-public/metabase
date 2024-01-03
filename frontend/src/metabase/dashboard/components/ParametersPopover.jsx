@@ -6,17 +6,12 @@ import _ from "underscore";
 import { getDashboardParameterSections } from "metabase/parameters/utils/dashboard-options";
 import { Icon } from "metabase/core/components/Icon";
 import { getParameterIconName } from "metabase/parameters/utils/ui";
-import {
-  OptionItemDescription,
-  OptionItemRoot,
-  OptionItemTitle,
-} from "metabase/dashboard/components/ParametersPopover.styled";
 
 const PopoverBody = styled.div`
   max-width: 300px;
 `;
 
-export class ParametersPopover extends Component {
+export default class ParametersPopover extends Component {
   constructor(props, context) {
     super(props, context);
     this.state = {};
@@ -62,16 +57,16 @@ export class ParametersPopover extends Component {
 }
 
 export const ParameterOptionsSection = ({ section, onClick }) => (
-  <OptionItemRoot onClick={onClick}>
-    <OptionItemTitle
-      className="text-bold flex align-center"
+  <li onClick={onClick} className="p1 px3 cursor-pointer brand-hover">
+    <div
+      className="text-brand text-bold flex align-center"
       style={{ marginBottom: 4 }}
     >
       <Icon size="16" name={getParameterIconName(section.id)} className="mr1" />
       {section.name}
-    </OptionItemTitle>
-    <OptionItemDescription>{section.description}</OptionItemDescription>
-  </OptionItemRoot>
+    </div>
+    <div className="text-medium">{section.description}</div>
+  </li>
 );
 
 export const ParameterOptionsSectionsPane = ({ sections, onSelectSection }) => (
@@ -90,12 +85,12 @@ export const ParameterOptionsSectionsPane = ({ sections, onSelectSection }) => (
 );
 
 export const ParameterOptionItem = ({ option, onClick }) => (
-  <OptionItemRoot onClick={onClick}>
-    <OptionItemTitle className="text-bold" style={{ marginBottom: 4 }}>
+  <li onClick={onClick} className="p1 px3 cursor-pointer brand-hover">
+    <div className="text-brand text-bold" style={{ marginBottom: 4 }}>
       {option.menuName || option.name}
-    </OptionItemTitle>
-    <OptionItemDescription>{option.description}</OptionItemDescription>
-  </OptionItemRoot>
+    </div>
+    <div className="text-medium">{option.description}</div>
+  </li>
 );
 
 export const ParameterOptionsPane = ({ options, onSelectOption }) => (

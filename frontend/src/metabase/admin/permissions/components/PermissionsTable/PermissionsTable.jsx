@@ -4,7 +4,7 @@ import PropTypes from "prop-types";
 import Tooltip from "metabase/core/components/Tooltip";
 import Modal from "metabase/components/Modal";
 import ConfirmContent from "metabase/components/ConfirmContent";
-import { Ellipsified } from "metabase/core/components/Ellipsified";
+import Ellipsified from "metabase/core/components/Ellipsified";
 
 import { PermissionsSelect } from "../PermissionsSelect";
 import {
@@ -120,11 +120,9 @@ export function PermissionsTable({
                   )}
                 </PermissionsTableCell>
 
-                {entity.permissions.map((permission, index) => {
+                {entity.permissions.map(permission => {
                   return (
-                    <PermissionsTableCell
-                      key={permission.type ?? String(index)}
-                    >
+                    <PermissionsTableCell key={permission.type}>
                       <PermissionsSelect
                         {...permission}
                         onChange={(value, toggleState) =>

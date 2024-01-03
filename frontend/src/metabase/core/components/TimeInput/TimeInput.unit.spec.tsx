@@ -1,12 +1,8 @@
 import { useCallback, useState } from "react";
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
-import type { Moment } from "moment-timezone";
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
-import moment from "moment-timezone";
+import moment, { Moment } from "moment-timezone";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { TimeInputProps } from "./TimeInput";
-import TimeInput from "./TimeInput";
+import TimeInput, { TimeInputProps } from "./TimeInput";
 
 const TestTimeInput = ({ onChange, ...props }: TimeInputProps) => {
   const [value, setValue] = useState(props.value);

@@ -1,4 +1,3 @@
-import { css } from "@emotion/react";
 import styled from "@emotion/styled";
 
 import { Icon } from "metabase/core/components/Icon";
@@ -21,11 +20,7 @@ export const NodeListItemIcon = styled(Icon)`
   width: ${space(2)};
 `;
 
-interface NodeListItemLinkProps {
-  disabled?: boolean;
-}
-
-export const NodeListItemLink = styled.a<NodeListItemLinkProps>`
+export const NodeListItemLink = styled.a`
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -40,18 +35,6 @@ export const NodeListItemLink = styled.a<NodeListItemLinkProps>`
   :hover {
     background-color: ${color("bg-medium")};
   }
-
-  ${props =>
-    props.disabled &&
-    css`
-      pointer-events: none;
-      opacity: 0.4;
-      color: inherit;
-
-      ${NodeListItemIcon} {
-        color: inherit;
-      }
-    `};
 `;
 
 export const NodeListContainer = styled.ul`

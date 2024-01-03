@@ -8,11 +8,8 @@ import {
   ORDERS_ID,
   SAMPLE_DB_ID,
 } from "metabase-types/api/mocks/presets";
-import registerVisualizations from "metabase/visualizations/register";
 import ChartSettings from "metabase/visualizations/components/ChartSettings";
 import Question from "metabase-lib/Question";
-
-registerVisualizations();
 
 const metadata = createMockMetadata({
   databases: [createSampleDatabase()],
@@ -70,33 +67,26 @@ const setup = ({ vizType }) => {
 // these visualizations share column settings, so all the tests should work for both
 ["table", "object"].forEach(vizType => {
   describe(`${vizType} column settings`, () => {
-    it("should show you related columns in structured queries", () => {
+    it("should show you related columns in structured queries", async () => {
       setup({ vizType });
-      userEvent.click(screen.getByText("Add or remove columns"));
-
-      expect(screen.getByText("User")).toBeInTheDocument();
-      expect(screen.getByText("Product")).toBeInTheDocument();
-
-      const userColumList = screen.getByRole("list", {
-        name: "user-table-columns",
-      });
-
-      expect(within(userColumList).getByLabelText("Address")).not.toBeChecked();
-      expect(within(userColumList).getByLabelText("State")).not.toBeChecked();
+      expect(await screen.findByText("More columns")).toBeInTheDocument();
+      expect(await screen.findByText("People")).toBeInTheDocument();
+      expect(await screen.findByText("Products")).toBeInTheDocument();
     });
 
-    it("should allow you to show and hide columns", () => {
+    it("should allow you to show and hide columns", async () => {
       setup({ vizType });
-      userEvent.click(screen.getByTestId("Tax-hide-button"));
+      userEvent.click(await screen.findByTestId("Tax-hide-button"));
 
-      expect(screen.getByRole("listitem", { name: "Tax" })).toHaveAttribute(
-        "data-enabled",
-        "false",
-      );
+      expect(
+        await within(await screen.findByTestId("disabled-columns")).findByText(
+          "Tax",
+        ),
+      ).toBeInTheDocument();
 
-      userEvent.click(screen.getByTestId("Tax-show-button"));
+      userEvent.click(await screen.findByTestId("Tax-add-button"));
       //If we can see the hide button, then we know it's been added back in.
-      expect(screen.getByTestId("Tax-hide-button")).toBeInTheDocument();
+      expect(await screen.findByTestId("Tax-hide-button")).toBeInTheDocument();
     });
 
     it("should allow you to update a column name", async () => {

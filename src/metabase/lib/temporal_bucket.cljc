@@ -9,8 +9,6 @@
    [metabase.lib.schema.temporal-bucketing
     :as lib.schema.temporal-bucketing]
    [metabase.shared.util.i18n :as i18n]
-   [metabase.shared.util.time :as shared.ut]
-   [metabase.util :as u]
    [metabase.util.malli :as mu]))
 
 (mu/defn describe-temporal-unit :- :string
@@ -113,6 +111,12 @@
     (lib.dispatch/dispatch-value x))
   :hierarchy lib.hierarchy/hierarchy)
 
+(defmethod with-temporal-bucket-method :dispatch-type/fn
+  [f unit]
+  (fn [query stage-number]
+    (let [x (f query stage-number)]
+      (with-temporal-bucket-method x unit))))
+
 (mu/defn with-temporal-bucket
   "Add a temporal bucketing unit, e.g. `:day` or `:day-of-year`, to an MBQL clause or something that can be converted to
   an MBQL clause. E.g. for a Field or Field metadata or `:field` clause, this might do something like this:
@@ -140,66 +144,45 @@
   [_x]
   nil)
 
-(mu/defmethod temporal-bucket-method :option/temporal-bucketing :- ::lib.schema.temporal-bucketing/unit
-  [option]
-  (:unit option))
-
-(mu/defn raw-temporal-bucket :- [:maybe ::lib.schema.temporal-bucketing/unit]
-  "Get the raw temporal bucketing `unit` associated with something e.g. a `:field` ref or a ColumnMetadata."
-  [x]
-  (temporal-bucket-method x))
-
 (mu/defn temporal-bucket :- [:maybe ::lib.schema.temporal-bucketing/option]
   "Get the current temporal bucketing option associated with something, if any."
   [x]
-  (when-let [unit (raw-temporal-bucket x)]
-    {:lib/type :option/temporal-bucketing
-     :unit     unit}))
-
-(def ^:private hidden-bucketing-options
-  "Options that are technically legal in MBQL, but that should be hidden in the UI."
-  #{:millisecond
-    :second
-    :second-of-minute
-    :year-of-era})
+  (when-let [unit (temporal-bucket-method x)]
+    {:lib/type :type/temporal-bucketing-option
+     :unit unit}))
 
 (def time-bucket-options
   "The temporal bucketing options for time type expressions."
-  (into []
-        (comp (remove hidden-bucketing-options)
-              (map (fn [unit]
-                     (cond-> {:lib/type :option/temporal-bucketing
-                              :unit unit}
-                       (= unit :hour) (assoc :default true)))))
+  (mapv (fn [unit]
+          (cond-> {:lib/type :type/temporal-bucketing-option
+                   :unit unit}
+            (= unit :hour) (assoc :default true)))
         lib.schema.temporal-bucketing/ordered-time-bucketing-units))
 
 (def date-bucket-options
   "The temporal bucketing options for date type expressions."
   (mapv (fn [unit]
-          (cond-> {:lib/type :option/temporal-bucketing
+          (cond-> {:lib/type :type/temporal-bucketing-option
                    :unit unit}
             (= unit :day) (assoc :default true)))
         lib.schema.temporal-bucketing/ordered-date-bucketing-units))
 
 (def datetime-bucket-options
   "The temporal bucketing options for datetime type expressions."
-  (into []
-        (comp (remove hidden-bucketing-options)
-              (map (fn [unit]
-                     (cond-> {:lib/type :option/temporal-bucketing
-                              :unit unit}
-                       (= unit :day) (assoc :default true)))))
+  (mapv (fn [unit]
+          (cond-> {:lib/type :type/temporal-bucketing-option
+                   :unit unit}
+            (= unit :day) (assoc :default true)))
         lib.schema.temporal-bucketing/ordered-datetime-bucketing-units))
 
-(defmethod lib.metadata.calculation/display-name-method :option/temporal-bucketing
-  [_query _stage-number {:keys [unit]} _style]
+(defmethod lib.metadata.calculation/display-name-method :type/temporal-bucketing-option
+  [_query _stage-number {:keys [unit]}]
   (describe-temporal-unit unit))
 
-(defmethod lib.metadata.calculation/display-info-method :option/temporal-bucketing
-  [query stage-number option]
-  (merge {:display-name (lib.metadata.calculation/display-name query stage-number option)
-          :short-name (u/qualified-name (raw-temporal-bucket option))}
-         (select-keys option [:default :selected])))
+(defmethod lib.metadata.calculation/display-info-method :type/temporal-bucketing-option
+  [query stage-number {:keys [default] :as option}]
+  {:display-name (lib.metadata.calculation/display-name query stage-number option)
+   :default default})
 
 (defmulti available-temporal-buckets-method
   "Implementation for [[available-temporal-buckets]]. Return a set of units from
@@ -222,10 +205,3 @@
     stage-number :- :int
     x]
    (available-temporal-buckets-method query stage-number x)))
-
-(mu/defn describe-temporal-pair :- :string
-  "Return a string describing the temporal pair.
-   Used when comparing temporal values like `[:!= ... [:field {:temporal-unit :day-of-week} ...] \"2022-01-01\"]`"
-  [temporal-column
-   temporal-value :- [:or :int :string]]
-  (shared.ut/format-unit temporal-value (:unit (temporal-bucket temporal-column))))

@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 import _ from "underscore";
 
-import type { FormLegacyContext } from "./types";
+import { FormLegacyContext } from "./types";
 
 export const FormContext = createContext<FormLegacyContext<any>>({
   fields: {},

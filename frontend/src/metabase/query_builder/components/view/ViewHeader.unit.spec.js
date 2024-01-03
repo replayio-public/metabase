@@ -252,7 +252,7 @@ describe("ViewHeader", () => {
           setup({ card, database: null });
           expect(screen.queryByText("Filter")).not.toBeInTheDocument();
           expect(
-            screen.queryByTestId("filters-visibility-control"),
+            screen.queryByLabelText("Show more filters"),
           ).not.toBeInTheDocument();
           expect(screen.queryByText("Summarize")).not.toBeInTheDocument();
           expect(

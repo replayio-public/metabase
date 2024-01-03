@@ -1,10 +1,7 @@
-import type {
+import {
   Dataset,
   DatasetColumn,
   DatasetData,
-  EmbedDataset,
-  EmbedDatasetData,
-  ErrorEmbedDataset,
   ResultsMetadata,
   TemplateTag,
 } from "metabase-types/api/dataset";
@@ -57,47 +54,6 @@ export const createMockDataset = ({
   running_time: 1000,
   ...opts,
 });
-
-export const createMockEmbedDatasetData = ({
-  cols = [
-    createMockColumn({
-      display_name: "NAME",
-      source: "native",
-      name: "NAME",
-    }),
-  ],
-  ...opts
-}: Partial<EmbedDatasetData>): EmbedDatasetData => ({
-  rows: [],
-  cols,
-  rows_truncated: 0,
-  insights: null,
-  ...opts,
-});
-
-export type MockEmbedDatasetOpts = Omit<Partial<EmbedDataset>, "data"> & {
-  data?: Partial<EmbedDatasetData>;
-};
-
-export const createMockEmbedDataset = (
-  opts: MockEmbedDatasetOpts,
-): EmbedDataset => {
-  if ("data" in opts) {
-    const { data = {}, ...rest } = opts;
-    return {
-      data: createMockEmbedDatasetData(data),
-      json_query: {
-        database: 1,
-        type: "native",
-        native: { query: "SELECT 1" },
-      },
-      status: "success",
-      ...rest,
-    };
-  }
-
-  return opts as ErrorEmbedDataset;
-};
 
 export const createMockTemplateTag = (
   opts?: Partial<TemplateTag>,

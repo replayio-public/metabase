@@ -2,10 +2,7 @@ import userEvent from "@testing-library/user-event";
 import { renderWithProviders, screen, within } from "__support__/ui";
 
 // these tests use ChartSettings directly, but logic we're testing lives in ChartNestedSettingSeries
-import registerVisualizations from "metabase/visualizations/register";
 import ChartSettings from "metabase/visualizations/components/ChartSettings";
-
-registerVisualizations();
 
 function getSeries(display, index, changeSeriesName) {
   return {

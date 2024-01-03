@@ -1,4 +1,4 @@
-import type { ITreeNodeItem } from "./types";
+import { ITreeNodeItem } from "./types";
 
 export const getInitialExpandedIds = (
   selectedId: ITreeNodeItem["id"],

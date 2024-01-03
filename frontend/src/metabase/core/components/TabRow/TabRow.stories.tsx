@@ -5,8 +5,11 @@ import type { UniqueIdentifier } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 
 import { color } from "metabase/lib/colors";
-import type { TabButtonMenuItem, TabButtonMenuAction } from "../TabButton";
-import { TabButton } from "../TabButton";
+import {
+  TabButton,
+  TabButtonMenuItem,
+  TabButtonMenuAction,
+} from "../TabButton";
 import TabLink from "../TabLink";
 import { Sortable } from "../Sortable";
 import { TabRow } from "./TabRow";

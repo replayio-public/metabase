@@ -19,10 +19,9 @@ describe("issue 17710", () => {
     cy.findByText("Join data").click();
     popover().findByText("Products").click();
 
-    cy.findByTestId("step-join-0-0").icon("add").click();
-
-    // Close the LHS column popover that opens automatically
-    cy.findByTestId("step-join-0-0").parent().click();
+    cy.findByTestId("step-join-0-0").within(() => {
+      cy.icon("add").click();
+    });
 
     visualize();
 

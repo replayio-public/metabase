@@ -15,12 +15,7 @@ const { ORDERS, ORDERS_ID } = SAMPLE_DATABASE;
 const questionDetails = {
   query: {
     "source-table": ORDERS_ID,
-    expressions: {
-      "CC Date": ["field", ORDERS.CREATED_AT, { "base-type": "type/DateTime" }],
-    },
-    "order-by": [
-      ["asc", ["field", ORDERS.ID, { "base-type": "type/BigInteger" }]],
-    ],
+    expressions: { "CC Date": ["field", ORDERS.CREATED_AT, null] },
   },
 };
 
@@ -36,7 +31,7 @@ const parameters = [
 
 const dashboardDetails = { parameters };
 
-describe("issue 17775", () => {
+describe.skip("issue 17775", () => {
   beforeEach(() => {
     restore();
     cy.signInAsAdmin();
@@ -45,7 +40,7 @@ describe("issue 17775", () => {
       ({ body: dashboardCard }) => {
         const { dashboard_id } = dashboardCard;
 
-        const updatedSize = { size_x: 21, size_y: 8 };
+        const updatedSize = { size_x: 16, size_y: 8 };
 
         cy.editDashboardCard(dashboardCard, updatedSize);
 
@@ -61,7 +56,6 @@ describe("issue 17775", () => {
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
     cy.findByText("Column to filter on")
       .parent()
-      .parent()
       .within(() => {
         cy.findByText("Select…").click();
       });
@@ -76,9 +70,11 @@ describe("issue 17775", () => {
   it("should be able to apply dashboard filter to a custom column (metabase#17775)", () => {
     filterWidget().click();
 
-    setQuarterAndYear({ quarter: "Q1", year: "2023" });
+    setQuarterAndYear({ quarter: "Q1", year: "2019" });
 
-    cy.findAllByText("44.43").should("have.length", 2);
-    cy.findAllByText("March 26, 2023, 8:45 AM").should("have.length", 2);
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("37.65");
+
+    cy.findAllByText("February 11, 2019, 9:40 PM").should("have.length", 2);
   });
 });

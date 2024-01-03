@@ -1,9 +1,9 @@
-import type * as React from "react";
+import * as React from "react";
 import { t, jt } from "ttag";
 
 import { Icon } from "metabase/core/components/Icon";
 
-import type { DashboardCard, DatasetColumn } from "metabase-types/api";
+import type { DashboardOrderedCard, DatasetColumn } from "metabase-types/api";
 
 import { isTableDisplay } from "metabase/lib/click-behavior";
 import { Heading, SidebarHeader } from "../ClickBehaviorSidebar.styled";
@@ -22,7 +22,7 @@ function DefaultHeader({ children }: { children: React.ReactNode }) {
 }
 
 interface Props {
-  dashcard: DashboardCard;
+  dashcard: DashboardOrderedCard;
   selectedColumn?: DatasetColumn | null;
   onUnsetColumn: () => void;
 }
@@ -44,10 +44,13 @@ function HeaderContent({ dashcard, selectedColumn, onUnsetColumn }: Props) {
   return <DefaultHeader>{dashcard.card.name}</DefaultHeader>;
 }
 
-export const ClickBehaviorSidebarHeader = (props: Props) => {
+function ClickBehaviorSidebarHeader(props: Props) {
   return (
     <SidebarHeader>
       <HeaderContent {...props} />
     </SidebarHeader>
   );
-};
+}
+
+// eslint-disable-next-line import/no-default-export -- deprecated usage
+export default ClickBehaviorSidebarHeader;

@@ -1,8 +1,4 @@
-import {
-  openStaticEmbeddingModal,
-  restore,
-  visitIframe,
-} from "e2e/support/helpers";
+import { restore, visitIframe } from "e2e/support/helpers";
 
 describe("locked parameters in embedded question (metabase#20634)", () => {
   beforeEach(() => {
@@ -32,7 +28,9 @@ describe("locked parameters in embedded question (metabase#20634)", () => {
   });
 
   it("should let the user lock parameters to specific values", () => {
-    openStaticEmbeddingModal();
+    cy.icon("share").click();
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Embed in your application").click();
 
     cy.get(".Modal--full").within(() => {
       // select the dropdown next to the Text parameter so that we can set the value to "Locked"

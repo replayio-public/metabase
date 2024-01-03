@@ -1,18 +1,22 @@
 import { Group } from "@visx/group";
 import { RowChart } from "metabase/visualizations/shared/components/RowChart";
-import type {
+import {
   FontStyle,
-  TextWidthMeasurer,
+  TextMeasurer,
 } from "metabase/visualizations/shared/types/measure-text";
-import { measureTextWidth } from "metabase/static-viz/lib/text";
+import { measureText } from "metabase/static-viz/lib/text";
 import { getStackOffset } from "metabase/visualizations/lib/settings/stacking";
 import {
   getGroupedDataset,
   trimData,
 } from "metabase/visualizations/shared/utils/data";
 import { getChartGoal } from "metabase/visualizations/lib/settings/goal";
-import type { DatasetData, VisualizationSettings } from "metabase-types/api";
-import type { ColorGetter } from "metabase/static-viz/lib/colors";
+import { VisualizationSettings } from "metabase-types/api";
+import { ColorGetter } from "metabase/static-viz/lib/colors";
+import {
+  RemappingHydratedChartData,
+  TwoDimensionalChartData,
+} from "metabase/visualizations/shared/types/data";
 import { getTwoDimensionalChartSeries } from "metabase/visualizations/shared/utils/series";
 import {
   getAxesVisibility,
@@ -25,7 +29,6 @@ import {
   getStaticFormatters,
 } from "metabase/static-viz/lib/format";
 import { extractRemappedColumns } from "metabase/visualizations";
-import type { RemappingHydratedChartData } from "metabase/visualizations/types";
 import { calculateLegendRows } from "../Legend/utils";
 import { Legend } from "../Legend";
 
@@ -42,17 +45,14 @@ const LEGEND_FONT = {
 const WIDTH = 620;
 const HEIGHT = 440;
 
-export interface StaticRowChartProps {
-  data: DatasetData;
+interface StaticRowChartProps {
+  data: TwoDimensionalChartData;
   settings: VisualizationSettings;
   getColor: ColorGetter;
 }
 
-const staticTextMeasurer: TextWidthMeasurer = (
-  text: string,
-  style: FontStyle,
-) =>
-  measureTextWidth(
+const staticTextMeasurer: TextMeasurer = (text: string, style: FontStyle) =>
+  measureText(
     text,
     parseInt(style.size.toString(), 10),
     style.weight ? parseInt(style.weight.toString(), 10) : 400,
@@ -123,7 +123,7 @@ const StaticRowChart = ({ data, settings, getColor }: StaticRowChartProps) => {
           stackOffset={stackOffset}
           tickFormatters={tickFormatters}
           labelsFormatter={labelsFormatter}
-          measureTextWidth={staticTextMeasurer}
+          measureText={staticTextMeasurer}
           xLabel={xLabel}
           yLabel={yLabel}
           hasXAxis={hasXAxis}

@@ -1,6 +1,6 @@
 import { t } from "ttag";
 
-import type Table from "metabase-lib/metadata/Table";
+import Table from "metabase-lib/metadata/Table";
 
 import {
   NodeListContainer,

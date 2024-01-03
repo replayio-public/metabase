@@ -57,7 +57,7 @@ class ArchiveDashboardModal extends Component {
   }
 }
 
-export const ArchiveDashboardModalConnected = _.compose(
+export default _.compose(
   connect(null, mapDispatchToProps),
   Dashboard.load({
     id: (state, props) => Urls.extractCollectionId(props.params.slug),

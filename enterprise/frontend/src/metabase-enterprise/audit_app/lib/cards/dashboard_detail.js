@@ -1,8 +1,6 @@
-import { t } from "ttag";
-
 export const viewsByTime = dashboardId => ({
   card: {
-    name: t`Views per day`,
+    name: "Views per day",
     display: "line",
     dataset_query: {
       type: "internal",
@@ -28,6 +26,18 @@ export const revisionHistory = dashboardId => ({
         { name: "revision_id", enabled: true },
         { name: "timestamp", enabled: true, date_format: "M/D/YYYY, h:mm A" },
       ],
+    },
+  },
+});
+
+export const cards = dashboardId => ({
+  card: {
+    name: "Cards",
+    display: "table",
+    dataset_query: {
+      type: "internal",
+      fn: "metabase-enterprise.audit-app.pages.dashboard-detail/cards",
+      args: [dashboardId],
     },
   },
 });

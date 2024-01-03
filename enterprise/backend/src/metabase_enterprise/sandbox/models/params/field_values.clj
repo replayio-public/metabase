@@ -1,12 +1,8 @@
 (ns metabase-enterprise.sandbox.models.params.field-values
   (:require
-   [metabase-enterprise.advanced-permissions.api.util
-    :as advanced-perms.api.u]
    [metabase-enterprise.sandbox.api.table :as table]
-   [metabase-enterprise.sandbox.models.group-table-access-policy
-    :refer [GroupTableAccessPolicy]]
-   [metabase-enterprise.sandbox.query-processor.middleware.row-level-restrictions
-    :as row-level-restrictions]
+   [metabase-enterprise.sandbox.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
+   [metabase-enterprise.sandbox.query-processor.middleware.row-level-restrictions :as row-level-restrictions]
    [metabase.api.common :as api]
    [metabase.mbql.util :as mbql.u]
    [metabase.models :refer [Field PermissionsGroupMembership]]
@@ -15,6 +11,7 @@
    [metabase.models.params.field-values :as params.field-values]
    [metabase.public-settings.premium-features :refer [defenterprise]]
    [metabase.util :as u]
+   [toucan.hydrate :refer [hydrate]]
    [toucan2.core :as t2]))
 
 (comment api/keep-me)
@@ -25,7 +22,7 @@
   ;; slight optimization: for the `field-id->field-values` version we can batched hydrate `:table` to avoid having to
   ;; make a bunch of calls to fetch Table. For `get-or-create-field-values` we don't hydrate `:table` so we can fall
   ;; back to fetching it manually with `field/table`
-  (table/only-sandboxed-perms? (or table (field/table field))))
+  (table/only-segmented-perms? (or table (field/table field))))
 
 (defn- table-id->gtap
   "Find the GTAP for current user that apply to table `table-id`."
@@ -38,7 +35,7 @@
       (row-level-restrictions/assert-one-gtap-per-table gtaps)
       ;; there shold be only one gtap per table and we only need one table here
       ;; see docs in [[metabase.models.permissions]] for more info
-      (t2/hydrate (first gtaps) :card))))
+      (hydrate (first gtaps) :card))))
 
 (defn- field->gtap-attributes-for-current-user
   "Returns the gtap attributes for current user that applied to `field`.
@@ -86,7 +83,7 @@
   :feature :sandboxes
   [field-ids]
   (let [fields                   (when (seq field-ids)
-                                   (t2/hydrate (t2/select Field :id [:in (set field-ids)]) :table))
+                                   (hydrate (t2/select Field :id [:in (set field-ids)]) :table))
         {unsandboxed-fields false
          sandboxed-fields   true} (group-by (comp boolean field-is-sandboxed?) fields)]
     (merge
@@ -104,17 +101,8 @@
   should be filtered as appropriate for the current User (currently this only applies to the EE impl)."
   :feature :sandboxes
   [field]
-  (cond
-    (field-is-sandboxed? field)
+  (if (field-is-sandboxed? field)
     (params.field-values/get-or-create-advanced-field-values! :sandbox field)
-
-    ;; Impersonation can have row-level security enforced by the database, so we still need to store field values per-user.
-    ;; TODO: only do this for DBs with impersonation in effect
-    (and api/*current-user-id*
-         (advanced-perms.api.u/impersonated-user?))
-    (params.field-values/get-or-create-advanced-field-values! :impersonation field)
-
-    :else
     (params.field-values/default-get-or-create-field-values-for-current-user! field)))
 
 (defenterprise hash-key-for-linked-filters
@@ -129,7 +117,7 @@
       (field-values/default-hash-key-for-linked-filters field-id constraints))))
 
 (defenterprise hash-key-for-sandbox
-  "Returns a hash-key for FieldValues if the field is sandboxed, otherwise fallback to the OSS impl."
+  "Returns a hash-key for linked-filter FieldValues if the field is sandboxed, otherwise fallback to the OSS impl."
   :feature :sandboxes
   [field-id]
   (let [field (t2/select-one Field :id field-id)]

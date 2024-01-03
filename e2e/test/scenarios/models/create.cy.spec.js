@@ -1,6 +1,10 @@
-import { modal, popover, restore, visitCollection } from "e2e/support/helpers";
-
-import { THIRD_COLLECTION_ID } from "e2e/support/cypress_sample_instance_data";
+import {
+  getCollectionIdFromSlug,
+  modal,
+  popover,
+  restore,
+  visitCollection,
+} from "e2e/support/helpers";
 
 const modelName = "A name";
 
@@ -17,8 +21,10 @@ describe("scenarios > models > create", () => {
     navigateToNewModelPage();
 
     // Cancel creation with confirmation modal
-    cy.findByTestId("dataset-edit-bar").button("Cancel").click();
-    modal().button("Discard changes").click();
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Cancel").click();
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Discard").click();
 
     // Now we will create a model
     navigateToNewModelPage();
@@ -44,7 +50,9 @@ describe("scenarios > models > create", () => {
   });
 
   it("suggest the currently viewed collection when saving a new native query", () => {
-    visitCollection(THIRD_COLLECTION_ID);
+    getCollectionIdFromSlug("third_collection", THIRD_COLLECTION_ID => {
+      visitCollection(THIRD_COLLECTION_ID);
+    });
 
     navigateToNewModelPage();
     cy.get(".ace_editor").should("be.visible").type("select * from ORDERS");
@@ -58,12 +66,14 @@ describe("scenarios > models > create", () => {
   });
 
   it("suggest the currently viewed collection when saving a new structured query", () => {
-    visitCollection(THIRD_COLLECTION_ID);
+    getCollectionIdFromSlug("third_collection", THIRD_COLLECTION_ID => {
+      visitCollection(THIRD_COLLECTION_ID);
+    });
 
     navigateToNewModelPage("structured");
 
     popover().within(() => {
-      cy.findByText("Raw Data").click();
+      cy.findByText("Sample Database").click();
       cy.findByText("Orders").click();
     });
 

@@ -1,5 +1,3 @@
-import { produce } from "immer";
-
 import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
 
 const { ORDERS, PEOPLE } = SAMPLE_DATABASE;
@@ -50,13 +48,6 @@ export const questionDetails = {
   display: "scalar",
 };
 
-export const questionDetailsWithDefaults = produce(questionDetails, draft => {
-  const tags = draft.native["template-tags"];
-  tags.id.default = [1, 2];
-  tags.name.default = ["Lina Heaney"];
-  tags.source.default = ["Facebook"];
-});
-
 // Define dashboard filters
 const idFilter = { name: "Id", slug: "id", id: "1", type: "id" };
 
@@ -92,14 +83,14 @@ function getParameterMappings(parameters, card_id) {
 }
 
 export function mapParameters({ id, card_id, dashboard_id } = {}) {
-  return cy.request("PUT", `/api/dashboard/${dashboard_id}`, {
-    dashcards: [
+  return cy.request("PUT", `/api/dashboard/${dashboard_id}/cards`, {
+    cards: [
       {
         id,
         card_id,
         row: 0,
         col: 0,
-        size_x: 24,
+        size_x: 18,
         size_y: 6,
         series: [],
         visualization_settings: {},

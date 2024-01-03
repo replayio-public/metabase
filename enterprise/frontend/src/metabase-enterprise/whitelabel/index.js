@@ -9,13 +9,11 @@ import {
 
 import { hasPremiumFeature } from "metabase-enterprise/settings";
 import {
-  getApplicationName,
-  getIsWhiteLabeling,
+  getHasCustomColors,
   getLoadingMessage,
 } from "metabase-enterprise/settings/selectors";
 import MetabaseSettings from "metabase/lib/settings";
 
-import { Anchor } from "metabase/ui";
 import ColorSettingsWidget from "./components/ColorSettingsWidget";
 import FontWidget from "./components/FontWidget";
 import FontFilesWidget from "./components/FontFilesWidget";
@@ -23,9 +21,11 @@ import LighthouseToggleWidget from "./components/LighthouseToggleWidget";
 import MetabotToggleWidget from "./components/MetabotToggleWidget";
 import LogoUpload from "./components/LogoUpload";
 import LogoIcon from "./components/LogoIcon";
-import { updateColors } from "./lib/whitelabel";
+import {
+  updateColors,
+  enabledApplicationNameReplacement,
+} from "./lib/whitelabel";
 import { getLoadingMessageOptions } from "./lib/loading-message";
-import { HelpLinkSettings } from "./components/HelpLinkSettings";
 
 if (hasPremiumFeature("whitelabel")) {
   PLUGIN_LANDING_PAGE.push(() => MetabaseSettings.get("landing-page"));
@@ -69,16 +69,6 @@ if (hasPremiumFeature("whitelabel")) {
           display_name: t`Landing Page`,
           type: "string",
           placeholder: "/",
-          props: {
-            normalize(value) {
-              if (typeof value === "string") {
-                const normalizedValue = value.trim();
-                return normalizedValue === "" ? null : normalizedValue;
-              }
-
-              return value;
-            },
-          },
         },
         {
           key: "loading-message",
@@ -86,19 +76,6 @@ if (hasPremiumFeature("whitelabel")) {
           type: "select",
           options: getLoadingMessageOptions(),
           defaultValue: "doing-science",
-        },
-        {
-          key: "help-link",
-          display_name: t`Help Link in the Settings menu`,
-          description: (
-            <p>
-              {t`The Settings menu includes a Help link that goes to `}
-              <Anchor href="https://www.metabase.com/help">{t`this page`}</Anchor>
-              {t` by default.`}
-            </p>
-          ),
-          widget: HelpLinkSettings,
-          defaultValue: "metabase",
         },
         {
           key: "show-metabot",
@@ -126,11 +103,12 @@ if (hasPremiumFeature("whitelabel")) {
     MetabaseSettings.on("application-colors", updateColors);
   });
 
+  enabledApplicationNameReplacement();
+
   PLUGIN_LOGO_ICON_COMPONENTS.push(LogoIcon);
   PLUGIN_SELECTORS.canWhitelabel = () => true;
-
-  // these selectors control whitelabeling UI
-  PLUGIN_SELECTORS.getLoadingMessage = getLoadingMessage;
-  PLUGIN_SELECTORS.getIsWhiteLabeling = getIsWhiteLabeling;
-  PLUGIN_SELECTORS.getApplicationName = getApplicationName;
 }
+
+// these selectors control whitelabeling UI
+PLUGIN_SELECTORS.getHasCustomColors = getHasCustomColors;
+PLUGIN_SELECTORS.getLoadingMessage = getLoadingMessage;

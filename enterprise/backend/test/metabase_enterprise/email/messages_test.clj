@@ -21,6 +21,5 @@
                        (:email user))
                  (set (#'messages/admin-or-ee-monitoring-details-emails db-id))))))
       (testing "Only send to admin users if advanced-permissions is disabled"
-        (premium-features-test/with-premium-features #{}
-          (is (= (set (#'messages/all-admin-recipients))
-                 (set (#'messages/admin-or-ee-monitoring-details-emails db-id)))))))))
+        (is (= (set (#'messages/all-admin-recipients))
+               (set (#'messages/admin-or-ee-monitoring-details-emails db-id))))))))

@@ -79,7 +79,6 @@ const TIME_BUCKETS = [
   "Week of year",
   "Month of year",
   "Quarter of year",
-  "Don't bin",
 ];
 
 const LONGITUDE_BUCKETS = [
@@ -121,11 +120,7 @@ describe("scenarios > binning > binning options", () => {
       getTitle("Count by Created At: Month");
 
       openBinningListForDimension("Created At", "by month");
-      getAllOptions({
-        options: TIME_BUCKETS,
-        isSelected: "Month",
-        shouldExpandList: true,
-      });
+      getAllOptions({ options: TIME_BUCKETS, isSelected: "Month" });
     });
 
     it("should render longitude/latitude binning options correctly", () => {
@@ -167,11 +162,7 @@ describe("scenarios > binning > binning options", () => {
       cy.findByText("Created At: Month").click();
       openBinningListForDimension("Created At", "by month");
 
-      getAllOptions({
-        options: TIME_BUCKETS,
-        isSelected: "Month",
-        shouldExpandList: true,
-      });
+      getAllOptions({ options: TIME_BUCKETS, isSelected: "Month" });
     });
 
     it("should render longitude/latitude binning options correctly", () => {
@@ -192,8 +183,7 @@ describe("scenarios > binning > binning options", () => {
   });
 
   context("via time series footer (metabase#11183)", () => {
-    // TODO: enable again when metabase#35546 is completed
-    it.skip("should render time series binning options correctly", () => {
+    it("should render time series binning options correctly", () => {
       openTable({ table: ORDERS_ID });
 
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
@@ -315,7 +305,7 @@ function getTitle(title) {
   cy.findByText(title);
 }
 
-function getAllOptions({ options, isSelected, shouldExpandList } = {}) {
+function getAllOptions({ options, isSelected } = {}) {
   const selectedOption = options.find(option => option === isSelected);
   const regularOptions = options.filter(option => option !== isSelected);
 
@@ -325,10 +315,6 @@ function getAllOptions({ options, isSelected, shouldExpandList } = {}) {
   popover()
     .last()
     .within(() => {
-      if (shouldExpandList) {
-        cy.button("More…").click();
-      }
-
       regularOptions.forEach(option => {
         // Implicit assertion - will fail if string is rendered multiple times
         cy.findByText(option);

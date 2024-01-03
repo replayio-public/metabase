@@ -9,6 +9,7 @@
    [metabase.test :as mt]
    [metabase.test.mock.moviedb :as moviedb]
    [metabase.util :as u]
+   [toucan.hydrate :refer [hydrate]]
    [toucan2.core :as t2]
    [toucan2.tools.with-temp :as t2.with-temp]))
 
@@ -16,7 +17,7 @@
   (testing ":Test that the `_metabase_metadata` table can be used to populate values for things like descriptions"
     (letfn [(get-table-and-fields-descriptions [table-or-id]
               (-> (t2/select-one [Table :id :name :description], :id (u/the-id table-or-id))
-                  (t2/hydrate :fields)
+                  (hydrate :fields)
                   (update :fields #(for [field %]
                                      (select-keys field [:name :description])))
                   mt/boolean-ids-and-timestamps))]

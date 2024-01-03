@@ -1,14 +1,10 @@
 import { restore, startNewQuestion } from "e2e/support/helpers";
-import {
-  ORDERS_QUESTION_ID,
-  ORDERS_COUNT_QUESTION_ID,
-} from "e2e/support/cypress_sample_instance_data";
 
 const collectionName = "Parent";
 
 const questions = {
-  [ORDERS_QUESTION_ID]: "Orders",
-  [ORDERS_COUNT_QUESTION_ID]: "Orders, Count",
+  1: "Orders",
+  2: "Orders, Count",
 };
 
 describe("issue 24660", () => {
@@ -16,8 +12,8 @@ describe("issue 24660", () => {
     restore();
     cy.signInAsAdmin();
 
-    createParentCollectionAndMoveQuestionToIt(ORDERS_QUESTION_ID);
-    createParentCollectionAndMoveQuestionToIt(ORDERS_COUNT_QUESTION_ID);
+    createParentCollectionAndMoveQuestionToIt(1);
+    createParentCollectionAndMoveQuestionToIt(2);
   });
 
   it("should properly show contents of different collections with the same name (metabase#24660)", () => {
@@ -30,9 +26,9 @@ describe("issue 24660", () => {
       .click();
 
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-    cy.findByText(questions[ORDERS_QUESTION_ID]);
+    cy.findByText(questions[1]);
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-    cy.findByText(questions[ORDERS_COUNT_QUESTION_ID]).should("not.exist");
+    cy.findByText(questions[2]).should("not.exist");
   });
 });
 

@@ -6,10 +6,10 @@ import Collections from "metabase/entities/collections";
 import Timelines from "metabase/entities/timelines";
 import TimelineEvents from "metabase/entities/timeline-events";
 import MoveEventModal from "metabase/timelines/common/components/MoveEventModal";
-import type { Timeline, TimelineEvent } from "metabase-types/api";
-import type { State } from "metabase-types/store";
+import { Timeline, TimelineEvent } from "metabase-types/api";
+import { State } from "metabase-types/store";
 import LoadingAndErrorWrapper from "../../components/LoadingAndErrorWrapper";
-import type { ModalParams } from "../../types";
+import { ModalParams } from "../../types";
 
 interface MoveEventModalProps {
   params: ModalParams;

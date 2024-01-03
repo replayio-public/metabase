@@ -33,7 +33,7 @@ describe("issue 16756", () => {
     cy.createNativeQuestion(questionDetails).then(({ body: { id } }) => {
       cy.intercept("POST", `/api/card/**/${id}/query`).as("cardQuery");
 
-      cy.visit(`/question/${id}?filter=2024-03-31~2025-03-31`);
+      cy.visit(`/question/${id}?filter=2018-03-31~2019-03-31`);
 
       cy.wait("@cardQuery");
     });
@@ -50,10 +50,9 @@ describe("issue 16756", () => {
     popover().contains("Single Date").click();
 
     // The previous filter value should reset
-    cy.location("search").should("eq", "?filter=");
+    cy.location("search").should("eq", "");
 
-    cy.log("Set the date to the 15th of October 2023");
-    cy.clock(new Date("2023-10-31"), ["Date"]);
+    // Set the date to the 15th of whichever the month and year are when this tests runs
     filterWidget().click();
 
     popover().contains("15").click();

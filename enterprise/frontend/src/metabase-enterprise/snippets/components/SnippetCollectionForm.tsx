@@ -5,14 +5,15 @@ import * as Yup from "yup";
 import { connect } from "react-redux";
 
 import Button from "metabase/core/components/Button";
+import Form from "metabase/core/components/Form";
 import FormFooter from "metabase/core/components/FormFooter";
-import { Form, FormProvider } from "metabase/forms";
+import FormProvider from "metabase/core/components/FormProvider";
 import FormInput from "metabase/core/components/FormInput";
 import FormTextArea from "metabase/core/components/FormTextArea";
 import FormSubmitButton from "metabase/core/components/FormSubmitButton";
 import FormErrorMessage from "metabase/core/components/FormErrorMessage";
 
-import * as Errors from "metabase/lib/errors";
+import * as Errors from "metabase/core/utils/errors";
 
 import { color } from "metabase/lib/colors";
 
@@ -38,7 +39,7 @@ const SNIPPET_COLLECTION_SCHEMA = Yup.object({
 
 type SnippetCollectionFormValues = Pick<
   Collection,
-  "name" | "description" | "parent_id"
+  "name" | "description" | "color" | "parent_id"
 >;
 
 type UpdateSnippetCollectionFormValues = Partial<SnippetCollectionFormValues> &

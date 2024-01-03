@@ -1,4 +1,4 @@
-import type { DatasetColumn } from "metabase-types/api";
+import { DatasetColumn } from "metabase-types/api";
 
 /**
  * @returns min and max for a value in a column

@@ -1,5 +1,5 @@
 import { connect } from "react-redux";
-import type { State } from "metabase-types/store";
+import { State } from "metabase-types/store";
 import { getFont, getFontFiles } from "../../selectors";
 import GlobalStyles from "../../components/GlobalStyles";
 

@@ -1,4 +1,4 @@
-import type { ParametersState } from "metabase-types/store/parameters";
+import { ParametersState } from "metabase-types/store/parameters";
 
 export const createMockParametersState = (
   opts?: Partial<ParametersState>,

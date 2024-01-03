@@ -1,4 +1,4 @@
-import type {
+import {
   NormalizedAlert,
   NormalizedCard,
   NormalizedCollection,

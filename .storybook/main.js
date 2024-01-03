@@ -1,4 +1,3 @@
-const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const appConfig = require("../webpack.config");
 
 module.exports = {
@@ -14,10 +13,8 @@ module.exports = {
     "@storybook/addon-links",
     "@storybook/addon-a11y",
   ],
-  babel: () => {},
   webpackFinal: storybookConfig => ({
     ...storybookConfig,
-    plugins: [...storybookConfig.plugins, new MiniCssExtractPlugin()],
     module: {
       ...storybookConfig.module,
       rules: [

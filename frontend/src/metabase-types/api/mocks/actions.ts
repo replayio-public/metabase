@@ -1,4 +1,4 @@
-import type {
+import {
   CardId,
   PublicWritebackAction,
   WritebackParameter,
@@ -77,22 +77,21 @@ export const createMockImplicitQueryAction = ({
 
 export const createMockImplicitCUDActions = (
   modelId: CardId,
-  startId: number = 0,
 ): WritebackImplicitQueryAction[] => [
   createMockImplicitQueryAction({
-    id: startId + 1,
+    id: 1,
     name: "Create",
     kind: "row/create",
     model_id: modelId,
   }),
   createMockImplicitQueryAction({
-    id: startId + 2,
+    id: 2,
     name: "Update",
     kind: "row/update",
     model_id: modelId,
   }),
   createMockImplicitQueryAction({
-    id: startId + 3,
+    id: 3,
     name: "Delete",
     kind: "row/delete",
     model_id: modelId,
@@ -104,7 +103,6 @@ export const createMockPublicAction = (
 ): PublicWritebackAction => ({
   id: 1,
   name: "Public Action",
-  database_id: 1,
   parameters: [],
   ...opts,
 });
@@ -129,12 +127,3 @@ export const createMockFieldSettings = (
   width: "medium",
   ...opts,
 });
-
-export const createMockImplicitActionFieldSettings = (
-  opts?: Partial<FieldSettings>,
-) =>
-  ({
-    id: "",
-    hidden: false,
-    ...opts,
-  } as FieldSettings);

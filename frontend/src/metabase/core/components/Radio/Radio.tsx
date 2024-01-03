@@ -1,7 +1,14 @@
-import type { HTMLAttributes, Key, ReactNode, Ref } from "react";
-import { forwardRef, useCallback, useMemo } from "react";
+import {
+  forwardRef,
+  HTMLAttributes,
+  Key,
+  ReactNode,
+  Ref,
+  useCallback,
+  useMemo,
+} from "react";
 import _ from "underscore";
-import type { RadioColorScheme, RadioVariant } from "./types";
+import { RadioColorScheme, RadioVariant } from "./types";
 import {
   RadioButton,
   RadioContainerBubble,
@@ -55,10 +62,7 @@ export interface RadioOption<TValue> {
   value: TValue;
 }
 
-const BaseRadio = forwardRef(function Radio<
-  TValue,
-  TOption = RadioOption<TValue>,
->(
+const Radio = forwardRef(function Radio<TValue, TOption = RadioOption<TValue>>(
   {
     name,
     value,
@@ -208,10 +212,8 @@ function isDefaultOption<TValue>(
   return typeof option === "object";
 }
 
-/**
- * @deprecated: use Radio from "metabase/ui"
- */
-const Radio = Object.assign(BaseRadio, {
+// eslint-disable-next-line import/no-default-export -- deprecated usage
+export default Object.assign(Radio, {
   RadioGroupVariants: [RadioGroupBubble, RadioGroupNormal],
   RadioLabelVariants: [RadioLabelBubble, RadioLabelNormal],
   RadioLabelText: RadioLabelText,
@@ -221,6 +223,3 @@ const Radio = Object.assign(BaseRadio, {
     RadioContainerUnderlined,
   ],
 });
-
-// eslint-disable-next-line import/no-default-export -- deprecated usage
-export default Radio;

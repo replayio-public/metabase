@@ -1,15 +1,11 @@
 import { Component } from "react";
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
 import moment from "moment-timezone";
 import _ from "underscore";
+import cx from "classnames";
 
 import YearPicker from "metabase/components/YearPicker";
 
-import {
-  MonthContainer,
-  MonthList,
-  MonthRoot,
-} from "./DateMonthYearWidget.styled";
+import { MonthContainer, MonthList } from "./DateMonthYearWidget.styled";
 
 type Props = {
   value: string;
@@ -89,9 +85,19 @@ interface MonthProp {
 }
 
 const Month = ({ month, selected, onClick }: MonthProp) => (
-  <MonthRoot isSelected={selected} aria-selected={selected} onClick={onClick}>
+  <div
+    aria-selected={selected}
+    className={cx(
+      "cursor-pointer text-bold full text-centered py1 px2 circular my1",
+      {
+        "bg-light-hover": !selected,
+        "text-white bg-brand": selected,
+      },
+    )}
+    onClick={onClick}
+  >
     {moment().month(month).format("MMMM")}
-  </MonthRoot>
+  </div>
 );
 
 // eslint-disable-next-line import/no-default-export -- deprecated usage

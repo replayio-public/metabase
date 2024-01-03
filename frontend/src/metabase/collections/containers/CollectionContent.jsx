@@ -12,8 +12,7 @@ import Search from "metabase/entities/search";
 import { getUserIsAdmin } from "metabase/selectors/user";
 import { getIsBookmarked } from "metabase/collections/selectors";
 import { getSetting } from "metabase/selectors/settings";
-import { openNavbar } from "metabase/redux/app";
-import { getIsNavbarOpen } from "metabase/selectors/app";
+import { getIsNavbarOpen, openNavbar } from "metabase/redux/app";
 
 import ErrorBoundary from "metabase/ErrorBoundary";
 import BulkActions from "metabase/collections/components/BulkActions";
@@ -57,21 +56,18 @@ const itemKeyFn = item => `${item.id}:${item.model}`;
 
 function mapStateToProps(state, props) {
   const uploadDbId = getSetting(state, "uploads-database-id");
-  const uploadsEnabled = getSetting(state, "uploads-enabled");
-  const canUploadToDb =
+  const canAccessUploadsDb =
+    getSetting(state, "uploads-enabled") &&
     uploadDbId &&
-    Databases.selectors
-      .getObject(state, {
-        entityId: uploadDbId,
-      })
-      ?.canUpload();
+    !!Databases.selectors.getObject(state, {
+      entityId: uploadDbId,
+    });
 
   return {
     isAdmin: getUserIsAdmin(state),
     isBookmarked: getIsBookmarked(state, props),
     isNavbarOpen: getIsNavbarOpen(state),
-    uploadsEnabled,
-    canUploadToDb,
+    uploadsEnabled: canAccessUploadsDb,
   };
 }
 
@@ -95,7 +91,6 @@ function CollectionContent({
   openNavbar,
   uploadFile,
   uploadsEnabled,
-  canUploadToDb,
 }) {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [selectedItems, setSelectedItems] = useState(null);
@@ -106,7 +101,7 @@ function CollectionContent({
   });
   const { handleNextPage, handlePreviousPage, setPage, page, resetPage } =
     usePagination();
-  const { clear, getIsSelected, selected, selectOnlyTheseItems, toggleItem } =
+  const { selected, toggleItem, toggleAll, getIsSelected, clear } =
     useListSelect(itemKeyFn);
   const previousCollection = usePrevious(collection);
 
@@ -205,7 +200,7 @@ function CollectionContent({
     deleteBookmark(collectionId, "collection");
   };
 
-  const canUpload = uploadsEnabled && canUploadToDb && collection.can_write;
+  const canUpload = uploadsEnabled && collection.can_write;
 
   const dropzoneProps = canUpload ? getComposedDragProps(getRootProps()) : {};
 
@@ -256,7 +251,6 @@ function CollectionContent({
                   onCreateBookmark={handleCreateBookmark}
                   onDeleteBookmark={handleDeleteBookmark}
                   canUpload={canUpload}
-                  uploadsEnabled={uploadsEnabled}
                 />
               </ErrorBoundary>
               <ErrorBoundary>
@@ -292,7 +286,7 @@ function CollectionContent({
                     const hasUnselected = unselected.length > 0;
 
                     const handleSelectAll = () => {
-                      selectOnlyTheseItems(unpinnedItems);
+                      toggleAll(unselected);
                     };
 
                     const loading = loadingPinnedItems || loadingUnpinnedItems;
@@ -302,7 +296,7 @@ function CollectionContent({
                     if (isEmpty && !loadingUnpinnedItems) {
                       return (
                         <CollectionEmptyContent>
-                          <CollectionEmptyState collection={collection} />
+                          <CollectionEmptyState collectionId={collectionId} />
                         </CollectionEmptyContent>
                       );
                     }

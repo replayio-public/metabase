@@ -40,12 +40,6 @@ const HISTOGRAM_DATE_EXTRACTS = new Set([
   // "week-of-year",
 ]);
 
-export function getDefaultDimensionLabel(multipleSeries) {
-  return multipleSeries.length > 0 && multipleSeries[0].data.cols[0]
-    ? getFriendlyName(multipleSeries[0].data.cols[0])
-    : null;
-}
-
 export function getDefaultColumns(series) {
   if (series[0].card.display === "scatter") {
     return getDefaultScatterColumns(series);
@@ -652,9 +646,11 @@ export const GRAPH_AXIS_SETTINGS = {
     widget: "input",
     getHidden: (series, vizSettings) =>
       vizSettings["graph.x_axis.labels_enabled"] === false,
-    getDefault: getDefaultDimensionLabel,
+    getDefault: (series, vizSettings) =>
+      series.length > 1 ? getFriendlyName(series[0].data.cols[0]) : null,
     getProps: series => ({
-      placeholder: getDefaultDimensionLabel(series),
+      placeholder:
+        series.length > 1 ? getFriendlyName(series[0].data.cols[0]) : null,
     }),
   },
   "graph.y_axis.labels_enabled": {

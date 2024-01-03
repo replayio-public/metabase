@@ -1,8 +1,7 @@
 import { t } from "ttag";
 
 import AccordionList from "metabase/core/components/AccordionList";
-import type { IconName } from "metabase/core/components/Icon";
-import { Icon } from "metabase/core/components/Icon";
+import { Icon, IconName } from "metabase/core/components/Icon";
 import type Table from "metabase-lib/metadata/Table";
 import type Field from "metabase-lib/metadata/Field";
 import DataSelectorLoading from "../DataSelectorLoading";

@@ -1,4 +1,4 @@
-import type {
+import {
   NativeDatasetQuery,
   NativeQuery,
   StructuredDatasetQuery,
@@ -8,7 +8,6 @@ import type {
 export const createMockStructuredQuery = (
   opts?: Partial<StructuredQuery>,
 ): StructuredQuery => ({
-  "source-table": 1,
   ...opts,
 });
 

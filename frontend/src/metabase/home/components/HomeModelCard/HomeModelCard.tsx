@@ -1,4 +1,4 @@
-import type { IconName } from "metabase/core/components/Icon";
+import { IconName } from "metabase/core/components/Icon";
 import { HomeCard } from "../HomeCard";
 import { CardIcon, CardTitle } from "./HomeModelCard.styled";
 

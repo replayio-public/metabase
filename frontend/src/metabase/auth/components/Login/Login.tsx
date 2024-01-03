@@ -1,11 +1,15 @@
 import { t } from "ttag";
-import type { Location } from "history";
-import { Box } from "metabase/ui";
+import { Location } from "history";
 import { useSelector } from "metabase/lib/redux";
-import type { AuthProvider } from "metabase/plugins/types";
-import { getApplicationName } from "metabase/selectors/whitelabel";
+import { AuthProvider } from "metabase/plugins/types";
 import { AuthLayout } from "../AuthLayout";
 import { getAuthProviders } from "../../selectors";
+import {
+  ActionList,
+  ActionListItem,
+  LoginPanel,
+  LoginTitle,
+} from "./Login.styled";
 
 interface LoginQueryString {
   redirect?: string;
@@ -24,25 +28,23 @@ export const Login = ({ params, location }: LoginProps): JSX.Element => {
   const providers = useSelector(getAuthProviders);
   const selection = getSelectedProvider(providers, params?.provider);
   const redirectUrl = location?.query?.redirect;
-  const applicationName = useSelector(getApplicationName);
+
   return (
     <AuthLayout>
-      <Box c="text.2" fz="1.25rem" fw="bold" lh="1.5rem" ta="center">
-        {t`Sign in to ${applicationName}`}
-      </Box>
+      <LoginTitle>{t`Sign in to Metabase`}</LoginTitle>
       {selection && selection.Panel && (
-        <Box mt="2.5rem">
+        <LoginPanel>
           <selection.Panel redirectUrl={redirectUrl} />
-        </Box>
+        </LoginPanel>
       )}
       {!selection && (
-        <Box mt="3.5rem">
+        <ActionList>
           {providers.map(provider => (
-            <Box key={provider.name} mt="2rem" ta="center">
+            <ActionListItem key={provider.name}>
               <provider.Button isCard={true} redirectUrl={redirectUrl} />
-            </Box>
+            </ActionListItem>
           ))}
-        </Box>
+        </ActionList>
       )}
     </AuthLayout>
   );

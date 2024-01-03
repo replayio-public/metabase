@@ -23,10 +23,6 @@ import { formatValue } from "metabase/lib/formatting";
 
 import { color } from "metabase/lib/colors";
 import { getColorsForValues } from "metabase/lib/colors/charts";
-import {
-  getDefaultSize,
-  getMinSize,
-} from "metabase/visualizations/shared/utils/sizes";
 import ChartWithLegend from "../../components/ChartWithLegend";
 import styles from "./PieChart.css";
 
@@ -59,8 +55,8 @@ export default class PieChart extends Component {
   static identifier = "pie";
   static iconName = "pie";
 
-  static minSize = getMinSize("pie");
-  static defaultSize = getDefaultSize("pie");
+  static minSize = { width: 4, height: 4 };
+  static defaultSize = { width: 4, height: 4 };
 
   static isSensible({ cols, rows }) {
     return cols.length === 2;
@@ -408,11 +404,7 @@ export default class PieChart extends Component {
       slices.push(otherSlice);
     }
 
-    const side = Math.max(
-      Math.min(Math.min(width, height) - SIDE_PADDING, MAX_PIE_SIZE),
-      0,
-    );
-
+    const side = Math.min(Math.min(width, height) - SIDE_PADDING, MAX_PIE_SIZE);
     const outerRadius = side / 2;
     const labelFontSize = Math.max(
       MAX_LABEL_FONT_SIZE * (side / MAX_PIE_SIZE),
@@ -504,23 +496,12 @@ export default class PieChart extends Component {
       };
     };
 
-    const isClickable = onVisualizationClick != null;
+    const isClickable =
+      onVisualizationClick && visualizationIsClickable(getSliceClickObject(0));
+    const getSliceIsClickable = index =>
+      isClickable && slices[index] !== otherSlice;
+
     const shouldRenderLabels = settings["pie.percent_visibility"] === "inside";
-
-    const handleSliceClick = (e, index) => {
-      if (onVisualizationClick) {
-        const isSliceClickable =
-          visualizationIsClickable(getSliceClickObject(index)) &&
-          slices[index] !== otherSlice;
-
-        if (isSliceClickable) {
-          onVisualizationClick({
-            ...getSliceClickObject(index),
-            event: e.nativeEvent,
-          });
-        }
-      }
-    };
 
     return (
       <ChartWithLegend
@@ -590,9 +571,19 @@ export default class PieChart extends Component {
                       }
                       onMouseLeave={() => onHoverChange?.(null)}
                       className={cx({
-                        "cursor-pointer": isClickable,
+                        "cursor-pointer": getSliceIsClickable(index),
                       })}
-                      onClick={e => handleSliceClick(e, index)}
+                      onClick={
+                        // We use a ternary here because using
+                        // `condition && function` yields a console warning.
+                        getSliceIsClickable(index)
+                          ? e =>
+                              onVisualizationClick({
+                                ...getSliceClickObject(index),
+                                event: e.nativeEvent,
+                              })
+                          : undefined
+                      }
                       data-testid="slice"
                     />
                   );

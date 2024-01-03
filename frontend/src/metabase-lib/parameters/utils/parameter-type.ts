@@ -1,5 +1,6 @@
 import _ from "underscore";
-import type { Parameter } from "metabase-types/api";
+import { Parameter } from "metabase-types/api";
+import type { FieldFilterUiParameter } from "metabase-lib/parameters/types";
 import { FIELD_FILTER_PARAMETER_TYPES } from "metabase-lib/parameters/constants";
 
 export function getParameterType(parameter: Parameter | string) {
@@ -41,7 +42,9 @@ export function isStringParameter(parameter: Parameter) {
   return type === "string";
 }
 
-export function isFieldFilterParameter(parameter: Parameter) {
+export function isFieldFilterParameter(
+  parameter: Parameter,
+): parameter is FieldFilterUiParameter {
   const type = getParameterType(parameter);
   return FIELD_FILTER_PARAMETER_TYPES.includes(type);
 }

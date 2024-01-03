@@ -2,7 +2,7 @@ interface Props {
   [key: string]: any;
 }
 
-function PluginPlaceholder(_props: Props) {
+function PluginPlaceholder(props: Props) {
   return null;
 }
 

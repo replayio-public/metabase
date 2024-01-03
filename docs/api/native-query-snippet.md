@@ -14,7 +14,7 @@ Fetch all snippets.
 
 ### PARAMS:
 
-*  **`archived`** nullable value must be a valid boolean string ('true' or 'false').
+*  **`archived`** value may be nil, or if non-nil, value must be a valid boolean string ('true' or 'false').
 
 ## `GET /api/native-query-snippet/:id`
 
@@ -22,7 +22,7 @@ Fetch native query snippet with ID.
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`**
 
 ## `POST /api/native-query-snippet/`
 
@@ -30,13 +30,13 @@ Create a new `NativeQuerySnippet`.
 
 ### PARAMS:
 
-*  **`content`** string
+*  **`content`** value must be a string.
 
-*  **`description`** nullable string
+*  **`description`** value may be nil, or if non-nil, value must be a string.
 
 *  **`name`** snippet names cannot include } or start with spaces
 
-*  **`collection_id`** nullable value must be an integer greater than zero.
+*  **`collection_id`** value may be nil, or if non-nil, value must be an integer greater than zero.
 
 ## `PUT /api/native-query-snippet/:id`
 
@@ -44,17 +44,17 @@ Update an existing `NativeQuerySnippet`.
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`** 
 
-*  **`archived`** nullable boolean
+*  **`archived`** value may be nil, or if non-nil, value must be a boolean.
 
-*  **`content`** nullable string
+*  **`content`** value may be nil, or if non-nil, value must be a string.
 
-*  **`description`** nullable string
+*  **`description`** value may be nil, or if non-nil, value must be a string.
 
-*  **`name`** nullable snippet names cannot include } or start with spaces
+*  **`name`** value may be nil, or if non-nil, snippet names cannot include } or start with spaces
 
-*  **`collection_id`** nullable value must be an integer greater than zero.
+*  **`collection_id`** value may be nil, or if non-nil, value must be an integer greater than zero.
 
 ---
 

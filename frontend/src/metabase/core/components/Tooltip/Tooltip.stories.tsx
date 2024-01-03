@@ -25,10 +25,3 @@ CustomContent.args = {
     </div>
   ),
 };
-
-export const LongScalarString = Template.bind({});
-LongScalarString.args = {
-  tooltip:
-    "looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong string",
-  isOpen: true,
-};

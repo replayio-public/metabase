@@ -40,10 +40,6 @@ Guidance on timezone settings.
 
 Set language, datetime, and currency settings.
 
-## [Uploads](../databases/uploads.md)
-
-Allow people to upload data to collections.
-
 ## [Appearance](./appearance.md)
 
 Customize colors, fonts, and other visual elements.

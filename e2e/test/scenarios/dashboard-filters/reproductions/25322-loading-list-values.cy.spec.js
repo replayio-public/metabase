@@ -6,7 +6,7 @@ import {
 } from "e2e/support/helpers";
 import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
 
-const { PEOPLE, PEOPLE_ID } = SAMPLE_DATABASE;
+const { ORDERS, ORDERS_ID } = SAMPLE_DATABASE;
 
 const parameterDetails = {
   name: "Location",
@@ -17,8 +17,8 @@ const parameterDetails = {
 };
 
 const questionDetails = {
-  name: "People",
-  query: { "source-table": PEOPLE_ID },
+  name: "Orders",
+  query: { "source-table": ORDERS_ID },
 };
 
 const dashboardDetails = {
@@ -58,7 +58,7 @@ const createDashboard = () => {
                 {
                   card_id,
                   parameter_id: parameterDetails.id,
-                  target: ["dimension", ["field", PEOPLE.STATE, null]],
+                  target: ["dimension", ["field", ORDERS.STATE, null]],
                 },
               ],
             },

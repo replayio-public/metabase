@@ -1,34 +1,25 @@
 (ns metabase.events-test
   (:require
+   [clojure.core.async :as a]
    [clojure.test :refer :all]
-   [metabase.events :as events]
-   [methodical.core :as methodical]))
+   [metabase.events :as events]))
 
-(def ^:private ^:dynamic *method-calls* nil)
+(def ^:private testing-topic ::event-test-topic)
 
-(derive ::test-topics :metabase/event)
-(derive ::test-topic ::test-topics)
+(def ^:private testing-sub-channel (a/chan))
 
-(methodical/defmethod events/publish-event! ::test-topics
-  [_topic event]
-  (when *method-calls*
-    (swap! *method-calls* assoc ::test-topics event))
-  ;; should get ignored
-  (assoc event ::test-topics true))
-
-(methodical/defmethod events/publish-event! ::test-topic
-  [_topic event]
-  (when *method-calls*
-    (swap! *method-calls* assoc ::test-topic event))
-  ;; should get ignored
-  (assoc event ::test-topic true))
+(#'events/subscribe-to-topic! testing-topic testing-sub-channel)
 
 (deftest publish-event-test!
-  (binding [*method-calls* (atom {})]
-    (testing "we should get back our originally posted object no matter what happens"
-      (is (= {:some :object}
-             (events/publish-event! ::test-topic {:some :object}))))
-    (testing "Our method should have been called"
-      (is (= {:metabase.events-test/test-topic  {:some :object}
-              :metabase.events-test/test-topics {:some :object}}
-             @*method-calls*)))))
+  (testing "we should get back our originally posted object no matter what happens"
+    (is (= {:some :object}
+           (events/publish-event! testing-topic {:some :object}))))
+
+  (testing "when we receive a message it should be wrapped with {:topic `topic` :item `message body`}"
+    (let [timeout    (a/timeout 100)
+          [val port] (a/alts!! [testing-sub-channel timeout])]
+      (when (= port timeout)
+        (throw (ex-info "Timed out!" {})))
+      (is (= {:topic testing-topic
+              :item  {:some :object}}
+             val)))))

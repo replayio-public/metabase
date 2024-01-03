@@ -1,18 +1,8 @@
-import {
-  restore,
-  popover,
-  modal,
-  describeEE,
-  setTokenFeatures,
-} from "e2e/support/helpers";
+import { restore, popover, modal, describeEE } from "e2e/support/helpers";
 
 import { SAMPLE_DB_ID } from "e2e/support/cypress_data";
 import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
-import { ORDERS_QUESTION_ID } from "e2e/support/cypress_sample_instance_data";
-import {
-  createMetric,
-  createSegment,
-} from "e2e/support/helpers/e2e-table-metadata-helpers";
+
 import { visitDatabase } from "./helpers/e2e-database-helpers";
 
 const { ORDERS_ID, ORDERS } = SAMPLE_DATABASE;
@@ -124,9 +114,9 @@ describe("scenarios > admin > databases > sample database", () => {
     );
     cy.intercept("DELETE", `/api/database/${SAMPLE_DB_ID}`).as("delete");
     // model
-    cy.request("PUT", `/api/card/${ORDERS_QUESTION_ID}`, { dataset: true });
+    cy.request("PUT", "/api/card/1", { dataset: true });
     // Create a segment through API
-    createSegment({
+    cy.request("POST", "/api/segment", {
       name: "Small orders",
       description: "All orders with a total under $100.",
       table_id: ORDERS_ID,
@@ -136,9 +126,8 @@ describe("scenarios > admin > databases > sample database", () => {
         filter: ["<", ["field", ORDERS.TOTAL, null], 100],
       },
     });
-
     // metric
-    createMetric({
+    cy.request("POST", "/api/metric", {
       name: "Revenue",
       description: "Sum of orders subtotal",
       table_id: ORDERS_ID,
@@ -260,7 +249,6 @@ describe("scenarios > admin > databases > sample database", () => {
     cy.wait("@loadDatabaseUsageInfo");
     modal().within(() => {
       cy.findByLabelText(/Delete \d+ saved questions?/).click();
-      cy.findByLabelText(/Delete \d+ model?/).click();
       cy.findByTestId("database-name-confirmation-input").type(
         "Sample Database",
       );
@@ -304,7 +292,6 @@ describe("scenarios > admin > databases > sample database", () => {
 
   describeEE("custom caching", () => {
     it("should set custom cache ttl", () => {
-      setTokenFeatures("all");
       cy.request("PUT", "api/setting/enable-query-caching", { value: true });
 
       visitDatabase(SAMPLE_DB_ID).then(({ response: { body } }) => {

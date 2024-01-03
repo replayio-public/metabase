@@ -4,12 +4,12 @@
   (:require
    [cheshire.core :as json]
    [clojure.java.io :as io]
-   [metabase.formatter]
+   [metabase.pulse.render.common :as common]
    [metabase.pulse.render.js-engine :as js]
    [metabase.util.i18n :refer [trs]]
    [schema.core :as s])
   (:import
-    (metabase.formatter NumericWrapper)))
+    (metabase.pulse.render.common NumericWrapper)))
 
 
 (set! *warn-on-reflection* true)
