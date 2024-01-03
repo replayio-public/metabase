@@ -32,11 +32,11 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Authenticate to prevent API rate limit
-      uses: docker/login-action@v3
-      with:
-        username: ${{ inputs.username }}
-        password: ${{ inputs.password }}
+    # - name: Authenticate to prevent API rate limit
+    #   uses: docker/login-action@v3
+    #   with:
+    #     username: ${{ inputs.username }}
+    #     password: ${{ inputs.password }}
 
     - name: Start Containers
       run: |

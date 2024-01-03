@@ -16,7 +16,6 @@ const sourceVersion = process.env["CROSS_VERSION_SOURCE"];
 const targetVersion = process.env["CROSS_VERSION_TARGET"];
 
 const runWithReplay = process.env["CYPRESS_REPLAYIO_ENABLED"];
-const runWithDeploySentinel = process.env["DEPLOYSENTINEL_ENABLED"];
 const videoEnabled = process.env["CYPRESS_VIDEO_ENABLED"];
 
 const feHealthcheckEnabled = process.env["CYPRESS_FE_HEALTHCHECK"] === "true";
@@ -32,16 +31,6 @@ const {
 const defaultConfig = {
   // This is the functionality of the old cypress-plugins.js file
   setupNodeEvents(on, config) {
-    if (runWithDeploySentinel) {
-      console.log(">>ds enabled 1");
-      // Cypress analytics and the alternative to Cypress dashboard
-      // Needs to be at the very top in the config!
-      [on, config] = require("@deploysentinel/cypress-debugger/plugin")(
-        on,
-        config,
-      );
-    }
-
     // `on` is used to hook into various events Cypress emits
     // `config` is the resolved Cypress config
     /********************************************************************
