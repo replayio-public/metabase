@@ -171,7 +171,7 @@ jobs:
         run: npx @replayio/cypress install
 
       - name: 1) Run EE Cypress tests on ${{ matrix.folder }}
-        if: always()
+        if: ${{ !inputs.runId }}
         run: |
           yarn run test-cypress-run \
           --env grepTags="-@OSS" \
@@ -181,7 +181,7 @@ jobs:
           CYPRESS_REPLAYIO_ENABLED: 1
 
       - name: 2) Run EE Cypress tests on ${{ matrix.folder }} with Video
-        if: always()
+        if: ${{ !inputs.runId }}
         run: |
           yarn run test-cypress-run \
           --env grepTags="-@OSS" \
