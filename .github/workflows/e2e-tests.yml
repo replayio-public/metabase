@@ -21,6 +21,10 @@ on:
         type: string
       runId:
         description: "Test Run ID, chosen by workflow dispatcher, to make it possible to find the correct run from the api"
+        type: string
+      replayBrowserOnly:
+        description: "Only run the e2e tests using the replay browser (e.g. for replay CI)"
+        type: boolean
       folders:
         description: "Folders to run"
         type: string
@@ -171,7 +175,7 @@ jobs:
         run: npx @replayio/cypress install
 
       - name: 1) Run EE Cypress tests on ${{ matrix.folder }}
-        if: ${{ !inputs.runId }}
+        if: ${{ !inputs.replayBrowserOnly }}
         run: |
           yarn run test-cypress-run \
           --env grepTags="-@OSS" \
@@ -181,7 +185,7 @@ jobs:
           CYPRESS_REPLAYIO_ENABLED: 1
 
       - name: 2) Run EE Cypress tests on ${{ matrix.folder }} with Video
-        if: ${{ !inputs.runId }}
+        if: ${{ !inputs.replayBrowserOnly }}
         run: |
           yarn run test-cypress-run \
           --env grepTags="-@OSS" \
