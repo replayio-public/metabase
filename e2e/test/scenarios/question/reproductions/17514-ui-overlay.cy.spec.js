@@ -4,6 +4,7 @@ import {
   filterWidget,
   saveDashboard,
   editDashboard,
+  visualize,
   visitDashboard,
 } from "e2e/support/helpers";
 
@@ -107,7 +108,7 @@ describe("issue 17514", () => {
 
       // Cypress cannot click elements that are blocked by an overlay so this will immediately fail if the issue is not fixed
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-      cy.findByText("79.37").click();
+      cy.findByText("110.93").click();
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.findByText("Filter by this value");
     });
@@ -125,16 +126,15 @@ describe("issue 17514", () => {
 
       removeJoinedTable();
 
-      cy.button("Visualize").click();
-      cy.wait("@dataset");
-
+      visualize();
       cy.findByTextEnsureVisible("Subtotal");
 
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.findByText("Save").click();
 
-      cy.get(".Modal").button("Save").click();
-      cy.get(".Modal").should("not.exist");
+      cy.get(".Modal").within(() => {
+        cy.button("Save").click();
+      });
     });
 
     it("should not show the run overlay because of the references to the orphaned fields (metabase#17514-2)", () => {
@@ -145,8 +145,7 @@ describe("issue 17514", () => {
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.findByText("Products").click();
 
-      cy.button("Visualize").click();
-      cy.wait("@dataset");
+      visualize();
 
       // Cypress cannot click elements that are blocked by an overlay so this will immediately fail if the issue is not fixed
       cy.findByTextEnsureVisible("Subtotal").click();

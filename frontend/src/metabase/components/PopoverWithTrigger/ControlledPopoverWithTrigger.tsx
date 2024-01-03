@@ -1,9 +1,10 @@
-import type * as React from "react";
+import * as React from "react";
 import cx from "classnames";
 import _ from "underscore";
 
-import type { ITippyPopoverProps } from "metabase/components/Popover/TippyPopover";
-import TippyPopover from "metabase/components/Popover/TippyPopover";
+import TippyPopover, {
+  ITippyPopoverProps,
+} from "metabase/components/Popover/TippyPopover";
 
 import { TriggerButton } from "./ControlledPopoverWithTrigger.styled";
 
@@ -44,9 +45,6 @@ type RenderTriggerArgs = {
   closePopover: () => void;
 };
 
-/**
- * @deprecated prefer Popover from "metabase/ui" instead
- */
 function ControlledPopoverWithTrigger({
   triggerClasses,
   triggerStyle,

@@ -1,5 +1,5 @@
-import type { GroupTableAccessPolicy, TableId } from "metabase-types/api";
-import type { GroupTableAccessPolicyParams } from "./types";
+import { GroupTableAccessPolicy, TableId } from "metabase-types/api";
+import { GroupTableAccessPolicyParams } from "./types";
 
 export const getPolicyKeyFromParams = ({
   groupId,

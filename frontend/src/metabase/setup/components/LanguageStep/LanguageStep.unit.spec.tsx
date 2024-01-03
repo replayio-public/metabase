@@ -1,5 +1,5 @@
 import userEvent from "@testing-library/user-event";
-import type { Locale } from "metabase-types/store";
+import { Locale } from "metabase-types/store";
 import {
   createMockLocale,
   createMockSettingsState,

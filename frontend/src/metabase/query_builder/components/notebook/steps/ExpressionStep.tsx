@@ -1,99 +1,47 @@
 import { ExpressionWidget } from "metabase/query_builder/components/expressions/ExpressionWidget";
-import * as Lib from "metabase-lib";
-import { getUniqueExpressionName } from "metabase-lib/queries/utils/expression";
 
 import type { NotebookStepUiComponentProps } from "../types";
-import { ClauseStep } from "./ClauseStep";
+import ClauseStep from "./ClauseStep";
 
-export const ExpressionStep = ({
+const ExpressionStep = ({
   color,
+  query,
   updateQuery,
   isLastOpened,
   reportTimezone,
   readOnly,
-  step,
 }: NotebookStepUiComponentProps): JSX.Element => {
-  const { topLevelQuery: query, stageIndex } = step;
-  const expressions = Lib.expressions(query, stageIndex);
-
-  const renderExpressionName = (expression: Lib.ExpressionClause) =>
-    Lib.displayInfo(query, stageIndex, expression).longDisplayName;
+  const items = Object.entries(query.expressions()).map(
+    ([name, expression]) => ({ name, expression }),
+  );
 
   return (
     <ClauseStep
       color={color}
-      items={expressions}
-      renderName={renderExpressionName}
+      items={items}
+      renderName={({ name }) => name}
       readOnly={readOnly}
-      renderPopover={({ item }) => (
+      renderPopover={item => (
         <ExpressionWidget
           query={query}
-          stageIndex={stageIndex}
-          name={
-            item
-              ? Lib.displayInfo(query, stageIndex, item).displayName
-              : undefined
-          }
-          clause={item}
+          name={item?.name}
+          expression={item?.expression}
           withName
-          onChangeClause={(name, clause) => {
-            const uniqueName = getUniqueClauseName(
-              query,
-              stageIndex,
-              item,
-              name,
-            );
-            const namedClause = Lib.withExpressionName(clause, uniqueName);
-            const isUpdate = item;
-
-            if (isUpdate) {
-              const nextQuery = Lib.replaceClause(
-                query,
-                stageIndex,
-                item,
-                namedClause,
-              );
-              updateQuery(nextQuery);
-            } else {
-              const nextQuery = Lib.expression(
-                query,
-                stageIndex,
-                uniqueName,
-                namedClause,
-              );
-              updateQuery(nextQuery);
-            }
+          onChangeExpression={(newName, newExpression) => {
+            item?.expression
+              ? updateQuery(
+                  query.updateExpression(newName, newExpression, item.name),
+                )
+              : updateQuery(query.addExpression(newName, newExpression));
           }}
           reportTimezone={reportTimezone}
         />
       )}
       isLastOpened={isLastOpened}
-      onRemove={clause => {
-        const nextQuery = Lib.removeClause(query, stageIndex, clause);
-        updateQuery(nextQuery);
-      }}
-      withLegacyPopover
+      onRemove={({ name }) => updateQuery(query.removeExpression(name))}
     />
   );
 };
 
-const getUniqueClauseName = (
-  query: Lib.Query,
-  stageIndex: number,
-  clause: Lib.ExpressionClause | undefined,
-  name: string,
-) => {
-  const isUpdate = clause;
-  // exclude the current clause so that it can be updated without renaming
-  const queryWithoutCurrentClause = isUpdate
-    ? Lib.removeClause(query, stageIndex, clause)
-    : query;
-  const expressions = Lib.expressions(queryWithoutCurrentClause, stageIndex);
-  const expressionsObject = Object.fromEntries(
-    expressions.map(expression => [
-      Lib.displayInfo(query, stageIndex, expression).displayName,
-    ]),
-  );
-  const uniqueName = getUniqueExpressionName(expressionsObject, name);
-  return uniqueName;
-};
+// eslint-disable-next-line import/no-default-export -- deprecated usage
+export default ExpressionStep;

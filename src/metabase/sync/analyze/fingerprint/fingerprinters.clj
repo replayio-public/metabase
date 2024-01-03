@@ -2,7 +2,7 @@
   "Non-identifying fingerprinters for various field types."
   (:require
    [bigml.histogram.core :as hist]
-   [java-time.api :as t]
+   [java-time :as t]
    [kixi.stats.core :as stats]
    [kixi.stats.math :as math]
    [medley.core :as m]
@@ -10,6 +10,7 @@
    [metabase.sync.util :as sync-util]
    [metabase.util :as u]
    [metabase.util.date-2 :as u.date]
+   [metabase.util.i18n :refer [deferred-trs trs]]
    [redux.core :as redux])
   (:import
    (com.bigml.histogram Histogram)
@@ -89,7 +90,7 @@
   [kfs]
   (redux/fuse (m/map-kv-vals (fn [k f]
                                (redux/post-complete
-                                (with-error-handling f (format "Error reducing %s" (name k)))
+                                (with-error-handling f (deferred-trs "Error reducing {0}" (name k)))
                                 (fn [result]
                                   (when-not (instance? Throwable result)
                                     result))))
@@ -164,7 +165,7 @@
             ~transducer
             (fn [fingerprint#]
               {:type {~(first field-type) fingerprint#}})))
-         (format "Error generating fingerprint for %s" (sync-util/name-for-logging field#))))))
+         (trs "Error generating fingerprint for {0}" (sync-util/name-for-logging field#))))))
 
 (declare ->temporal)
 

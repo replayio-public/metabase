@@ -1,8 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { FontWidgetProps } from "./FontWidget";
-import FontWidget from "./FontWidget";
-import type { FontSetting, FontSettingValues } from "./types";
+import FontWidget, { FontWidgetProps } from "./FontWidget";
+import { FontSetting, FontSettingValues } from "./types";
 
 const FONT_FILES_KEY = "application-font-files";
 

@@ -1,14 +1,14 @@
 import _ from "underscore";
-import type {
+import {
   NativeQuery,
   NormalizedDatabase,
   StructuredQuery,
 } from "metabase-types/api";
 import { generateSchemaId } from "metabase-lib/metadata/utils/schema";
 import Question from "../Question";
-import type Table from "./Table";
-import type Schema from "./Schema";
-import type Metadata from "./Metadata";
+import Table from "./Table";
+import Schema from "./Schema";
+import Metadata from "./Metadata";
 
 interface Database extends Omit<NormalizedDatabase, "tables" | "schemas"> {
   tables?: Table[];
@@ -78,9 +78,9 @@ class Database {
         set.has("inner-join") ||
         set.has("full-join")
       );
+    } else {
+      return set.has(feature);
     }
-
-    return set.has(feature);
   }
 
   supportsPivots() {
@@ -93,10 +93,6 @@ class Database {
 
   canWrite() {
     return this.native_permissions === "write";
-  }
-
-  canUpload() {
-    return this.can_upload;
   }
 
   isPersisted() {

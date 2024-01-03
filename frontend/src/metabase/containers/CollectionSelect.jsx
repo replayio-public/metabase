@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import Collection from "metabase/entities/collections";
 
 import ItemSelect from "./ItemSelect";

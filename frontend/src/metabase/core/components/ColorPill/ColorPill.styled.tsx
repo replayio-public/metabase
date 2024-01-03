@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import { color } from "metabase/lib/colors";
 
-import type { PillSize } from "./types";
+import { PillSize } from "./types";
 
 export interface ColorPillRootProps {
   isAuto: boolean;

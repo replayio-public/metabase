@@ -1,15 +1,14 @@
 import type {
   Dashboard,
-  DashboardCard,
+  DashboardOrderedCard,
   ClickBehavior,
 } from "metabase-types/api";
 
 import type { UiParameter } from "metabase-lib/parameters/types";
 
-import { clickBehaviorOptions } from "../utils";
-import { useClickBehaviorOptionName } from "../hooks";
-import { CrossfilterOptions } from "../CrossfilterOptions";
-import { LinkOptions } from "../LinkOptions/LinkOptions";
+import { clickBehaviorOptions, getClickBehaviorOptionName } from "../utils";
+import CrossfilterOptions from "../CrossfilterOptions";
+import LinkOptions from "../LinkOptions";
 import { SidebarItem } from "../SidebarItem";
 import {
   SidebarContentBordered,
@@ -19,7 +18,7 @@ import {
 interface ClickBehaviorOptionsProps {
   clickBehavior: ClickBehavior;
   dashboard: Dashboard;
-  dashcard: DashboardCard;
+  dashcard: DashboardOrderedCard;
   parameters: UiParameter[];
   updateSettings: (settings: Partial<ClickBehavior>) => void;
 }
@@ -57,13 +56,13 @@ function ClickBehaviorOptions({
 interface ClickBehaviorSidebarMainViewProps {
   clickBehavior: ClickBehavior;
   dashboard: Dashboard;
-  dashcard: DashboardCard;
+  dashcard: DashboardOrderedCard;
   parameters: UiParameter[];
   handleShowTypeSelector: () => void;
   updateSettings: (settings: Partial<ClickBehavior>) => void;
 }
 
-export function ClickBehaviorSidebarMainView({
+function ClickBehaviorSidebarMainView({
   clickBehavior,
   dashboard,
   dashcard,
@@ -71,7 +70,7 @@ export function ClickBehaviorSidebarMainView({
   handleShowTypeSelector,
   updateSettings,
 }: ClickBehaviorSidebarMainViewProps) {
-  const clickBehaviorOptionName = useClickBehaviorOptionName(
+  const clickBehaviorOptionName = getClickBehaviorOptionName(
     clickBehavior.type,
     dashcard,
   );
@@ -107,3 +106,6 @@ export function ClickBehaviorSidebarMainView({
     </>
   );
 }
+
+// eslint-disable-next-line import/no-default-export -- deprecated usage
+export default ClickBehaviorSidebarMainView;

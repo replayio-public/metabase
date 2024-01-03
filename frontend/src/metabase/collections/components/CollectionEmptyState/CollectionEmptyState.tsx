@@ -2,9 +2,9 @@ import { t } from "ttag";
 import Button from "metabase/core/components/Button";
 import NewItemMenu from "metabase/containers/NewItemMenu";
 import { ANALYTICS_CONTEXT } from "metabase/collections/constants";
-import type { Collection } from "metabase-types/api";
-import { Text } from "metabase/ui";
+import { CollectionId } from "metabase-types/api";
 import {
+  EmptyStateDescription,
   EmptyStateIconBackground,
   EmptyStateIconForeground,
   EmptyStateRoot,
@@ -12,28 +12,22 @@ import {
 } from "./CollectionEmptyState.styled";
 
 export interface CollectionEmptyStateProps {
-  collection?: Collection;
+  collectionId?: CollectionId;
 }
 
 const CollectionEmptyState = ({
-  collection,
+  collectionId,
 }: CollectionEmptyStateProps): JSX.Element => {
-  const canWrite = !!collection?.can_write;
-
   return (
     <EmptyStateRoot data-testid="collection-empty-state">
       <CollectionEmptyIcon />
       <EmptyStateTitle>{t`This collection is empty`}</EmptyStateTitle>
-      <Text size="1rem" color="text.1" align="center" mb="1.5rem">
-        {t`Use collections to organize and group dashboards and questions for your team or yourself`}
-      </Text>
-      {canWrite && (
-        <NewItemMenu
-          trigger={<Button icon="add">{t`Create a new…`}</Button>}
-          collectionId={collection?.id}
-          analyticsContext={ANALYTICS_CONTEXT}
-        />
-      )}
+      <EmptyStateDescription>{t`Use collections to organize and group dashboards and questions for your team or yourself`}</EmptyStateDescription>
+      <NewItemMenu
+        trigger={<Button icon="add">{t`Create a new…`}</Button>}
+        collectionId={collectionId}
+        analyticsContext={ANALYTICS_CONTEXT}
+      />
     </EmptyStateRoot>
   );
 };

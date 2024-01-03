@@ -10,6 +10,8 @@ import {
 } from "../../lib/code";
 import CodeSample from "./CodeSample";
 
+import "metabase/lib/ace/theme-metabase";
+
 import "ace/mode-clojure";
 import "ace/mode-javascript";
 import "ace/mode-ruby";

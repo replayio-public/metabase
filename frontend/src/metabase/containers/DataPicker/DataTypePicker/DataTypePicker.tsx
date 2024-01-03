@@ -1,4 +1,5 @@
-import type { DataPickerDataType, DataTypeInfoItem } from "../types";
+import type { DataTypeInfoItem } from "../utils";
+import type { DataPickerDataType } from "../types";
 
 import {
   List,

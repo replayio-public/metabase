@@ -5,7 +5,8 @@
    [medley.core :as m]
    [metabase.query-processor :as qp]
    [metabase.test.data :as data]
-   [metabase.util.malli.schema :as ms]))
+   [metabase.util.schema :as su]
+   [schema.core :as s]))
 
 (deftest basic-query-test
   (testing "Check that a basic query works"
@@ -63,15 +64,15 @@
 
 (deftest malformed-sql-response-test
   (testing "Check that we get proper error responses for malformed SQL"
-    (is (malli= [:map
-                 [:status     [:= :failed]]
-                 [:class      [:= org.h2.jdbc.JdbcSQLSyntaxErrorException]]
-                 [:error      #"^Column \"ZID\" not found"]
-                 [:stacktrace [:sequential ms/NonBlankString]]
-                 [:json_query [:map
-                               [:native [:map [:query [:= "SELECT ZID FROM CHECKINS LIMIT 2"]]]]
-                               [:type [:= :native]]]]]
-                (qp/process-userland-query
-                 {:native   {:query "SELECT ZID FROM CHECKINS LIMIT 2"}
-                  :type     :native
-                  :database (data/id)})))))
+    (is (schema= {:status     (s/eq :failed)
+                  :class      (s/eq org.h2.jdbc.JdbcSQLSyntaxErrorException)
+                  :error      #"^Column \"ZID\" not found"
+                  :stacktrace [su/NonBlankString]
+                  :json_query {:native   {:query (s/eq "SELECT ZID FROM CHECKINS LIMIT 2")}
+                               :type     (s/eq :native)
+                               s/Keyword s/Any}
+                  s/Keyword   s/Any}
+                 (qp/process-userland-query
+                  {:native   {:query "SELECT ZID FROM CHECKINS LIMIT 2"}
+                   :type     :native
+                   :database (data/id)})))))

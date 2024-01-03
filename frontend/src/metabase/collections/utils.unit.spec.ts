@@ -1,28 +1,23 @@
 import {
-  isRootPersonalCollection,
+  isPersonalCollection,
   canonicalCollectionId,
   isRootCollection,
-  isItemCollection,
-  isReadOnlyCollection,
 } from "metabase/collections/utils";
 
-import {
-  createMockCollection,
-  createMockCollectionItem,
-} from "metabase-types/api/mocks";
+import { createMockCollection } from "metabase-types/api/mocks";
 
 describe("Collections > utils", () => {
-  describe("isRootPersonalCollection", () => {
+  describe("isPersonalCollection", () => {
     it("returns true if personal_owner_id is a number", () => {
       const collection = { personal_owner_id: 1 };
 
-      expect(isRootPersonalCollection(collection)).toBe(true);
+      expect(isPersonalCollection(collection)).toBe(true);
     });
 
     it("returns false if personal_owner_id is not a number", () => {
       const collection = {};
 
-      expect(isRootPersonalCollection(collection)).toBe(false);
+      expect(isPersonalCollection(collection)).toBe(false);
     });
   });
 
@@ -73,57 +68,6 @@ describe("Collections > utils", () => {
       expect(isRootCollection(createMockCollection({ id: "foobar" }))).toBe(
         false,
       );
-    });
-  });
-
-  describe("isItemCollection", () => {
-    it("returns true if the item is a collection", () => {
-      expect(
-        isItemCollection(createMockCollectionItem({ model: "collection" })),
-      ).toBe(true);
-    });
-
-    it("returns false if the item is not a collection", () => {
-      expect(
-        isItemCollection(createMockCollectionItem({ model: "dashboard" })),
-      ).toBe(false);
-      expect(
-        isItemCollection(createMockCollectionItem({ model: "card" })),
-      ).toBe(false);
-      expect(
-        isItemCollection(createMockCollectionItem({ model: "dataset" })),
-      ).toBe(false);
-    });
-  });
-
-  describe("isReadOnlyCollection", () => {
-    it("returns true if the collection is read only", () => {
-      expect(
-        isReadOnlyCollection(
-          createMockCollectionItem({ model: "collection", can_write: false }),
-        ),
-      ).toBe(true);
-    });
-
-    it("returns false if the collection is not read only", () => {
-      expect(
-        isReadOnlyCollection(
-          createMockCollectionItem({ model: "collection", can_write: true }),
-        ),
-      ).toBe(false);
-    });
-
-    it("returns false if the item is not a collection", () => {
-      expect(
-        isReadOnlyCollection(
-          createMockCollectionItem({ model: "card", can_write: true }),
-        ),
-      ).toBe(false);
-      expect(
-        isReadOnlyCollection(
-          createMockCollectionItem({ model: "card", can_write: false }),
-        ),
-      ).toBe(false);
     });
   });
 });

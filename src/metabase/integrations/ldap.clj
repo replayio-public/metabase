@@ -2,15 +2,16 @@
   (:require
    [cheshire.core :as json]
    [clj-ldap.client :as ldap]
-   [metabase.config :as config]
    [metabase.integrations.ldap.default-implementation :as default-impl]
+   [metabase.integrations.ldap.interface :as i]
+   [metabase.models.interface :as mi]
    [metabase.models.setting :as setting :refer [defsetting]]
    [metabase.models.user :refer [User]]
    [metabase.plugins.classloader :as classloader]
    [metabase.util :as u]
    [metabase.util.i18n :refer [deferred-tru tru]]
-   [metabase.util.malli :as mu]
-   [metabase.util.malli.schema :as ms])
+   [metabase.util.schema :as su]
+   [schema.core :as s])
   (:import
    (com.unboundid.ldap.sdk DN LDAPConnectionPool LDAPException)))
 
@@ -18,83 +19,68 @@
 
 ;; Load the EE namespace up front so that the extra Settings it defines are available immediately.
 ;; Otherwise, this would only happen the first time `find-user` or `fetch-or-create-user!` is called.
-(when config/ee-available?
-  (classloader/require 'metabase-enterprise.enhancements.integrations.ldap))
+(u/ignore-exceptions (classloader/require ['metabase-enterprise.enhancements.integrations.ldap]))
 
 (defsetting ldap-host
-  (deferred-tru "Server hostname.")
-  :audit :getter)
+  (deferred-tru "Server hostname."))
 
 (defsetting ldap-port
   (deferred-tru "Server port, usually 389 or 636 if SSL is used.")
-  :type    :integer
-  :default 389
-  :audit   :getter)
+  :type :integer
+  :default 389)
 
 (defsetting ldap-security
   (deferred-tru "Use SSL, TLS or plain text.")
   :type    :keyword
   :default :none
-  :audit   :raw-value
   :setter  (fn [new-value]
              (when (some? new-value)
                (assert (#{:none :ssl :starttls} (keyword new-value))))
              (setting/set-value-of-type! :keyword :ldap-security new-value)))
 
 (defsetting ldap-bind-dn
-  (deferred-tru "The Distinguished Name to bind as (if any), this user will be used to lookup information about other users.")
-  :audit :getter)
+  (deferred-tru "The Distinguished Name to bind as (if any), this user will be used to lookup information about other users."))
 
 (defsetting ldap-password
   (deferred-tru "The password to bind with for the lookup user.")
-  :sensitive? true
-  :audit     :getter)
+  :sensitive? true)
 
 (defsetting ldap-user-base
-  (deferred-tru "Search base for users. (Will be searched recursively)")
-  :audit :getter)
+  (deferred-tru "Search base for users. (Will be searched recursively)"))
 
 (defsetting ldap-user-filter
   (deferred-tru "User lookup filter. The placeholder '{login}' will be replaced by the user supplied login.")
-  :default "(&(objectClass=inetOrgPerson)(|(uid={login})(mail={login})))"
-  :audit   :getter)
+  :default "(&(objectClass=inetOrgPerson)(|(uid={login})(mail={login})))")
 
 (defsetting ldap-attribute-email
   (deferred-tru "Attribute to use for the user''s email. (usually ''mail'', ''email'' or ''userPrincipalName'')")
   :default "mail"
-  :getter  (fn [] (u/lower-case-en (setting/get-value-of-type :string :ldap-attribute-email)))
-  :audit   :getter)
+  :getter (fn [] (u/lower-case-en (setting/get-value-of-type :string :ldap-attribute-email))))
 
 (defsetting ldap-attribute-firstname
   (deferred-tru "Attribute to use for the user''s first name. (usually ''givenName'')")
   :default "givenName"
-  :getter  (fn [] (u/lower-case-en (setting/get-value-of-type :string :ldap-attribute-firstname)))
-  :audit   :getter)
+  :getter (fn [] (u/lower-case-en (setting/get-value-of-type :string :ldap-attribute-firstname))))
 
 (defsetting ldap-attribute-lastname
   (deferred-tru "Attribute to use for the user''s last name. (usually ''sn'')")
   :default "sn"
-  :getter  (fn [] (u/lower-case-en (setting/get-value-of-type :string :ldap-attribute-lastname)))
-  :audit   :getter)
+  :getter (fn [] (u/lower-case-en (setting/get-value-of-type :string :ldap-attribute-lastname))))
 
 (defsetting ldap-group-sync
   (deferred-tru "Enable group membership synchronization with LDAP.")
   :type    :boolean
-  :default false
-  :audit   :getter)
+  :default false)
 
 (defsetting ldap-group-base
-  (deferred-tru "Search base for groups. Not required for LDAP directories that provide a ''memberOf'' overlay, such as Active Directory. (Will be searched recursively)")
-  :audit   :getter)
+  (deferred-tru "Search base for groups. Not required for LDAP directories that provide a ''memberOf'' overlay, such as Active Directory. (Will be searched recursively)"))
 
 (defsetting ldap-group-mappings
   ;; Should be in the form: {"cn=Some Group,dc=...": [1, 2, 3]} where keys are LDAP group DNs and values are lists of
   ;; MB groups IDs
   (deferred-tru "JSON containing LDAP to Metabase group mappings.")
   :type    :json
-  :cache?  false
   :default {}
-  :audit   :getter
   :getter  (fn []
              (json/parse-string (setting/get-value-of-type :string :ldap-group-mappings) #(DN. (str %))))
   :setter  (fn [new-value]
@@ -104,8 +90,8 @@
 
                (map? new-value)
                (do (doseq [k (keys new-value)]
-                     (when-not (DN/isValidDN (u/qualified-name k))
-                       (throw (IllegalArgumentException. (tru "{0} is not a valid DN." (u/qualified-name k))))))
+                     (when-not (DN/isValidDN (name k))
+                       (throw (IllegalArgumentException. (tru "{0} is not a valid DN." (name k))))))
                    (setting/set-value-of-type! :json :ldap-group-mappings new-value)))))
 
 (defsetting ldap-configured?
@@ -212,7 +198,7 @@
   "Tests the connection to an LDAP server using the currently set settings."
   []
   (let [settings (into {} (for [[k v] mb-settings->ldap-details]
-                            [v (setting/get k)]))]
+                             [v (setting/get k)]))]
     (test-ldap-connection settings)))
 
 (defn verify-password
@@ -225,7 +211,7 @@
    (let [dn (if (string? user-info) user-info (:dn user-info))]
      (ldap/bind? conn dn password))))
 
-(defn ldap-settings
+(s/defn ldap-settings
   "A map of all ldap settings"
   []
   {:first-name-attribute (ldap-attribute-firstname)
@@ -237,17 +223,16 @@
    :group-base           (ldap-group-base)
    :group-mappings       (ldap-group-mappings)})
 
-(mu/defn find-user :- [:maybe default-impl/UserInfo]
+(s/defn find-user :- (s/maybe i/UserInfo)
   "Get user information for the supplied username."
-  ([username :- ms/NonBlankString]
+  ([username :- su/NonBlankString]
    (with-ldap-connection [conn]
      (find-user conn username)))
 
-  ([ldap-connection :- (ms/InstanceOfClass LDAPConnectionPool)
-    username        :- ms/NonBlankString]
+  ([ldap-connection :- LDAPConnectionPool, username :- su/NonBlankString]
    (default-impl/find-user ldap-connection username (ldap-settings))))
 
-(mu/defn fetch-or-create-user! :- (ms/InstanceOf User)
+(s/defn fetch-or-create-user! :- (mi/InstanceOf User)
   "Using the `user-info` (from [[find-user]]) get the corresponding Metabase user, creating it if necessary."
-  [user-info :- default-impl/UserInfo]
+  [user-info :- i/UserInfo]
   (default-impl/fetch-or-create-user! user-info (ldap-settings)))

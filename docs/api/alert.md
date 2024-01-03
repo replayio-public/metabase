@@ -18,14 +18,13 @@ For users to unsubscribe themselves from the given alert.
 
 ## `GET /api/alert/`
 
-Fetch alerts which the current user has created or will receive, or all alerts if the user is an admin.
-  The optional `user_id` will return alerts created by the corresponding user, but is ignored for non-admin users.
+Fetch all alerts.
 
 ### PARAMS:
 
-*  **`archived`** nullable value must be a valid boolean string ('true' or 'false').
+*  **`archived`** value may be nil, or if non-nil, value must be a valid boolean string ('true' or 'false').
 
-*  **`user_id`** nullable value must be an integer greater than zero.
+*  **`user_id`** value may be nil, or if non-nil, value must be an integer greater than zero.
 
 ## `GET /api/alert/:id`
 
@@ -37,13 +36,13 @@ Fetch an alert by ID.
 
 ## `GET /api/alert/question/:id`
 
-Fetch all alerts for the given question (`Card`) id.
+Fetch all questions for the given question (`Card`) id.
 
 ### PARAMS:
 
-*  **`id`** nullable value must be an integer greater than zero.
+*  **`id`** value may be nil, or if non-nil, value must be an integer greater than zero.
 
-*  **`archived`** nullable value must be a valid boolean string ('true' or 'false').
+*  **`archived`** value may be nil, or if non-nil, value must be a valid boolean string ('true' or 'false').
 
 ## `POST /api/alert/`
 
@@ -51,15 +50,15 @@ Create a new Alert.
 
 ### PARAMS:
 
-*  **`alert_condition`** enum of rows, goal
+*  **`alert_condition`** value must be one of: `goal`, `rows`.
 
 *  **`card`** value must be a map with the keys `id`, `include_csv`, `include_xls`, and `dashboard_card_id`.
 
-*  **`channels`** one or more map
+*  **`channels`** value must be an array. Each value must be a map. The array cannot be empty.
 
-*  **`alert_first_only`** boolean
+*  **`alert_first_only`** value must be a boolean.
 
-*  **`alert_above_goal`** nullable boolean
+*  **`alert_above_goal`** value may be nil, or if non-nil, value must be a boolean.
 
 *  **`new-alert-request-body`**
 
@@ -69,19 +68,19 @@ Update a `Alert` with ID.
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`** 
 
-*  **`alert_condition`** nullable enum of rows, goal
+*  **`alert_condition`** value may be nil, or if non-nil, value must be one of: `goal`, `rows`.
 
-*  **`alert_first_only`** nullable boolean
+*  **`alert_first_only`** value may be nil, or if non-nil, value must be a boolean.
 
-*  **`alert_above_goal`** nullable boolean
+*  **`alert_above_goal`** value may be nil, or if non-nil, value must be a boolean.
 
-*  **`card`** nullable value must be a map with the keys `id`, `include_csv`, `include_xls`, and `dashboard_card_id`.
+*  **`card`** value may be nil, or if non-nil, value must be a map with the keys `id`, `include_csv`, `include_xls`, and `dashboard_card_id`.
 
-*  **`channels`** nullable one or more map
+*  **`channels`** value may be nil, or if non-nil, value must be an array. Each value must be a map. The array cannot be empty.
 
-*  **`archived`** nullable boolean
+*  **`archived`** value may be nil, or if non-nil, value must be a boolean.
 
 *  **`alert-updates`**
 

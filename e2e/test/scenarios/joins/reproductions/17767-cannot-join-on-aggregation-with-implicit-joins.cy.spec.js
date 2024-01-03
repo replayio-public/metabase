@@ -9,7 +9,6 @@ const questionDetails = {
     "source-table": ORDERS_ID,
     aggregation: [["count"]],
     breakout: [["field", PRODUCTS.ID, { "source-field": ORDERS.PRODUCT_ID }]],
-    limit: 2,
   },
 };
 

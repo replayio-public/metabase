@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useMemo, useState } from "react";
 import { jt, t } from "ttag";
 import _ from "underscore";
-import { Droppable, Draggable } from "react-beautiful-dnd";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
 import type {
   DraggableProvided,
@@ -9,9 +9,9 @@ import type {
   DropResult,
 } from "react-beautiful-dnd";
 
-import { DragDropContext } from "metabase/core/components/DragDropContext";
 import ExternalLink from "metabase/core/components/ExternalLink";
-import { Form, FormProvider } from "metabase/forms";
+import Form from "metabase/core/components/Form";
+import FormProvider from "metabase/core/components/FormProvider";
 
 import MetabaseSettings from "metabase/lib/settings";
 
@@ -21,13 +21,13 @@ import type {
   ActionFormSettings,
   FieldSettings,
   Parameter,
-  WritebackAction,
 } from "metabase-types/api";
 
 import {
   getForm,
   getFormValidationSchema,
   getDefaultFormSettings,
+  sortActionParams,
 } from "../../../utils";
 import { syncFieldsWithParameters } from "../utils";
 import { reorderFields } from "./utils";
@@ -38,7 +38,6 @@ import {
   FormContainer,
   FormFieldEditorDragContainer,
   InfoText,
-  WarningBanner,
 } from "./FormCreator.styled";
 
 // FormEditor's can't be submitted as it serves as a form preview
@@ -48,15 +47,13 @@ interface FormCreatorProps {
   parameters: Parameter[];
   formSettings?: ActionFormSettings;
   isEditable: boolean;
-  actionType: WritebackAction["type"];
   onChange: (formSettings: ActionFormSettings) => void;
 }
 
-export function FormCreator({
+function FormCreator({
   parameters,
   formSettings: passedFormSettings,
   isEditable,
-  actionType,
   onChange,
 }: FormCreatorProps) {
   const [formSettings, setFormSettings] = useState<ActionFormSettings>(
@@ -75,8 +72,8 @@ export function FormCreator({
   }, [parameters, formSettings]);
 
   const form = useMemo(
-    () => getForm(parameters, formSettings.fields),
-    [parameters, formSettings.fields],
+    () => getForm(parameters, formSettings?.fields),
+    [parameters, formSettings?.fields],
   );
 
   // Validation schema here should only be used to get default values
@@ -89,6 +86,11 @@ export function FormCreator({
   const displayValues = useMemo(
     () => validationSchema.getDefault(),
     [validationSchema],
+  );
+
+  const sortedParams = useMemo(
+    () => parameters.sort(sortActionParams(formSettings)),
+    [parameters, formSettings],
   );
 
   const handleDragEnd = useCallback(
@@ -130,7 +132,7 @@ export function FormCreator({
     [formSettings],
   );
 
-  if (!parameters.length) {
+  if (!sortedParams.length) {
     return (
       <SidebarContent>
         <FormContainer>
@@ -149,38 +151,12 @@ export function FormCreator({
     >{t`Learn more`}</ExternalLink>
   );
 
-  const showWarning = form.fields.some(field => {
-    const settings = fieldSettings[field.name];
-
-    if (!settings) {
-      return false;
-    }
-
-    if (actionType === "implicit") {
-      const parameter = parameters.find(
-        parameter => parameter.id === settings.id,
-      );
-
-      return parameter?.required && settings.hidden;
-    }
-
-    return (
-      settings.hidden && settings.required && settings.defaultValue == null
-    );
-  });
-
   return (
     <SidebarContent title={t`Action parameters`}>
       <FormContainer>
         <InfoText>
           {jt`Configure your parameters' types and properties here. The values for these parameters can come from user input, or from a dashboard filter. ${docsLink}`}
         </InfoText>
-        {showWarning && (
-          <WarningBanner>
-            <b>{t`Heads up.`}</b>{" "}
-            {t`Your action has a hidden required field with no default value. There's a good chance this will cause the action to fail.`}
-          </WarningBanner>
-        )}
         <FormProvider
           enableReinitialize
           initialValues={displayValues}
@@ -224,3 +200,6 @@ export function FormCreator({
     </SidebarContent>
   );
 }
+
+// eslint-disable-next-line import/no-default-export -- deprecated usage
+export default FormCreator;

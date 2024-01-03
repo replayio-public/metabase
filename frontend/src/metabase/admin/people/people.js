@@ -2,7 +2,6 @@ import _ from "underscore";
 import { assoc, dissoc } from "icepick";
 import {
   createAction,
-  createThunkAction,
   handleActions,
   combineReducers,
 } from "metabase/lib/redux";
@@ -20,8 +19,6 @@ import {
   UPDATE_MEMBERSHIP,
   CLEAR_TEMPORARY_PASSWORD,
 } from "./events";
-
-import { getMemberships } from "./selectors";
 
 // ACTION CREATORS
 
@@ -50,14 +47,12 @@ export const createMembership = createAction(
     };
   },
 );
-export const deleteMembership = createThunkAction(
+export const deleteMembership = createAction(
   DELETE_MEMBERSHIP,
-  membershipId => async (_dispatch, getState) => {
-    const memberships = getMemberships(getState());
-    const membership = memberships[membershipId];
+  async membershipId => {
     await PermissionsApi.deleteMembership({ id: membershipId });
     MetabaseAnalytics.trackStructEvent("People Groups", "Membership Deleted");
-    return { membershipId, groupId: membership.group_id };
+    return { membershipId };
   },
 );
 

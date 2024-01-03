@@ -17,14 +17,3 @@ function flattenParam([key, value]: [string, unknown]) {
 export function extractQueryParams(query: Record<string, unknown>) {
   return Object.entries(query).map(flattenParam).flat();
 }
-
-export function getEncodedUrlSearchParams(query: Record<string, unknown>) {
-  return new URLSearchParams(
-    extractQueryParams(query).map(([key, value]) => {
-      if (value == null) {
-        return [key, ""];
-      }
-      return [key, value];
-    }),
-  );
-}

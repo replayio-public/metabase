@@ -108,6 +108,7 @@ export default class ActionButton extends Component {
       successText,
       useLoadingSpinner = false,
       resetState,
+      // eslint-disable-next-line no-unused-vars
       actionFn,
       className,
       successClassName,

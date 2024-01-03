@@ -9,30 +9,6 @@
 
 (set! *warn-on-reflection* true)
 
-(defn default-rff
-  "Default function returning a reducing function. Results are returned in the 'standard' map format e.g.
-
-    {:data {:cols [...], :rows [...]}, :row_count ...}"
-  [metadata]
-  (let [row-count (volatile! 0)
-        rows      (volatile! [])]
-    (fn default-rf
-      ([]
-       {:data metadata})
-
-      ([result]
-       {:pre [(map? (unreduced result))]}
-       ;; if the result is a clojure.lang.Reduced, unwrap it so we always get back the standard-format map
-       (-> (unreduced result)
-           (assoc :row_count @row-count
-                  :status :completed)
-           (assoc-in [:data :rows] @rows)))
-
-      ([result row]
-       (vswap! row-count inc)
-       (vswap! rows conj row)
-       result))))
-
 (defn identity-qp
   "The initial value of `qp` passed to QP middleware."
   [query rff context]
@@ -121,7 +97,8 @@
      {:pre [(map? query) ((some-fn nil? map?) context)]}
      (let [context (doto (merge (context.default/default-context) context)
                      wire-up-context-channels!)
-           rff     (or rff default-rff)
+           rff     (or rff
+                       (qp.context/rff context))
            thunk   (fn [] (try
                             (qp query rff context)
                             (catch Throwable e
@@ -144,8 +121,7 @@
   Exceptions thrown. Resulting QP has the signatures
 
     (qp query)
-    (qp query context)
-    (qp query rff context)"
+    (qp query context)"
   [qp]
   {:pre [(fn? qp)]}
   (fn qp* [& args]

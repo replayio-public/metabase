@@ -1,9 +1,7 @@
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
 import moment from "moment";
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
-import type { Moment } from "moment-timezone";
-import type { NumberLike, StringLike } from "@visx/scale";
-import type {
+import { Moment } from "moment-timezone";
+import { NumberLike, StringLike } from "@visx/scale";
+import {
   DatasetColumn,
   RowValue,
   VisualizationSettings,
@@ -15,14 +13,14 @@ import {
 } from "metabase/lib/formatting/date";
 import { formatNumber } from "metabase/lib/formatting/numbers";
 import { formatCoordinate } from "metabase/lib/formatting/geography";
-import type {
+import {
   ChartTicksFormatters,
   ValueFormatter,
 } from "metabase/visualizations/shared/types/format";
-import type { ChartColumns } from "metabase/visualizations/lib/graph/columns";
+import { ChartColumns } from "metabase/visualizations/lib/graph/columns";
 import { getStackOffset } from "metabase/visualizations/lib/settings/stacking";
 import { getLabelsMetricColumn } from "metabase/visualizations/shared/utils/series";
-import type { RemappingHydratedDatasetColumn } from "metabase/visualizations/types";
+import { RemappingHydratedDatasetColumn } from "metabase/visualizations/shared/types/data";
 import {
   isCoordinate,
   isDate,

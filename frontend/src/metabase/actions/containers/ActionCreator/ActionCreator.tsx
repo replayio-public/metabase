@@ -2,18 +2,13 @@ import { useState } from "react";
 import { t } from "ttag";
 import _ from "underscore";
 import { connect } from "react-redux";
-import type { Route } from "react-router";
 
 import Modal from "metabase/components/Modal";
 
-import { LeaveConfirmationModal } from "metabase/components/LeaveConfirmationModal";
-import useBeforeUnload from "metabase/hooks/use-before-unload";
-import { useCallbackEffect } from "metabase/hooks/use-callback-effect";
-import type {
+import Actions, {
   CreateActionParams,
   UpdateActionParams,
 } from "metabase/entities/actions";
-import Actions from "metabase/entities/actions";
 import Database from "metabase/entities/databases";
 import Questions from "metabase/entities/questions";
 import { getMetadata } from "metabase/selectors/metadata";
@@ -27,24 +22,22 @@ import type {
 } from "metabase-types/api";
 import type { State } from "metabase-types/store";
 
-import type Question from "metabase-lib/Question";
+import useBeforeUnload from "metabase/hooks/use-before-unload";
+import Question from "metabase-lib/Question";
 import type Metadata from "metabase-lib/metadata/Metadata";
 
 import { isSavedAction } from "../../utils";
 import ActionContext, { useActionContext } from "./ActionContext";
 import { ACE_ELEMENT_ID } from "./ActionContext/QueryActionContextProvider";
 import ActionCreatorView from "./ActionCreatorView";
-import type { FormValues as CreateActionFormValues } from "./CreateActionForm";
-import CreateActionForm from "./CreateActionForm";
+import CreateActionForm, {
+  FormValues as CreateActionFormValues,
+} from "./CreateActionForm";
 
 interface OwnProps {
   actionId?: WritebackActionId;
   modelId?: CardId;
   databaseId?: DatabaseId;
-
-  action?: WritebackAction;
-  route: Route;
-
   onSubmit?: (action: WritebackAction) => void;
   onClose?: () => void;
 }
@@ -89,7 +82,6 @@ function ActionCreator({
   onUpdateAction,
   onSubmit,
   onClose,
-  route,
 }: Props) {
   const {
     action,
@@ -103,19 +95,11 @@ function ActionCreator({
     renderEditorBody,
   } = useActionContext();
 
-  /**
-   * Navigation is scheduled so that LeaveConfirmationModal's isEnabled
-   * prop has a chance to re-compute on re-render
-   */
-  const [isCallbackScheduled, scheduleCallback] = useCallbackEffect();
+  useBeforeUnload(isDirty);
+
   const [isSaveModalShown, setShowSaveModal] = useState(false);
 
   const isEditable = isNew || (model != null && model.canWriteActions());
-
-  const showUnsavedChangesWarning =
-    isEditable && isDirty && !isCallbackScheduled;
-
-  useBeforeUnload(!route && showUnsavedChangesWarning);
 
   const handleCreate = async (values: CreateActionFormValues) => {
     if (action.type !== "query") {
@@ -134,10 +118,7 @@ function ActionCreator({
 
     setShowSaveModal(false);
     onSubmit?.(createdAction);
-
-    scheduleCallback(() => {
-      onClose?.();
-    });
+    onClose?.();
   };
 
   const handleUpdate = async () => {
@@ -147,13 +128,8 @@ function ActionCreator({
         model_id: model?.id(),
         visualization_settings: formSettings,
       });
-
       const updatedAction = Actions.HACK_getObjectFromAction(reduxAction);
       onSubmit?.(updatedAction);
-
-      scheduleCallback(() => {
-        onClose?.();
-      });
     }
   };
 
@@ -167,6 +143,7 @@ function ActionCreator({
       showSaveModal();
     } else {
       handleUpdate();
+      onClose?.();
     }
   };
 
@@ -201,13 +178,6 @@ function ActionCreator({
           />
         </Modal>
       )}
-
-      {route && (
-        <LeaveConfirmationModal
-          isEnabled={showUnsavedChangesWarning}
-          route={route}
-        />
-      )}
     </>
   );
 }
@@ -222,15 +192,11 @@ function ActionCreatorWithContext({
   initialAction,
   metadata,
   databaseId,
-  action,
   ...props
 }: Props) {
-  // This is needed in case we already have an action and pass it from the outside
-  const contextAction = action || initialAction;
-
   return (
     <ActionContext
-      initialAction={contextAction}
+      initialAction={initialAction}
       databaseId={databaseId}
       metadata={metadata}
     >

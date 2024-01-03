@@ -1,4 +1,4 @@
-import type { DatabaseCandidate, TableCandidate } from "metabase-types/api";
+import { DatabaseCandidate, TableCandidate } from "metabase-types/api";
 
 export const createMockDatabaseCandidate = (
   opts?: Partial<DatabaseCandidate>,

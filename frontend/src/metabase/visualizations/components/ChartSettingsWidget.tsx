@@ -1,4 +1,4 @@
-import type * as React from "react";
+import * as React from "react";
 import cx from "classnames";
 
 import {
@@ -62,7 +62,7 @@ const ChartSettingsWidget = ({
         <Title
           variant={variant}
           className={cx({ "Form-label": isFormField })}
-          htmlFor={extraWidgetProps.id}
+          id={extraWidgetProps.id}
         >
           {title}
           {hint && (

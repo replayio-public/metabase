@@ -1,9 +1,9 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
-import type { DatabaseId } from "metabase-types/api";
+import { DatabaseId } from "metabase-types/api";
 import Query from "metabase-lib/queries/Query";
-import type Table from "metabase-lib/metadata/Table";
-import type Database from "metabase-lib/metadata/Database";
+import Table from "metabase-lib/metadata/Table";
+import Database from "metabase-lib/metadata/Database";
 /**
  * A query type for queries that are attached to a specific database table
  * and form a single MBQL / native query clause
@@ -34,7 +34,7 @@ export default class AtomicQuery extends Query {
     return null;
   }
 
-  canNest(): boolean {
-    return Boolean(this.database()?.hasFeature("nested-queries"));
+  canNest() {
+    return this.database()?.hasFeature("nested-queries");
   }
 }

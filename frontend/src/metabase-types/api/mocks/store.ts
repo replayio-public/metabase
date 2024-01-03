@@ -1,4 +1,4 @@
-import type { StoreTokenStatus } from "metabase-types/api";
+import { StoreTokenStatus } from "metabase-types/api";
 
 export const createMockStoreTokenStatus = (
   opts?: Partial<StoreTokenStatus>,

@@ -1,15 +1,21 @@
-import type { HTMLAttributes, ReactNode, Ref, UIEventHandler } from "react";
-import { forwardRef, useContext, useMemo } from "react";
+import {
+  forwardRef,
+  HTMLAttributes,
+  ReactNode,
+  Ref,
+  useContext,
+  useMemo,
+} from "react";
+import * as React from "react";
 import { useUniqueId } from "metabase/hooks/use-unique-id";
-import type { TabContextType } from "../Tab";
-import { TabContext } from "../Tab";
+import { TabContext, TabContextType } from "../Tab";
 import { TabListContent, TabListRoot } from "./TabList.styled";
 
 export interface TabListProps<T>
   extends Omit<HTMLAttributes<HTMLDivElement>, "onChange"> {
   value?: T;
   onChange?: (value: T) => void;
-  onScroll?: UIEventHandler<HTMLDivElement>;
+  onScroll?: React.UIEventHandler<HTMLDivElement>;
   children?: ReactNode;
 }
 

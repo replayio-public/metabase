@@ -7,19 +7,19 @@ import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper";
 import {
   getGroupTableAccessPolicy,
   getPolicyRequestState,
+  getAttributes,
 } from "metabase-enterprise/sandboxes/selectors";
 import { getParentPath } from "metabase/hoc/ModalRoute";
-import type { GroupTableAccessPolicy, UserAttribute } from "metabase-types/api";
-import { fetchUserAttributes } from "metabase-enterprise/shared/reducer";
-import { getUserAttributes } from "metabase-enterprise/shared/selectors";
+import { GroupTableAccessPolicy, UserAttribute } from "metabase-types/api";
 import EditSandboxingModal from "../components/EditSandboxingModal";
 
 import {
   updatePolicy,
   fetchPolicy,
+  fetchAttributes,
   updateTableSandboxingPermission,
 } from "../actions";
-import type { GroupTableAccessPolicyParams, SandboxesState } from "../types";
+import { GroupTableAccessPolicyParams, SandboxesState } from "../types";
 
 interface EditSandboxingModalContainerProps {
   policy: GroupTableAccessPolicy;
@@ -29,7 +29,7 @@ interface EditSandboxingModalContainerProps {
   route: any;
   policyRequestState: any;
   fetchPolicy: (params: GroupTableAccessPolicyParams) => void;
-  fetchUserAttributes: () => void;
+  fetchAttributes: () => void;
   updatePolicy: (policy: GroupTableAccessPolicy) => void;
   updateTableSandboxingPermission: (
     params: GroupTableAccessPolicyParams,
@@ -43,15 +43,15 @@ const EditSandboxingModalContainer = ({
   params,
   route,
   fetchPolicy,
-  fetchUserAttributes,
+  fetchAttributes,
   policyRequestState,
   updatePolicy,
   updateTableSandboxingPermission,
 }: EditSandboxingModalContainerProps) => {
   useEffect(() => {
     fetchPolicy(params);
-    fetchUserAttributes();
-  }, [fetchPolicy, params, fetchUserAttributes]);
+    fetchAttributes();
+  }, [fetchPolicy, params, fetchAttributes]);
 
   const isLoading = policyRequestState?.loading || !attributes;
 
@@ -91,14 +91,14 @@ const mapStateToProps = (
 ) => ({
   policy: getGroupTableAccessPolicy(state, props),
   policyRequestState: getPolicyRequestState(state, props),
-  attributes: getUserAttributes(state),
+  attributes: getAttributes(state),
 });
 
 const mapDispatchToProps = {
   push,
   fetchPolicy,
   updatePolicy,
-  fetchUserAttributes,
+  fetchAttributes,
   updateTableSandboxingPermission,
 };
 

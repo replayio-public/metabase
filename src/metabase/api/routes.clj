@@ -5,7 +5,6 @@
    [metabase.api.action :as api.action]
    [metabase.api.activity :as api.activity]
    [metabase.api.alert :as api.alert]
-   [metabase.api.api-key :as api.api-key]
    [metabase.api.automagic-dashboards :as api.magic]
    [metabase.api.bookmark :as api.bookmark]
    [metabase.api.card :as api.card]
@@ -33,7 +32,7 @@
    [metabase.api.pulse :as api.pulse]
    [metabase.api.revision :as api.revision]
    [metabase.api.routes.common
-    :refer [+static-apikey +auth +message-only-exceptions +public-exceptions]]
+    :refer [+apikey +auth +public-exceptions +message-only-exceptions]]
    [metabase.api.search :as api.search]
    [metabase.api.segment :as api.segment]
    [metabase.api.session :as api.session]
@@ -51,10 +50,10 @@
    [metabase.api.util :as api.util]
    [metabase.config :as config]
    [metabase.plugins.classloader :as classloader]
+   [metabase.util :as u]
    [metabase.util.i18n :refer [deferred-tru]]))
 
-(when config/ee-available?
-  (classloader/require 'metabase-enterprise.api.routes))
+(u/ignore-exceptions (classloader/require 'metabase-enterprise.api.routes))
 
 ;; EE routes defined in [[metabase-enterprise.api.routes/routes]] always get the first chance to handle a request, if
 ;; they exist. If they don't exist, this handler returns `nil` which means Compojure will try the next handler.
@@ -90,7 +89,7 @@
   (context "/metric"               [] (+auth api.metric/routes))
   (context "/model-index"          [] (+auth api.model-index/routes))
   (context "/native-query-snippet" [] (+auth api.native-query-snippet/routes))
-  (context "/notify"               [] (+static-apikey api.notify/routes))
+  (context "/notify"               [] (+apikey api.notify/routes))
   (context "/permissions"          [] (+auth api.permissions/routes))
   (context "/persist"              [] (+auth api.persist/routes))
   (context "/preview_embed"        [] (+auth api.preview-embed/routes))
@@ -114,6 +113,5 @@
   (context "/timeline-event"       [] (+auth api.timeline-event/routes))
   (context "/transform"            [] (+auth api.transform/routes))
   (context "/user"                 [] (+auth api.user/routes))
-  (context "/api-key"              [] (+auth api.api-key/routes))
   (context "/util"                 [] api.util/routes)
   (route/not-found (constantly {:status 404, :body (deferred-tru "API endpoint does not exist.")})))

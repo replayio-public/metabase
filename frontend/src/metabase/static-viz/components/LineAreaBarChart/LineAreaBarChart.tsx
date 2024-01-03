@@ -1,8 +1,8 @@
 import _ from "underscore";
-import type { ColorGetter } from "metabase/static-viz/lib/colors";
+import { ColorGetter } from "metabase/static-viz/lib/colors";
 import { XYChart } from "../XYChart";
-import type { CardSeries, ChartSettings, ChartStyle } from "../XYChart/types";
-import type { Colors } from "./types";
+import { CardSeries, ChartSettings, ChartStyle } from "../XYChart/types";
+import { Colors } from "./types";
 import {
   adjustSettings,
   calculateChartSize,

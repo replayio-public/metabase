@@ -18,20 +18,16 @@
 (mr/def ::int-greater-than-or-equal-to-zero
   [:int {:min 0}])
 
-(mr/def ::positive-int
-  pos-int?)
-
-(mr/def ::positive-number
-  [:fn
-   {:error/message "positive number"}
-   (every-pred number? pos?)])
+(mr/def ::int-greater-than-zero
+  [:int {:min 1}])
 
 (mr/def ::uuid
   ;; TODO -- should this be stricter?
   [:string {:min 36, :max 36}])
 
 (defn- semantic-type? [x]
-  (isa? x :Semantic/*))
+  (or (isa? x :Semantic/*)
+      (isa? x :Relation/*)))
 
 (mr/def ::semantic-type
   [:fn
@@ -40,23 +36,9 @@
                      (str "Not a valid semantic type: " (pr-str value)))}
    semantic-type?])
 
-(defn- relation-type? [x]
-  (isa? x :Relation/*))
-
-(mr/def ::relation-type
-  [:fn
-   {:error/message "valid relation type"
-    :error/fn      (fn [{:keys [value]} _]
-                     (str "Not a valid relation type: " (pr-str value)))}
-   relation-type?])
-
-(mr/def ::semantic-or-relation-type
-  [:or
-   [:ref ::semantic-type]
-   [:ref ::relation-type]])
-
 (defn- base-type? [x]
-  (isa? x :type/*))
+  (and (isa? x :type/*)
+       (not (semantic-type? x))))
 
 (mr/def ::base-type
   [:fn
@@ -71,15 +53,13 @@
    ;; these options aren't required for any clause in particular, but if they're present they must follow these schemas.
    [:base-type      {:optional true} [:maybe ::base-type]]
    [:effective-type {:optional true} [:maybe ::base-type]]
-   ;; these two different types are currently both stored under one key, but maybe one day we can fix this.
-   [:semantic-type  {:optional true} [:maybe ::semantic-or-relation-type]]
+   [:semantic-type  {:optional true} [:maybe ::semantic-type]]
    [:database-type  {:optional true} [:maybe ::non-blank-string]]
    [:name           {:optional true} [:maybe ::non-blank-string]]
    [:display-name   {:optional true} [:maybe ::non-blank-string]]])
 
 (mr/def ::external-op
   [:map
-   [:lib/type [:= :lib/external-op]]
    [:operator [:or :string :keyword]]
-   [:args     [:sequential :any]]
-   [:options {:optional true} ::options]])
+   [:options {:optional true} ::options]
+   [:args [:sequential :any]]])

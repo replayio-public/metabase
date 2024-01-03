@@ -35,7 +35,7 @@
     (filter (partial enforce-sandbox? group-id->perms-set)
             sandboxes)))
 
-(defenterprise sandboxed-user?
+(defenterprise segmented-user?
   "Returns true if the currently logged in user has segmented permissions. Throws an exception if no current user
   is bound."
   :feature :sandboxes

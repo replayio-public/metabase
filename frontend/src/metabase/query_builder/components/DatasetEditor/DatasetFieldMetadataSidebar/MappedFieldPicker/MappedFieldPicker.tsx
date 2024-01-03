@@ -5,7 +5,7 @@ import { SchemaTableAndFieldDataSelector } from "metabase/query_builder/componen
 
 import Fields from "metabase/entities/fields";
 import { isVirtualCardId } from "metabase-lib/metadata/utils/saved-questions";
-import type Field from "metabase-lib/metadata/Field";
+import Field from "metabase-lib/metadata/Field";
 
 import { StyledSelectButton } from "./MappedFieldPicker.styled";
 
@@ -90,7 +90,7 @@ function MappedFieldPicker({
 
   return (
     <SchemaTableAndFieldDataSelector
-      className="flex flex-full flex-basis-none justify-center align-center"
+      className="flex flex-full justify-center align-center"
       selectedDatabaseId={databaseId}
       selectedTableId={selectedTableId}
       selectedSchemaId={fieldObject?.table?.schema?.id}

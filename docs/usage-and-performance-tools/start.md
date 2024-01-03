@@ -6,7 +6,7 @@ title: "Tools overview"
 
 Administration tools for managing your Metabase.
 
-## [Usage analytics](./usage-analytics.md)
+## [Audit logs](./audit.md)
 
 See how people are using your Metabase.
 

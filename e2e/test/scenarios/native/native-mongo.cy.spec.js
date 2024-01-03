@@ -2,7 +2,7 @@ import { restore, modal } from "e2e/support/helpers";
 
 const MONGO_DB_NAME = "QA Mongo4";
 
-describe("scenarios > question > native > mongo", { tags: "@mongo" }, () => {
+describe("scenarios > question > native > mongo", { tags: "@external" }, () => {
   before(() => {
     cy.intercept("POST", "/api/card").as("createQuestion");
     cy.intercept("POST", "/api/dataset").as("dataset");
@@ -31,7 +31,7 @@ describe("scenarios > question > native > mongo", { tags: "@mongo" }, () => {
       .type(`[ { $count: "Total" } ]`, {
         parseSpecialCharSequences: false,
       });
-    cy.findByTestId("native-query-editor-container").icon("play").click();
+    cy.get(".NativeQueryEditor .Icon-play").click();
 
     cy.wait("@dataset");
 

@@ -1,4 +1,3 @@
-import type { MouseEvent } from "react";
 import { useState, useMemo } from "react";
 import { t } from "ttag";
 import _ from "underscore";
@@ -25,7 +24,8 @@ import {
   NewActionButton,
 } from "./ActionPicker.styled";
 
-export function ActionPicker({
+// eslint-disable-next-line import/no-default-export -- deprecated usage
+export default function ActionPicker({
   models,
   actions,
   onClick,
@@ -93,39 +93,33 @@ function ModelActionPicker({
 
   const hasCurrentAction = currentAction?.model_id === model.id;
 
-  const handleModalSubmit = (updatedAction: WritebackAction) => {
-    onClick(updatedAction);
-  };
-
   return (
     <>
       <ModelCollapseSection
         header={<h4>{model.name}</h4>}
         initialState={hasCurrentAction ? "expanded" : "collapsed"}
       >
-        {actions.length ? (
+        {actions?.length ? (
           <ActionsList>
-            {actions.map(action => (
+            {actions?.map(action => (
               <ActionItem
                 key={action.id}
                 role="button"
                 isSelected={currentAction?.id === action.id}
                 aria-selected={currentAction?.id === action.id}
                 onClick={() => onClick(action)}
-                data-testid={`action-item-${action.name}`}
               >
                 <span>{action.name}</span>
-                <EditButton
-                  icon="pencil"
-                  onlyIcon
-                  onClick={(event: MouseEvent<HTMLButtonElement>) => {
-                    // we have a click listener on the parent
-                    event.stopPropagation();
-
-                    setEditingActionId(action.id);
-                    toggleIsActionCreatorVisible();
-                  }}
-                />
+                {action.type !== "implicit" && (
+                  <EditButton
+                    icon="pencil"
+                    onlyIcon
+                    onClick={() => {
+                      setEditingActionId(action.id);
+                      toggleIsActionCreatorVisible();
+                    }}
+                  />
+                )}
               </ActionItem>
             ))}
             <NewActionButton onlyText onClick={toggleIsActionCreatorVisible}>
@@ -148,7 +142,6 @@ function ModelActionPicker({
             databaseId={model.database_id}
             actionId={editingActionId}
             onClose={closeModal}
-            onSubmit={handleModalSubmit}
           />
         </Modal>
       )}

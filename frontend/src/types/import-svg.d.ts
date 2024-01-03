@@ -13,7 +13,7 @@ declare module "*.svg?source" {
 }
 
 declare module "*.svg?component" {
-  import type React from "react";
+  import React from "react";
   const Component: React.VFC<React.SVGProps<SVGSVGElement>>;
 
   // eslint-disable-next-line import/no-default-export

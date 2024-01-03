@@ -11,10 +11,10 @@ import {
   isItemPinned,
   isPreviewEnabled,
 } from "metabase/collections/utils";
-import type { Bookmark, Collection, CollectionItem } from "metabase-types/api";
-import type { State } from "metabase-types/store";
+import { Bookmark, Collection, CollectionItem } from "metabase-types/api";
+import { State } from "metabase-types/store";
 import { canUseMetabotOnDatabase } from "metabase/metabot/utils";
-import type Database from "metabase-lib/metadata/Database";
+import Database from "metabase-lib/metadata/Database";
 import { EntityItemMenu } from "./ActionMenu.styled";
 
 interface OwnProps {

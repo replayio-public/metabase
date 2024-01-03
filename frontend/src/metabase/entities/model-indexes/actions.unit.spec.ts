@@ -6,14 +6,17 @@ import {
   createMockModelIndex,
 } from "metabase-types/api/mocks";
 
-import { setupModelIndexEndpoints } from "__support__/server-mocks";
+import { setupModelIndexEndpoints } from "__support__/server-mocks/model-indexes";
 
 import type { FieldReference, ModelIndex, Field } from "metabase-types/api";
 
 import Question from "metabase-lib/Question";
 
-import type { FieldWithMaybeIndex } from "./actions";
-import { updateModelIndexes, cleanIndexFlags } from "./actions";
+import {
+  updateModelIndexes,
+  cleanIndexFlags,
+  FieldWithMaybeIndex,
+} from "./actions";
 
 const createMockField = (options?: Partial<FieldWithMaybeIndex>): Field => {
   return createBaseMockField(options as Partial<Field>);

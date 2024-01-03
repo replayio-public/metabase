@@ -14,7 +14,7 @@
 
 (declare api-exception-response)
 
-(defn public-exceptions
+(defn public-execptions
   "Catch any exceptions other than 404 thrown in the request handler body and rethrow a generic 400 exception instead.
   This minimizes information available to bad actors when exceptions occur on public endpoints."
   [handler]
@@ -40,7 +40,6 @@
       (try
         (handler request respond raise)
         (catch Throwable e
-          (log/error e (trs "Exception in API call"))
           (raise e))))))
 
 (defmulti api-exception-response
@@ -89,7 +88,7 @@
   {:status-code 204, :body nil, :headers (mw.security/security-headers)})
 
 (defn catch-api-exceptions
-  "Middleware (with `[request respond raise]`) that catches API Exceptions and returns them in our normal-style format rather than the Jetty 500
+  "Middleware that catches API Exceptions and returns them in our normal-style format rather than the Jetty 500
   Stacktrace page, which is not so useful for our frontend."
   [handler]
   (fn [request respond _raise]
@@ -100,15 +99,15 @@
 
 
 (defn catch-uncaught-exceptions
-  "Middleware (with `[request respond raise]`) that catches any unexpected Exceptions and reroutes them through `raise`
-  where they can be handled appropriately."
+  "Middleware that catches any unexpected Exceptions that reroutes them thru `raise` where they can be handled
+  appropriately."
   [handler]
   (fn [request respond raise]
     (try
       (handler
        request
        ;; for people that accidentally pass along an Exception, e.g. from qp.async, do the nice thing and route it to
-       ;; the right place for them
+       ;; the write place for them
        (fn [response]
          ((if (instance? Throwable response)
             raise

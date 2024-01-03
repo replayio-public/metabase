@@ -34,12 +34,8 @@
 
 ;;; --------------------------------------------- account autocreation -----------------------------------------------
 
-(defmacro ^:private with-no-sso-google-token [& body]
-  `(with-redefs [premium-features/enable-sso-google? (constantly false)]
-     ~@body))
-
 (deftest allow-autocreation-test
-  (with-no-sso-google-token
+  (with-redefs [premium-features/enable-sso? (constantly false)]
     (mt/with-temporary-setting-values [google-auth-auto-create-accounts-domain "metabase.com"]
       (are [allowed? email] (= allowed?
                                (#'google/autocreate-user-allowed-for-email? email))
@@ -47,14 +43,14 @@
         false "cam@expa.com"))))
 
 (deftest google-auth-auto-create-accounts-domain-test
-  (testing "multiple domains cannot be set if EE `:sso-google` feature flag is not enabled"
-    (with-no-sso-google-token
+  (testing "multiple domains cannot be set if EE SSO is not enabled"
+    (with-redefs [premium-features/enable-sso? (constantly false)]
       (is (thrown?
            clojure.lang.ExceptionInfo
            (google.i/google-auth-auto-create-accounts-domain! "metabase.com, example.com"))))))
 
 (deftest google-auth-create-new-user!-test
-  (with-no-sso-google-token
+  (with-redefs [premium-features/enable-sso? (constantly false)]
     (testing "shouldn't be allowed to create a new user via Google Auth if their email doesn't match the auto-create accounts domain"
       (mt/with-temporary-setting-values [google-auth-auto-create-accounts-domain "sf-toucannery.com"]
         (is (thrown?
@@ -132,7 +128,7 @@
 ;;; --------------------------------------- google-auth-fetch-or-create-user! ----------------------------------------
 
 (deftest google-auth-fetch-or-create-user!-test
-  (with-no-sso-google-token
+  (with-redefs [premium-features/enable-sso? (constantly false)]
     (testing "test that an existing user can log in with Google auth even if the auto-create accounts domain is different from"
       (t2.with-temp/with-temp [User _ {:email "cam@sf-toucannery.com"}]
         (mt/with-temporary-setting-values [google-auth-auto-create-accounts-domain "metabase.com"]

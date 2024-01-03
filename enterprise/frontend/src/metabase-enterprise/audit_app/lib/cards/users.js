@@ -1,8 +1,6 @@
-import { t } from "ttag";
-
 export const activeAndNewByTime = () => ({
   card: {
-    name: t`Active members and new members per day`,
+    name: "Active members and new members per day",
     display: "line",
     dataset_query: {
       type: "internal",
@@ -23,7 +21,7 @@ export const activeAndNewByTime = () => ({
 
 export const activeUsersAndQueriesByDay = () => ({
   card: {
-    name: t`Active members and queries per day`,
+    name: "Active members and queries per day",
     display: "line",
     dataset_query: {
       type: "internal",
@@ -44,7 +42,7 @@ export const activeUsersAndQueriesByDay = () => ({
 
 export const mostActive = () => ({
   card: {
-    name: t`Members who are looking at the most things`,
+    name: "Members who are looking at the most things",
     display: "row",
     dataset_query: {
       type: "internal",
@@ -62,7 +60,7 @@ export const mostActive = () => ({
 
 export const mostSaves = () => ({
   card: {
-    name: t`Members who are creating the most things`,
+    name: "Members who are creating the most things",
     display: "row",
     dataset_query: {
       type: "internal",
@@ -72,6 +70,18 @@ export const mostSaves = () => ({
     visualization_settings: {
       "graph.dimensions": ["user_id"],
       "graph.metrics": ["saves"],
+    },
+  },
+});
+
+export const queryExecutionTimePerUser = () => ({
+  card: {
+    name: "Query execution time per member",
+    display: "row",
+    dataset_query: {
+      type: "internal",
+      fn: "metabase-enterprise.audit-app.pages.users/query-execution-time-per-user",
+      args: [],
     },
   },
 });
@@ -129,4 +139,16 @@ export const auditLog = () => ({
       },
     },
   ],
+});
+
+export const dashboardViews = () => ({
+  card: {
+    name: "Dashboard views",
+    display: "table",
+    dataset_query: {
+      type: "internal",
+      fn: "metabase-enterprise.audit-app.pages.users/dashboard-views",
+      args: [],
+    },
+  },
 });

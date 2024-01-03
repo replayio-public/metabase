@@ -13,10 +13,7 @@ import type { Query } from "metabase-lib/types";
 import type Question from "metabase-lib/Question";
 import type StructuredQuery from "metabase-lib/queries/StructuredQuery";
 
-import type {
-  NotebookStep as INotebookStep,
-  NotebookStepAction,
-} from "../types";
+import { NotebookStep as INotebookStep, NotebookStepAction } from "../types";
 import NotebookStepPreview from "../NotebookStepPreview";
 
 import { STEP_UI } from "./steps";
@@ -28,7 +25,6 @@ import {
   StepHeader,
   StepButtonContainer,
   StepRoot,
-  PreviewButton,
 } from "./NotebookStep.styled";
 
 function hasLargeButton(action: NotebookStepAction) {
@@ -76,7 +72,6 @@ function NotebookStep({
               color={stepUi.getColor()}
               large={hasLargeActionButtons}
               {...stepUi}
-              aria-label={stepUi.title}
               onClick={() => action.action({ query: step.query, openStep })}
             />
           ),
@@ -142,7 +137,6 @@ function NotebookStep({
                 step={step}
                 topLevelQuery={step.topLevelQuery}
                 query={step.query}
-                stageIndex={step.stageIndex}
                 sourceQuestion={sourceQuestion}
                 updateQuery={updateQuery}
                 isLastOpened={isLastOpened}
@@ -152,13 +146,15 @@ function NotebookStep({
             </StepContent>
             {!readOnly && (
               <StepButtonContainer>
-                <PreviewButton
-                  as={ActionButton}
+                <ActionButton
+                  className={cx("ml1", {
+                    "hidden disabled": !hasPreviewButton,
+                    "text-brand-hover": hasPreviewButton,
+                  })}
                   icon="play"
                   title={t`Preview`}
                   color={c("text-light")}
                   transparent
-                  hasPreviewButton={hasPreviewButton}
                   onClick={openPreview}
                 />
               </StepButtonContainer>

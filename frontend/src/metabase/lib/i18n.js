@@ -1,7 +1,5 @@
 import { addLocale, useLocale } from "ttag";
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
 import moment from "moment-timezone";
-import dayjs from "dayjs";
 
 import MetabaseSettings from "metabase/lib/settings";
 import { DAY_OF_WEEK_OPTIONS } from "metabase/lib/date-time";
@@ -28,20 +26,26 @@ export async function loadLocalization(locale) {
   setLocalization(translationsObject);
 }
 
-// Tell moment.js to use the value of the start-of-week Setting for its current locale
-// Moment.js dow range Sunday (0) - Saturday (6)
+// Tell Moment.js to use the value of the start-of-week Setting for its current locale
 export function updateMomentStartOfWeek() {
-  const startOfWeekDay = getStartOfWeekDay();
-  if (startOfWeekDay != null) {
-    moment.updateLocale(moment.locale(), { week: { dow: startOfWeekDay } });
+  const startOfWeekDayName = MetabaseSettings.get("start-of-week");
+  if (!startOfWeekDayName) {
+    return;
   }
-}
 
-export function updateDayjsStartOfWeek() {
-  const startOfWeekDay = getStartOfWeekDay();
-  if (startOfWeekDay != null) {
-    dayjs.updateLocale(dayjs.locale(), { weekStart: startOfWeekDay });
+  const startOfWeekDayNumber = DAY_OF_WEEK_OPTIONS.findIndex(
+    ({ id }) => id === startOfWeekDayName,
+  );
+  if (startOfWeekDayNumber === -1) {
+    return;
   }
+
+  moment.updateLocale(moment.locale(), {
+    week: {
+      // Moment.js dow range Sunday (0) - Saturday (6)
+      dow: startOfWeekDayNumber,
+    },
+  });
 }
 
 // if the start of week Setting is updated, update the moment start of week
@@ -57,86 +61,36 @@ function setLanguage(translationsObject) {
   useLocale(locale);
 }
 
-const ARABIC_LOCALES = ["ar", "ar-sa"];
+function setLocalization(translationsObject) {
+  const locale = translationsObject.headers.language;
 
-export function setLocalization(translationsObject) {
-  const language = translationsObject.headers.language;
   setLanguage(translationsObject);
-  updateMomentLocale(language);
-  updateDayjsLocale(language);
-  updateMomentStartOfWeek();
-  updateDayjsStartOfWeek();
 
-  if (ARABIC_LOCALES.includes(language)) {
-    preverseLatinNumbersInMomentLocale(language);
-  }
+  updateMomentLocale(locale);
+  updateMomentStartOfWeek(locale);
 }
 
-function updateMomentLocale(language) {
-  const locale = getLocale(language);
-
+function updateMomentLocale(locale) {
+  const momentLocale = mapToMomentLocale(locale);
   try {
-    if (locale !== "en") {
-      require(`moment/locale/${locale}.js`);
+    if (momentLocale !== "en") {
+      require("moment/locale/" + momentLocale);
     }
-    moment.locale(locale);
+    moment.locale(momentLocale);
   } catch (e) {
-    console.warn(`Could not set moment.js locale to ${locale}`);
+    console.warn(`Could not set moment locale to ${momentLocale}`);
     moment.locale("en");
   }
 }
 
-/**
- * Ensures that we consistently use latin numbers in Arabic locales.
- * See https://github.com/metabase/metabase/issues/34271
- */
-function preverseLatinNumbersInMomentLocale(locale) {
-  moment.updateLocale(locale, {
-    // Preserve latin numbers, but still replace commas.
-    // See https://github.com/moment/moment/blob/000ac1800e620f770f4eb31b5ae908f6167b0ab2/locale/ar.js#L185
-    postformat: string =>
-      string.replace(/\d/g, match => match).replace(/,/g, "،"),
-  });
-}
-
-function updateDayjsLocale(language) {
-  const locale = getLocale(language);
-
-  try {
-    if (locale !== "en") {
-      require(`dayjs/locale/${locale}.js`);
-    }
-    dayjs.locale(locale);
-  } catch (e) {
-    console.warn(`Could not set day.js locale to ${locale}`);
-    dayjs.locale("en");
-  }
-}
-
-function getLocale(language = "") {
-  switch (language) {
+function mapToMomentLocale(locale = "") {
+  switch (locale) {
     case "zh":
     case "zh-Hans":
       return "zh-cn";
     default:
-      return language.toLowerCase();
+      return locale.toLowerCase();
   }
-}
-
-function getStartOfWeekDay() {
-  const startOfWeekDayName = MetabaseSettings.get("start-of-week");
-  if (!startOfWeekDayName) {
-    return;
-  }
-
-  const startOfWeekDayNumber = DAY_OF_WEEK_OPTIONS.findIndex(
-    ({ id }) => id === startOfWeekDayName,
-  );
-  if (startOfWeekDayNumber === -1) {
-    return;
-  }
-
-  return startOfWeekDayNumber;
 }
 
 // we delete msgid property since it's redundant, but have to add it back in to

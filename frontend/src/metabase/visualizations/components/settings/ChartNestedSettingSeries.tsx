@@ -1,6 +1,7 @@
 import ChartNestedSettingSeriesMultiple from "./ChartNestedSettingSeriesMultiple";
-import type { ChartNestedSettingsSeriesSingleProps } from "./ChartNestedSettingSeriesSingle";
-import ChartNestedSettingSeriesSingle from "./ChartNestedSettingSeriesSingle";
+import ChartNestedSettingSeriesSingle, {
+  ChartNestedSettingsSeriesSingleProps,
+} from "./ChartNestedSettingSeriesSingle";
 
 interface ChartNestedSettingSeriesProps
   extends ChartNestedSettingsSeriesSingleProps {

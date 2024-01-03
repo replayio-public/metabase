@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { t } from "ttag";
-import type { Timeline, TimelineData } from "metabase-types/api";
+import { Timeline, TimelineData } from "metabase-types/api";
 import ModalBody from "../ModalBody";
 import ModalHeader from "../ModalHeader";
 import TimelineForm from "../TimelineForm";

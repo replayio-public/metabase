@@ -1,9 +1,8 @@
-import _ from "underscore";
 import { parse } from "metabase-lib/expressions/recursive-parser";
 
 import { generateExpression } from "./generator";
 
-const fuzz = process.env.MB_FUZZ ? describe : _.noop;
+const fuzz = process.env.MB_FUZZ ? describe : describe.skip;
 
 const handle = source => parse(source);
 

@@ -5,7 +5,7 @@ import {
   createMockSeriesOrderSetting,
   createMockVisualizationSettings,
 } from "metabase-types/api/mocks/card";
-import type { TransformedSeries } from "metabase-types/api";
+import { TransformedSeries } from "metabase-types/api";
 import { getOrderedSeries } from "./series";
 
 type setupSeriesOpts = { name: string; enabled?: boolean }[];

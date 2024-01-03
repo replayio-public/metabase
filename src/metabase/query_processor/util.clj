@@ -9,7 +9,8 @@
    [metabase.driver :as driver]
    [metabase.mbql.normalize :as mbql.normalize]
    [metabase.util :as u]
-   [metabase.util.malli :as mu]))
+   [metabase.util.schema :as su]
+   [schema.core :as s]))
 
 (set! *warn-on-reflection* true)
 
@@ -59,10 +60,10 @@
 ;;; ------------------------------------------------- Normalization --------------------------------------------------
 
 ;; TODO - this has been moved to `metabase.mbql.util`; use that implementation instead.
-(mu/defn ^:deprecated normalize-token :- :keyword
+(s/defn ^:deprecated normalize-token :- s/Keyword
   "Convert a string or keyword in various cases (`lisp-case`, `snake_case`, or `SCREAMING_SNAKE_CASE`) to a lisp-cased
   keyword."
-  [token :- [:or :keyword :string]]
+  [token :- su/KeywordOrString]
   (-> (name token)
       u/lower-case-en
       (str/replace #"_" "-")
@@ -71,11 +72,12 @@
 
 ;;; ---------------------------------------------------- Hashing -----------------------------------------------------
 
-(mu/defn ^:private select-keys-for-hashing
+(defn- select-keys-for-hashing
   "Return `query` with only the keys relevant to hashing kept.
   (This is done so irrelevant info or options that don't affect query results doesn't result in the same query
   producing different hashes.)"
-  [query :- :map]
+  [query]
+  {:pre [(map? query)]}
   (let [{:keys [constraints parameters], :as query} (select-keys query [:database :type :query :native :parameters
                                                                         :constraints])]
     (cond-> query
@@ -83,9 +85,9 @@
       (empty? parameters)  (dissoc :parameters))))
 
 #_{:clj-kondo/ignore [:non-arg-vec-return-type-hint]}
-(mu/defn ^"[B" query-hash :- bytes?
+(s/defn ^bytes query-hash :- (Class/forName "[B")
   "Return a 256-bit SHA3 hash of `query` as a key for the cache. (This is returned as a byte array.)"
-  [query :- :map]
+  [query]
   (buddy-hash/sha3-256 (json/generate-string (select-keys-for-hashing query))))
 
 

@@ -3,14 +3,14 @@
    [clj-http.client :as http]
    [clojure.java.io :as io]
    [compojure.core :refer [GET]]
-   [malli.core :as mc]
    [metabase.api.common :as api]
    [metabase.api.common.validation :as validation]
    [metabase.models.setting :as setting :refer [defsetting]]
    [metabase.util.i18n :refer [deferred-tru tru]]
-   [metabase.util.malli.schema :as ms]
+   [metabase.util.schema :as su]
    [ring.util.codec :as codec]
-   [ring.util.response :as response])
+   [ring.util.response :as response]
+   [schema.core :as s])
   (:import
    (java.io BufferedReader)
    (java.net InetAddress URL)
@@ -23,18 +23,14 @@
   :visibility :admin
   :type       :boolean
   :setter     :none
-  :default    true
-  :audit      :getter)
+  :default    true)
 
 (def ^:private CustomGeoJSON
-  [:map-of :keyword [:map {:closed true}
-                     [:name                         ms/NonBlankString]
-                     [:url                          ms/NonBlankString]
-                     [:region_key                   [:maybe :string]]
-                     [:region_name                  [:maybe :string]]
-                     [:builtin     {:optional true} :boolean]]])
-
-(def ^:private CustomGeoJSONValidator (mc/validator CustomGeoJSON))
+  {s/Keyword {:name                     su/NonBlankString
+              :url                      su/NonBlankString
+              :region_key               (s/maybe s/Str)
+              :region_name              (s/maybe s/Str)
+              (s/optional-key :builtin) s/Bool}})
 
 (def ^:private builtin-geojson
   {:us_states       {:name        "United States"
@@ -48,7 +44,7 @@
                      :region_name "NAME"
                      :builtin     true}})
 
-(defn- invalid-location-msg []
+(defn-  invalid-location-msg []
   (str (tru "Invalid GeoJSON file location: must either start with http:// or https:// or be a relative path to a file on the classpath.")
        " "
        (tru "URLs referring to hosts that supply internal hosting metadata are prohibited.")))
@@ -91,8 +87,10 @@
 (defn- validate-geojson
   "Throws a 400 if the supplied `geojson` is poorly structured or has an illegal URL/path"
   [geojson]
-  (when-not (CustomGeoJSONValidator geojson)
-    (throw (ex-info (tru "Invalid custom GeoJSON") {:status-code 400})))
+  (try
+    (s/validate CustomGeoJSON geojson)
+    (catch Throwable e
+      (throw (ex-info (tru "Invalid custom GeoJSON") {:status-code 400} e))))
   (or (valid-geojson-urls? geojson)
       (throw (ex-info (invalid-location-msg) {:status-code 400}))))
 
@@ -107,10 +105,7 @@
                (when new-value
                  (validate-geojson new-value))
                (setting/set-value-of-type! :json :custom-geojson new-value)))
-  :visibility :public
-  :audit      :raw-value)
-
-(def ^:private connection-timeout-ms 8000)
+  :visibility :public)
 
 (defn- read-url-and-respond
   "Reads the provided URL and responds with the contents as a stream."
@@ -119,17 +114,18 @@
                                        (io/reader resource)
                                        (:body (http/get url {:as                 :reader
                                                              :redirect-strategy  :none
-                                                             :socket-timeout     connection-timeout-ms
-                                                             :connection-timeout connection-timeout-ms})))
+                                                             :socket-timeout     8000
+                                                             :connection-timeout 8000})))
               is                     (ReaderInputStream. reader)]
     (respond (-> (response/response is)
                  (response/content-type "application/json")))))
 
-(api/defendpoint-async GET "/:key"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-async-schema GET "/:key"
   "Fetch a custom GeoJSON file as defined in the `custom-geojson` setting. (This just acts as a simple proxy for the
   file specified for `key`)."
   [{{:keys [key]} :params} respond raise]
-  {key ms/NonBlankString}
+  {key su/NonBlankString}
   (when-not (or (custom-geojson-enabled) (builtin-geojson (keyword key)))
     (raise (ex-info (tru "Custom GeoJSON is not enabled") {:status-code 400})))
   (if-let [url (get-in (custom-geojson) [(keyword key) :url])]
@@ -139,11 +135,12 @@
         (raise (ex-info (tru "GeoJSON URL failed to load") {:status-code 400}))))
     (raise (ex-info (tru "Invalid custom GeoJSON key: {0}" key) {:status-code 400}))))
 
-(api/defendpoint-async GET "/"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-async-schema GET "/"
   "Load a custom GeoJSON file based on a URL or file path provided as a query parameter.
   This behaves similarly to /api/geojson/:key but doesn't require the custom map to be saved to the DB first."
   [{{:keys [url]} :params} respond raise]
-  {url ms/NonBlankString}
+  {url su/NonBlankString}
   (validation/check-has-application-permission :setting)
   (when-not (custom-geojson-enabled)
     (raise (ex-info (tru "Custom GeoJSON is not enabled") {:status-code 400})))

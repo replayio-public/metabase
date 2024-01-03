@@ -11,6 +11,8 @@ describe("issue 19737", () => {
   beforeEach(() => {
     restore();
     cy.signInAsAdmin();
+
+    cy.request("PUT", "/api/card/1", { name: modelName, dataset: true });
   });
 
   it("should show moved model in the data picker without refreshing (metabase#19737)", () => {

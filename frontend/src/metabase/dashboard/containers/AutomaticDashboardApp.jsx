@@ -8,7 +8,7 @@ import _ from "underscore";
 import { dissoc } from "icepick";
 import title from "metabase/hoc/Title";
 import withToast from "metabase/hoc/Toast";
-import { DashboardData } from "metabase/dashboard/hoc/DashboardData";
+import DashboardData from "metabase/dashboard/hoc/DashboardData";
 
 import ActionButton from "metabase/components/ActionButton";
 import Button from "metabase/core/components/Button";
@@ -22,7 +22,7 @@ import { Dashboard } from "metabase/dashboard/containers/Dashboard";
 import SyncedParametersList from "metabase/parameters/components/SyncedParametersList/SyncedParametersList";
 
 import { getMetadata } from "metabase/selectors/metadata";
-import { getIsHeaderVisible, getTabs } from "metabase/dashboard/selectors";
+import { getIsHeaderVisible } from "metabase/dashboard/selectors";
 
 import Collections from "metabase/entities/collections";
 import Dashboards from "metabase/entities/dashboards";
@@ -32,13 +32,10 @@ import { color } from "metabase/lib/colors";
 import { getValuePopulatedParameters } from "metabase-lib/parameters/utils/parameter-values";
 import * as Q from "metabase-lib/queries/utils/query";
 import { getFilterDimension } from "metabase-lib/queries/utils/dimension";
-import { isSegment } from "metabase-lib/queries/utils/filter";
 
-import { DashboardTabs } from "../components/DashboardTabs";
 import {
   ItemContent,
   ItemDescription,
-  ItemLink,
   ListRoot,
   SidebarHeader,
   SidebarRoot,
@@ -52,7 +49,6 @@ const mapStateToProps = (state, props) => ({
   metadata: getMetadata(state),
   dashboardId: getDashboardId(state, props),
   isHeaderVisible: getIsHeaderVisible(state),
-  tabs: getTabs(state),
 });
 
 const mapDispatchToProps = {
@@ -124,11 +120,8 @@ class AutomaticDashboardAppInner extends Component {
       >
         <div className="" style={{ marginRight: hasSidebar ? 346 : undefined }}>
           {isHeaderVisible && (
-            <div
-              className="bg-white border-bottom"
-              data-testid="automatic-dashboard-header"
-            >
-              <div className="wrapper flex align-center py2">
+            <div className="bg-white border-bottom py2">
+              <div className="wrapper flex align-center">
                 <XrayIcon name="bolt" size={24} />
                 <div>
                   <h2 className="text-wrap mr2">
@@ -154,11 +147,6 @@ class AutomaticDashboardAppInner extends Component {
                   </ActionButton>
                 )}
               </div>
-              {this.props.tabs.length > 1 && (
-                <div className="wrapper flex align-center">
-                  <DashboardTabs location={this.props.location} />
-                </div>
-              )}
             </div>
           )}
 
@@ -175,7 +163,7 @@ class AutomaticDashboardAppInner extends Component {
                 />
               </div>
             )}
-            <Dashboard isXray {...this.props} />
+            <Dashboard {...this.props} />
           </div>
           {more && (
             <div className="flex justify-end px4 pb4">
@@ -204,7 +192,7 @@ class AutomaticDashboardAppInner extends Component {
   }
 }
 
-export const AutomaticDashboardAppConnected = _.compose(
+const AutomaticDashboardApp = _.compose(
   connect(mapStateToProps, mapDispatchToProps),
   DashboardData,
   withToast,
@@ -233,7 +221,7 @@ const TransientFilter = ({ filter, metadata }) => {
     <div className="mr3">
       <Icon
         size={12}
-        name={getIconForFilter(filter, dimension)}
+        name={getIconForFilter(dimension.field())}
         className="mr1"
       />
       <Filter filter={filter} metadata={metadata} />
@@ -241,14 +229,8 @@ const TransientFilter = ({ filter, metadata }) => {
   );
 };
 
-const getIconForFilter = (filter, dimension) => {
-  const field = dimension?.field();
-
-  if (isSegment(filter)) {
-    return "star";
-  } else if (!field) {
-    return "label";
-  } else if (field.isDate()) {
+const getIconForFilter = field => {
+  if (field.isDate()) {
     return "calendar";
   } else if (field.isLocation()) {
     return "location";
@@ -285,13 +267,13 @@ const SuggestionsList = ({ suggestions, section }) => (
         </SuggestionSectionHeading>
         {suggestions[s].length > 0 &&
           suggestions[s].map((item, itemIndex) => (
-            <ItemLink
+            <Link
               key={itemIndex}
               to={item.url}
-              className="hover-parent hover--visibility"
+              className="mb1 block hover-parent hover--visibility text-brand-hover"
               data-metabase-event={`Auto Dashboard;Click Related;${s}`}
             >
-              <Card className="p2" hoverable>
+              <Card p={2} hoverable>
                 <ItemContent>
                   <Icon
                     name={RELATED_CONTENT[s].icon}
@@ -306,7 +288,7 @@ const SuggestionsList = ({ suggestions, section }) => (
                   </ItemDescription>
                 </ItemContent>
               </Card>
-            </ItemLink>
+            </Link>
           ))}
       </li>
     ))}
@@ -331,3 +313,5 @@ const SuggestionsSidebar = ({ related }) => (
     <SuggestionsList suggestions={related} />
   </SidebarRoot>
 );
+
+export default AutomaticDashboardApp;

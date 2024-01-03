@@ -1,4 +1,4 @@
-import type {
+import {
   FontStyle,
   TextMeasurer,
 } from "metabase/visualizations/shared/types/measure-text";
@@ -14,15 +14,5 @@ export const measureText: TextMeasurer = (text: string, style: FontStyle) => {
   }
 
   context.font = `${style.weight} ${style.size} ${style.family}`;
-  const textMetrics = context.measureText(text);
-
-  return {
-    width: textMetrics.width,
-    height:
-      textMetrics.actualBoundingBoxAscent +
-      textMetrics.actualBoundingBoxDescent,
-  };
+  return context.measureText(text).width;
 };
-
-export const measureTextWidth = (text: string, style: FontStyle) =>
-  measureText(text, style).width;

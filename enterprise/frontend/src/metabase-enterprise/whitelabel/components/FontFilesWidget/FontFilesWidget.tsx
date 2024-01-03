@@ -1,9 +1,8 @@
-import type { FocusEvent } from "react";
-import { useCallback, useMemo } from "react";
+import { FocusEvent, useCallback, useMemo } from "react";
 import { t } from "ttag";
 import Input from "metabase/core/components/Input";
-import type { FontFile } from "metabase-types/api";
-import type { FontFileOption, FontFilesSetting } from "./types";
+import { FontFile } from "metabase-types/api";
+import { FontFileOption, FontFilesSetting } from "./types";
 import { FONT_OPTIONS, getFontFiles, getFontUrls } from "./utils";
 import {
   TableBody,

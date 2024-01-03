@@ -1,4 +1,4 @@
-import type { HTMLAttributes } from "react";
+import { HTMLAttributes } from "react";
 import { useField } from "formik";
 import { t } from "ttag";
 

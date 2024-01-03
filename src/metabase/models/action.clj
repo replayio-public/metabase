@@ -3,6 +3,7 @@
    [cheshire.core :as json]
    [medley.core :as m]
    [metabase.models.card :refer [Card]]
+   [metabase.models.dashboard-card :refer [DashboardCard]]
    [metabase.models.interface :as mi]
    [metabase.models.query :as query]
    [metabase.models.serialization :as serdes]
@@ -10,6 +11,7 @@
    [metabase.util.i18n :refer [tru]]
    [metabase.util.log :as log]
    [methodical.core :as methodical]
+   [toucan.db :as db]
    [toucan2.core :as t2]))
 
 ;;; -------------------------------------------- Entity & Life Cycle ----------------------------------------------
@@ -43,18 +45,11 @@
 (methodical/defmethod t2/primary-keys :model/HTTPAction     [_model] [:action_id])
 (methodical/defmethod t2/primary-keys :model/ImplicitAction [_model] [:action_id])
 
-(def ^:private transform-action-visualization-settings
-  {:in  mi/json-in
-   :out (comp (fn [viz-settings]
-                ;; the keys of :fields should be strings, not keywords
-                (m/update-existing viz-settings :fields update-keys name))
-              mi/json-out-with-keywordization)})
-
 (t2/deftransforms :model/Action
   {:type                   mi/transform-keyword
    :parameter_mappings     mi/transform-parameters-list
    :parameters             mi/transform-parameters-list
-   :visualization_settings transform-action-visualization-settings})
+   :visualization_settings mi/transform-visualization-settings})
 
 (t2/deftransforms :model/QueryAction
   ;; shouldn't this be mi/transform-metabase-query?
@@ -92,7 +87,7 @@
   [{archived? :archived, id :id, model-id :model_id, :as changes}]
   (u/prog1 changes
     (if archived?
-      (t2/delete! :model/DashboardCard :action_id id)
+      (t2/delete! DashboardCard :action_id id)
       (check-model-is-not-a-saved-question model-id))))
 
 (defmethod mi/perms-objects-set :model/Action
@@ -263,10 +258,10 @@
                                                  [(:id card) (:database_id card)]))
         model-id->implicit-parameters (when (seq implicit-action-models)
                                         (implicit-action-parameters implicit-action-models))]
-    (for [action actions]
+    (for [{:keys [parameters] :as action} actions]
       (if (= (:type action) :implicit)
         (let [model-id        (:model_id action)
-              saved-params    (m/index-by :id (:parameters action))
+              saved-params    (m/index-by :id parameters)
               action-kind     (:kind action)
               implicit-params (cond->> (get model-id->implicit-parameters model-id)
                                 :always
@@ -287,20 +282,7 @@
                                 (map #(dissoc % ::pk? ::field-id)))]
           (cond-> (assoc action :database_id (model-id->db-id (:model_id action)))
             (seq implicit-params)
-            (-> (assoc :parameters implicit-params)
-                (update-in [:visualization_settings :fields]
-                           (fn [fields]
-                             (let [param-ids (map :id implicit-params)
-                                   fields    (->> (or fields {})
-                                                  ;; remove entries that don't match params (in case of deleted columns)
-                                                  (m/filter-keys (set param-ids)))]
-                               ;; add default entries for params that don't have an entry
-                               (reduce (fn [acc param-id]
-                                         (if (contains? acc param-id)
-                                           acc
-                                           (assoc acc param-id {:id param-id, :hidden false})))
-                                       fields
-                                       param-ids)))))))
+            (assoc :parameters implicit-params)))
         action))))
 
 (defn select-action
@@ -313,11 +295,9 @@
   "Adds a boolean field `:database-enabled-actions` to each action according to the `database-enable-actions` setting for
    the action's database."
   [actions]
-  (let [action-ids                  (map :id actions)
-        get-database-enable-actions (fn [{:keys [settings]}]
-                                      (boolean (some-> settings
-                                                       ((get-in (t2/transforms :model/Database) [:settings :out]))
-                                                       :database-enable-actions)))
+  (let [action-ids (map :id actions)
+        get-database-enable-actions (fn [db]
+                                      (boolean (some-> db :settings (#(json/parse-string % true)) :database-enable-actions)))
         id->database-enable-actions (into {}
                                           (map (juxt :id get-database-enable-actions))
                                           (t2/query {:select [:action.id :db.settings]
@@ -341,17 +321,11 @@
     (for [dashcard dashcards]
       (m/assoc-some dashcard :action (get actions-by-id (:action_id dashcard))))))
 
-(defn dashcard->action
-  "Get the action associated with a dashcard if exists, return `nil` otherwise."
-  [dashcard-or-dashcard-id]
-  (some->> (t2/select-one-fn :action_id :model/DashboardCard :id (u/the-id dashcard-or-dashcard-id))
-           (select-action :id)))
-
 ;;; ------------------------------------------------ Serialization ---------------------------------------------------
 
 (defmethod serdes/extract-query "Action" [_model _opts]
   (eduction (map hydrate-subtype)
-            (t2/reducible-select Action)))
+            (db/select-reducible 'Action)))
 
 (defmethod serdes/hash-fields :model/Action [_action]
   [:name (serdes/hydrated-hash :model) :created_at])
@@ -372,9 +346,6 @@
       (update :type keyword)
       (cond-> (= (:type action) "query")
         (update :database_id serdes/*import-fk-keyed* 'Database :name))))
-
-(defmethod serdes/ingested-model-columns "Action" [_ingested]
-  (into #{} (conj action-columns :database_id :dataset_query :kind :template :response_handle :error_handle :type)))
 
 (defmethod serdes/load-update! "Action" [_model-name ingested local]
   (log/tracef "Upserting Action %d: old %s new %s" (:id local) (pr-str local) (pr-str ingested))

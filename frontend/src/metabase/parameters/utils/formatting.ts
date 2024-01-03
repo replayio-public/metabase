@@ -6,11 +6,7 @@ import {
   getParameterType,
 } from "metabase-lib/parameters/utils/parameter-type";
 
-import type { UiParameter } from "metabase-lib/parameters/types";
-import {
-  getFields,
-  hasFields,
-} from "metabase-lib/parameters/utils/parameter-fields";
+import { UiParameter } from "metabase-lib/parameters/types";
 import { formatDateValue } from "./date-formatting";
 
 function inferValueType(parameter: UiParameter) {
@@ -55,13 +51,12 @@ export function formatParameterValue(
     }
 
     // format using the parameter's first targeted field
-    if (hasFields(parameter)) {
-      const fields = getFields(parameter);
-      const [firstField] = fields;
+    if (parameter.fields.length > 0) {
+      const [firstField] = parameter.fields;
       // when a parameter targets multiple fields we won't know
       // which parameter the value is associated with, meaning we
       // are unable to remap the value to the correct field
-      const remap = fields.length === 1;
+      const remap = parameter.fields.length === 1;
       return formatValue(value as string, {
         column: firstField,
         maximumFractionDigits: 20,

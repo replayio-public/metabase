@@ -1,5 +1,4 @@
-import type { ErrorInfo, ComponentType } from "react";
-import { Component } from "react";
+import { Component, ErrorInfo, ComponentType } from "react";
 
 import { SmallGenericError } from "metabase/containers/ErrorPages";
 

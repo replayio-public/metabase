@@ -1,7 +1,7 @@
 import userEvent from "@testing-library/user-event";
-import { checkNotNull } from "metabase/lib/types";
+import { checkNotNull } from "metabase/core/utils/types";
 import { getMetadata } from "metabase/selectors/metadata";
-import type { Card, Dataset } from "metabase-types/api";
+import { Card, Dataset } from "metabase-types/api";
 import {
   createMockCard,
   createMockDataset,

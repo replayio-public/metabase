@@ -4,12 +4,11 @@
    [cheshire.core :as json]
    [clj-http.client :as http]
    [clojure.string :as str]
-   [java-time.api :as t]
+   [java-time :as t]
    [medley.core :as m]
    [metabase.analytics.snowplow :as snowplow]
    [metabase.config :as config]
    [metabase.db.query :as mdb.query]
-   [metabase.db.util :as mdb.u]
    [metabase.driver :as driver]
    [metabase.email :as email]
    [metabase.integrations.google :as google]
@@ -27,6 +26,7 @@
             PulseCard
             PulseChannel
             QueryCache
+            QueryExecution
             Segment
             Table
             User]]
@@ -36,6 +36,7 @@
    [metabase.util.honey-sql-2 :as h2x]
    [metabase.util.i18n :refer [trs]]
    [metabase.util.log :as log]
+   [toucan.db :as db]
    [toucan2.core :as t2]))
 
 (set! *warn-on-reflection* true)
@@ -45,7 +46,6 @@
   considered to add a count of `1`, while non-truthy values do not affect the result count."
   [ms]
   (reduce (partial merge-with +)
-          {}
           (for [m ms]
             (m/map-vals #(cond
                            (number? %) %
@@ -139,20 +139,18 @@
    :slack_configured     (slack/slack-configured?)
    :sso_configured       (google/google-auth-enabled)
    :instance_started     (snowplow/instance-creation)
-   :has_sample_data      (t2/exists? Database, :is_sample true)
-   :help_link            (public-settings/help-link)})
+   :has_sample_data      (t2/exists? Database, :is_sample true)})
 
 (defn- user-metrics
   "Get metrics based on user records.
   TODO: get activity in terms of created questions, pulses and dashboards"
   []
-  {:users (merge-count-maps (for [user (t2/select [User :is_active :is_superuser :last_login :sso_source]
-                                                  :type :personal)]
+  {:users (merge-count-maps (for [user (t2/select [User :is_active :is_superuser :last_login :sso_source])]
                               {:total     1
                                :active    (:is_active    user)
                                :admin     (:is_superuser user)
                                :logged_in (:last_login   user)
-                               :sso       (= :google (:sso_source user))}))})
+                               :sso       (= :google (:sso_source  user))}))})
 
 (defn- group-metrics
   "Get metrics based on groups:
@@ -228,9 +226,9 @@
 
     ;; Include `WHERE` clause that includes conditions for a Table related by an FK relationship:
     ;; (Number of Tables per DB engine)
-    (db-frequencies Table (mdb.u/qualify Database :engine)
-      {:left-join [Database [:= (mdb.u/qualify Database :id)
-                                (mdb.u/qualify Table :db_id)]]})
+    (db-frequencies Table (db/qualify Database :engine)
+      {:left-join [Database [:= (db/qualify Database :id)
+                                (db/qualify Table :db_id)]]})
     ;; -> {\"googleanalytics\" 4, \"postgres\" 48, \"h2\" 9}"
   {:style/indent 2}
   [model column & [additonal-honeysql]]
@@ -273,7 +271,7 @@
      :num_cards_per_pulses (medium-histogram (vals (db-frequencies PulseCard :pulse_id   pulse-conditions)))}))
 
 (defn- alert-metrics []
-  (let [alert-conditions {:left-join [:pulse [:= :pulse.id :pulse_id]], :where [:not= (mdb.u/qualify Pulse :alert_condition) nil]}]
+  (let [alert-conditions {:left-join [:pulse [:= :pulse.id :pulse_id]], :where [:not= (db/qualify Pulse :alert_condition) nil]}]
     {:alerts               (t2/count Pulse :alert_condition [:not= nil])
      :with_table_cards     (num-notifications-with-xls-or-csv-cards [:not= :alert_condition nil])
      :first_time_only      (t2/count Pulse :alert_condition [:not= nil], :alert_first_only true)
@@ -339,7 +337,7 @@
 (defn summarize-executions
   "Summarize `executions`, by incrementing approriate counts in a summary map."
   ([]
-   (summarize-executions (t2/reducible-select [:model/QueryExecution :executor_id :running_time :error])))
+   (summarize-executions (db/select-reducible [QueryExecution :executor_id :running_time :error])))
   ([executions]
    (reduce summarize-executions {:executions 0, :by_status {}, :num_per_user {}, :num_by_latency {}} executions))
   ([summary execution]

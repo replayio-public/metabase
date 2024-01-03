@@ -1,16 +1,15 @@
 import { t } from "ttag";
 import _ from "underscore";
 import * as Urls from "metabase/lib/urls";
-import api from "metabase/lib/api";
 import { getCardKey } from "metabase/visualizations/lib/utils";
 import { saveChartImage } from "metabase/visualizations/lib/save-chart-image";
-import type {
+import {
   DashboardId,
   DashCardId,
   Dataset,
   VisualizationSettings,
 } from "metabase-types/api";
-import type Question from "metabase-lib/Question";
+import Question from "metabase-lib/Question";
 
 export interface DownloadQueryResultsOpts {
   type: string;
@@ -70,7 +69,7 @@ const getDatasetParams = ({
     return {
       method: "GET",
       url: `/api/embed/dashboard/${token}/dashcard/${dashcardId}/card/${cardId}/${type}`,
-      params: Urls.getEncodedUrlSearchParams(params),
+      params: new URLSearchParams(Urls.extractQueryParams(params)),
     };
   }
 
@@ -89,7 +88,7 @@ const getDatasetParams = ({
   if (isPublicQuestion) {
     return {
       method: "GET",
-      url: Urls.publicQuestion({ uuid, type, includeSiteUrl: false }),
+      url: Urls.publicQuestion(uuid, type),
       params: new URLSearchParams({
         parameters: JSON.stringify(result?.json_query?.parameters ?? []),
       }),
@@ -128,25 +127,15 @@ const getDatasetParams = ({
   };
 };
 
-export function getDatasetDownloadUrl(url: string) {
-  // make url relative if it's not
-  url = url.replace(api.basename, "");
-  const requestUrl = new URL(api.basename + url, location.origin);
-
-  return requestUrl.href;
-}
-
 const getDatasetResponse = ({
   url,
   method,
   params,
 }: DownloadQueryResultsParams) => {
-  const requestUrl = getDatasetDownloadUrl(url);
-
   if (method === "POST") {
-    return fetch(requestUrl, { method, body: params });
+    return fetch(url, { method, body: params });
   } else {
-    return fetch(`${requestUrl}?${params}`);
+    return fetch(`${url}?${params}`);
   }
 };
 

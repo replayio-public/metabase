@@ -63,5 +63,7 @@ describe("issue 24994", () => {
 });
 
 function assertFilterValueIsSelected(value) {
-  cy.findByRole("checkbox", { name: value }).should("be.checked");
+  cy.findByTestId(`${value}-filter-value`).within(() =>
+    cy.get("input").should("be.checked"),
+  );
 }

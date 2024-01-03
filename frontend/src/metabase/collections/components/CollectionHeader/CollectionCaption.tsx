@@ -2,12 +2,10 @@ import { useCallback } from "react";
 import { t } from "ttag";
 import { PLUGIN_COLLECTION_COMPONENTS } from "metabase/plugins";
 import {
-  isRootPersonalCollection,
+  isPersonalCollection,
   isRootCollection,
 } from "metabase/collections/utils";
-import { color } from "metabase/lib/colors";
-import type { Collection } from "metabase-types/api";
-
+import { Collection } from "metabase-types/api";
 import {
   CaptionDescription,
   CaptionRoot,
@@ -20,12 +18,12 @@ export interface CollectionCaptionProps {
   onUpdateCollection: (entity: Collection, values: Partial<Collection>) => void;
 }
 
-export const CollectionCaption = ({
+const CollectionCaption = ({
   collection,
   onUpdateCollection,
 }: CollectionCaptionProps): JSX.Element => {
   const isRoot = isRootCollection(collection);
-  const isPersonal = isRootPersonalCollection(collection);
+  const isPersonal = isPersonalCollection(collection);
   const isEditable = !isRoot && !isPersonal && collection.can_write;
   const hasDescription = Boolean(collection.description);
 
@@ -46,7 +44,10 @@ export const CollectionCaption = ({
   return (
     <CaptionRoot>
       <CaptionTitleContainer>
-        <CollectionCaptionIcon collection={collection} />
+        <PLUGIN_COLLECTION_COMPONENTS.CollectionAuthorityLevelIcon
+          collection={collection}
+          size={24}
+        />
         <CaptionTitle
           key={collection.id}
           initialValue={collection.name}
@@ -73,22 +74,5 @@ export const CollectionCaption = ({
   );
 };
 
-const CollectionCaptionIcon = ({ collection }: { collection: Collection }) => {
-  if (!collection.type) {
-    return (
-      <PLUGIN_COLLECTION_COMPONENTS.CollectionAuthorityLevelIcon
-        collection={collection}
-        size={24}
-      />
-    );
-  } else {
-    return (
-      <PLUGIN_COLLECTION_COMPONENTS.CollectionInstanceAnalyticsIcon
-        size={24}
-        color={color("brand")}
-        collection={collection}
-        entity="collection"
-      />
-    );
-  }
-};
+// eslint-disable-next-line import/no-default-export -- deprecated usage
+export default CollectionCaption;

@@ -5,7 +5,15 @@ const {
   NodeModulesPolyfillPlugin,
 } = require("@esbuild-plugins/node-modules-polyfill");
 
-const isEnterprise = process.env["MB_EDITION"] === "ee";
+/**
+ * This env var provides the token to the backend.
+ * If it is not present, we skip some tests that depend on a valid token.
+ *
+ * @type {boolean}
+ */
+const hasEnterpriseToken =
+  process.env["MB_PREMIUM_EMBEDDING_TOKEN"] &&
+  process.env["MB_EDITION"] === "ee";
 
 const hasSnowplowMicro = process.env["MB_SNOWPLOW_AVAILABLE"];
 const snowplowMicroUrl = process.env["MB_SNOWPLOW_URL"];
@@ -19,15 +27,10 @@ const runWithReplay = process.env["CYPRESS_REPLAYIO_ENABLED"];
 const runWithDeploySentinel = process.env["DEPLOYSENTINEL_ENABLED"];
 const videoEnabled = process.env["CYPRESS_VIDEO_ENABLED"];
 
-const feHealthcheckEnabled = process.env["CYPRESS_FE_HEALTHCHECK"] === "true";
-
 // This function is called when a project is opened or re-opened (e.g. due to
 // the project's config changing)
 
 const createBundler = require("@bahmutov/cypress-esbuild-preprocessor");
-const {
-  removeDirectory,
-} = require("./commands/downloads/deleteDownloadsFolder");
 
 const defaultConfig = {
   // This is the functionality of the old cypress-plugins.js file
@@ -47,14 +50,6 @@ const defaultConfig = {
     /********************************************************************
      **                        PREPROCESSOR                            **
      ********************************************************************/
-
-    if (runWithReplay) {
-      on = replay.wrapOn(on);
-      replay.default(on, config, {
-        upload: true,
-        apiKey: process.env.REPLAY_API_KEY,
-      });
-    }
 
     on(
       "file:preprocessor",
@@ -87,13 +82,8 @@ const defaultConfig = {
      **                           TASKS                                **
      ********************************************************************/
     on("task", {
-      log(...messages) {
-        console.log(...messages);
-        return null; // tasks must have a return value
-      },
       ...dbTasks,
       ...verifyDownloadTasks,
-      removeDirectory,
     });
 
     /********************************************************************
@@ -109,42 +99,42 @@ const defaultConfig = {
     config.env.grepIntegrationFolder = "../../";
     config.env.grepFilterSpecs = true;
 
-    config.env.IS_ENTERPRISE = isEnterprise;
+    config.env.HAS_ENTERPRISE_TOKEN = hasEnterpriseToken;
     config.env.HAS_SNOWPLOW_MICRO = hasSnowplowMicro;
     config.env.SNOWPLOW_MICRO_URL = snowplowMicroUrl;
     config.env.SOURCE_VERSION = sourceVersion;
     config.env.TARGET_VERSION = targetVersion;
-    // Set on local, development-mode runs only
-    config.env.feHealthcheck = {
-      enabled: feHealthcheckEnabled,
-      url: feHealthcheckEnabled
-        ? "http://localhost:8080/webpack-dev-server/"
-        : undefined,
-    };
 
     require("@cypress/grep/src/plugin")(config);
+
+    if (runWithReplay) {
+      replay.default(on, config);
+    }
 
     return config;
   },
   supportFile: "e2e/support/cypress.js",
+  videoUploadOnPasses: false,
   chromeWebSecurity: false,
   modifyObstructiveCode: false,
   // New `specPattern` is the combination of the old:
   //   1. testFiles and
   //   2. integrationFolder
-  specPattern: "e2e/test/**/*.cy.spec.{js,ts}",
+  specPattern: "e2e/test/**/*.cy.spec.js",
 };
 
 const mainConfig = {
   ...defaultConfig,
-  projectId: "ywjy9z",
+  projectId: "KetpiS",
   viewportHeight: 800,
   viewportWidth: 1280,
-  numTestsKeptInMemory: process.env["CI"] ? 1 : 50,
-  reporter: "junit",
+  reporter: "mochawesome",
   reporterOptions: {
-    mochaFile: "./target/junit/[hash].xml",
-    toConsole: true,
+    reportDir: "cypress/reports/mochareports",
+    reportFilename: "[status]-[name]",
+    quiet: true,
+    html: false,
+    json: true,
   },
   retries: {
     // NOTE: Metabase uses 4 as the default, but we set it to 0 to prevent false positives
@@ -162,13 +152,13 @@ const snapshotsConfig = {
 const crossVersionSourceConfig = {
   ...defaultConfig,
   baseUrl: "http://localhost:3000",
-  specPattern: "e2e/test/scenarios/cross-version/source/**/*.cy.spec.{js,ts}",
+  specPattern: "e2e/test/scenarios/cross-version/source/**/*.cy.spec.js",
 };
 
 const crossVersionTargetConfig = {
   ...defaultConfig,
   baseUrl: "http://localhost:3001",
-  specPattern: "e2e/test/scenarios/cross-version/target/**/*.cy.spec.{js,ts}",
+  specPattern: "e2e/test/scenarios/cross-version/target/**/*.cy.spec.js",
 };
 
 const stressTestConfig = {

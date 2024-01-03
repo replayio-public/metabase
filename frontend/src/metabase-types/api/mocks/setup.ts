@@ -1,7 +1,4 @@
-import type {
-  SetupCheckListItem,
-  SetupCheckListTask,
-} from "metabase-types/api";
+import { SetupCheckListItem, SetupCheckListTask } from "metabase-types/api";
 
 export const createMockSetupCheckListItem = (
   opts?: Partial<SetupCheckListItem>,

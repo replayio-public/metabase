@@ -1,4 +1,4 @@
-import type { Database } from "metabase-types/api";
+import { Database } from "metabase-types/api";
 import { createMockMetadata } from "__support__/metadata";
 import { createMockDatabase, createMockTable } from "metabase-types/api/mocks";
 import NativeQuery from "metabase-lib/queries/NativeQuery";

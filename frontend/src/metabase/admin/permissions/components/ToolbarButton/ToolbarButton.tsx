@@ -1,5 +1,4 @@
-import { Text } from "metabase/ui";
-import type { IconName } from "metabase/core/components/Icon";
+import { IconName } from "metabase/core/components/Icon";
 import { ToolbarButtonIcon, ToolbarButtonRoot } from "./ToolbarButton.styled";
 
 interface ToolbarButtonProps {
@@ -12,7 +11,7 @@ export const ToolbarButton = ({ onClick, text, icon }: ToolbarButtonProps) => {
   return (
     <ToolbarButtonRoot onClick={onClick}>
       <ToolbarButtonIcon name={icon} />
-      <Text>{text}</Text>
+      {text}
     </ToolbarButtonRoot>
   );
 };

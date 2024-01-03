@@ -1,14 +1,11 @@
 import {
+  getCollectionIdFromSlug,
   restore,
   popover,
   navigationSidebar,
   visitCollection,
 } from "e2e/support/helpers";
 import { USERS, SAMPLE_DB_TABLES } from "e2e/support/cypress_data";
-import {
-  ADMIN_PERSONAL_COLLECTION_ID,
-  FIRST_COLLECTION_ID,
-} from "e2e/support/cypress_sample_instance_data";
 
 import { getSidebarSectionTitle as getSectionTitle } from "e2e/support/helpers/e2e-collection-helpers";
 
@@ -37,7 +34,9 @@ describe("scenarios > organization > bookmarks > collection", () => {
   });
 
   it("can add, update bookmark name when collection name is updated, and remove bookmarks from collection from its page", () => {
-    visitCollection(FIRST_COLLECTION_ID);
+    getCollectionIdFromSlug("first_collection", id => {
+      visitCollection(id);
+    });
 
     // Add bookmark
     cy.icon("bookmark").click();
@@ -115,7 +114,7 @@ describe("scenarios > organization > bookmarks > collection", () => {
   });
 
   it("can remove bookmark from item in sidebar", () => {
-    cy.visit(`/collection/${ADMIN_PERSONAL_COLLECTION_ID}`);
+    cy.visit("/collection/1");
 
     // Add bookmark
     cy.icon("bookmark").click();
@@ -128,7 +127,7 @@ describe("scenarios > organization > bookmarks > collection", () => {
   });
 
   it("can toggle bookmark list visibility", () => {
-    cy.visit(`/collection/${ADMIN_PERSONAL_COLLECTION_ID}`);
+    cy.visit("/collection/1");
 
     // Add bookmark
     cy.icon("bookmark").click();

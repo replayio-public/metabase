@@ -1,9 +1,8 @@
-import { DEFAULT_CARD_SIZE, GRID_WIDTH } from "metabase/lib/dashboard_grid";
+import { GRID_WIDTH, DEFAULT_CARD_SIZE } from "metabase/lib/dashboard_grid";
 import { measureText } from "metabase/lib/measure-text";
 
 interface FindSizeInput {
   text: string;
-  targetHeight: number;
   targetWidth: number;
   unit: string;
   fontFamily: string;
@@ -15,7 +14,6 @@ interface FindSizeInput {
 
 export const findSize = ({
   text,
-  targetHeight,
   targetWidth,
   unit,
   fontFamily,
@@ -25,23 +23,24 @@ export const findSize = ({
   max,
 }: FindSizeInput) => {
   let size = max;
-  let metrics = measureText(text, {
+  let width = measureText(text, {
     size: `${size}${unit}`,
     family: fontFamily,
     weight: fontWeight,
   });
 
-  while (
-    (metrics.width > targetWidth || metrics.height > targetHeight) &&
-    size > min
-  ) {
-    size = Math.max(size - step, min);
+  if (width > targetWidth) {
+    while (width > targetWidth && size > min) {
+      size = Math.max(size - step, min);
 
-    metrics = measureText(text, {
-      size: `${size}${unit}`,
-      family: fontFamily,
-      weight: fontWeight,
-    });
+      width = measureText(text, {
+        size: `${size}${unit}`,
+        family: fontFamily,
+        weight: fontWeight,
+      });
+    }
+
+    return `${size}${unit}`;
   }
 
   return `${size}${unit}`;

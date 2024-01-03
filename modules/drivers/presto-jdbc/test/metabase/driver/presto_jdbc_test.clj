@@ -1,15 +1,14 @@
 (ns metabase.driver.presto-jdbc-test
   (:require
-   [clojure.string :as str]
+   [clojure.java.jdbc :as jdbc]
    [clojure.test :refer :all]
-   [honey.sql :as sql]
-   [java-time.api :as t]
+   [honeysql.format :as hformat]
+   [java-time :as t]
    [metabase.api.database :as api.database]
    [metabase.db.metadata-queries :as metadata-queries]
    [metabase.driver :as driver]
    [metabase.driver.presto-jdbc :as presto-jdbc]
    [metabase.driver.sql-jdbc.connection :as sql-jdbc.conn]
-   [metabase.driver.sql-jdbc.execute :as sql-jdbc.execute]
    [metabase.driver.sql.query-processor :as sql.qp]
    [metabase.models.database :refer [Database]]
    [metabase.models.field :refer [Field]]
@@ -19,6 +18,7 @@
    [metabase.test :as mt]
    [metabase.test.data.presto-jdbc :as data.presto-jdbc]
    [metabase.test.fixtures :as fixtures]
+   [metabase.util.honeysql-extensions :as hx]
    [toucan2.core :as t2]
    [toucan2.tools.with-temp :as t2.with-temp])
   (:import
@@ -31,9 +31,9 @@
 (deftest describe-database-test
   (mt/test-driver :presto-jdbc
     (is (= {:tables #{{:name "test_data_categories" :schema "default"}
+                      {:name "test_data_venues" :schema "default"}
                       {:name "test_data_checkins" :schema "default"}
-                      {:name "test_data_users" :schema "default"}
-                      {:name "test_data_venues" :schema "default"}}}
+                      {:name "test_data_users" :schema "default"}}}
            (-> (driver/describe-database :presto-jdbc (mt/db))
                (update :tables (comp set (partial filter (comp #{"test_data_categories"
                                                                  "test_data_venues"
@@ -87,41 +87,27 @@
                 (sort-by first)
                 (take 5))))))
 
-(deftest ^:parallel page-test
+(deftest page-test
   (testing ":page clause"
-    (let [honeysql (sql.qp/apply-top-level-clause :presto-jdbc :page
-                     {:select   [[:default.categories.name :name] [:default.categories.id :id]]
+    (is (= {:select ["name" "id"]
+            :from   [{:select   [[:default.categories.name "name"]
+                                 [:default.categories.id "id"]
+                                 [(hx/raw "row_number() OVER (ORDER BY \"default\".\"categories\".\"id\" ASC)")
+                                  :__rownum__]]
                       :from     [:default.categories]
-                      :order-by [[:default.categories.id :asc]]}
-                     {:page {:page  2
-                             :items 5}})]
-      (is (= [["SELECT"
-               "  \"name\","
-               "  \"id\""
-               "FROM"
-               "  ("
-               "    SELECT"
-               "      \"default\".\"categories\".\"name\" AS \"name\","
-               "      \"default\".\"categories\".\"id\" AS \"id\","
-               "      row_number() OVER ("
-               "        ORDER BY"
-               "          \"default\".\"categories\".\"id\" ASC"
-               "      ) AS \"__rownum__\""
-               "    FROM"
-               "      \"default\".\"categories\""
-               "    ORDER BY"
-               "      \"default\".\"categories\".\"id\" ASC"
-               "  )"
-               "WHERE"
-               "  \"__rownum__\" > 5"
-               "LIMIT"
-               "  5"]]
-             (-> (sql.qp/format-honeysql :presto-jdbc honeysql)
-                 (update 0 #(str/split-lines (driver/prettify-native-form :presto-jdbc %)))))))))
+                      :order-by [[:default.categories.id :asc]]}]
+            :where  [:> :__rownum__ 5]
+            :limit  5}
+           (sql.qp/apply-top-level-clause :presto-jdbc :page
+                                          {:select   [[:default.categories.name "name"] [:default.categories.id "id"]]
+                                           :from     [:default.categories]
+                                           :order-by [[:default.categories.id :asc]]}
+                                          {:page {:page  2
+                                                  :items 5}})))))
 
-(deftest ^:parallel db-default-timezone-test
+(deftest db-default-timezone-test
   (mt/test-driver :presto-jdbc
-    (is (= "UTC"
+    (is (= nil
            (driver/db-default-timezone :presto-jdbc (mt/db))))))
 
 (deftest template-tag-timezone-test
@@ -146,19 +132,19 @@
                                     :target ["variable" ["template-tag" "date"]]
                                     :value  "2014-08-02"}]}))))))))
 
-(deftest ^:parallel splice-strings-test
+(deftest splice-strings-test
   (mt/test-driver :presto-jdbc
     (let [query (mt/mbql-query venues
                   {:aggregation [[:count]]
                    :filter      [:= $name "wow"]})]
       (testing "The native query returned in query results should use user-friendly splicing"
-        (is (= (str "SELECT COUNT(*) AS \"count\" "
+        (is (= (str "SELECT count(*) AS \"count\" "
                     "FROM \"default\".\"test_data_venues\" "
                     "WHERE \"default\".\"test_data_venues\".\"name\" = 'wow'")
                (:query (qp/compile-and-splice-parameters query))
                (-> (qp/process-query query) :data :native_form :query)))))))
 
-(deftest ^:parallel connection-tests
+(deftest connection-tests
   (testing "db-name is correct in all cases"
     (doseq [[c s expected] [[nil nil ""]
                             ["" "" ""]
@@ -176,18 +162,15 @@
                                      :schema nil
                                      :additional-options "Option1=Value1&Option2=Value2"})))))
 
-(deftest ^:parallel honeysql-tests
+(deftest honeysql-tests
   (mt/test-driver :presto-jdbc
-    (mt/with-metadata-provider (mt/id)
+    (mt/with-everything-store
       (testing "Complex HoneySQL conversions work as expected"
         (testing "unix-timestamp with microsecond precision"
-          (is (= [["DATE_ADD("
-                   "  'millisecond',"
-                   "  mod((1623963256123456 / 1000), 1000),"
-                   "  FROM_UNIXTIME((1623963256123456 / 1000) / 1000, 'UTC')"
-                   ")"]]
-                 (-> (sql/format-expr (sql.qp/unix-timestamp->honeysql :presto-jdbc :microseconds [:raw 1623963256123456]))
-                     (update 0 #(str/split-lines (driver/prettify-native-form :presto-jdbc %)))))))))))
+          (is (= [(str "date_add('millisecond', mod((1623963256123456 / 1000), 1000),"
+                       " from_unixtime(((1623963256123456 / 1000) / 1000), 'UTC'))")]
+                 (-> (sql.qp/unix-timestamp->honeysql :presto-jdbc :microseconds (hx/raw 1623963256123456))
+                     (hformat/format)))))))))
 
 (defn- clone-db-details
   "Clones the details of the current DB ensuring fresh copies for the secrets
@@ -202,14 +185,11 @@
 
 (defn- execute-ddl! [ddl-statements]
   (mt/with-driver :presto-jdbc
-    (sql-jdbc.execute/do-with-connection-with-options
-     :presto-jdbc
-     (sql-jdbc.conn/connection-details->spec :presto-jdbc (clone-db-details))
-     {:write? true}
-     (fn [^java.sql.Connection conn]
-       (doseq [ddl-stmt ddl-statements]
-         (with-open [stmt (.prepareStatement conn ddl-stmt)]
-           (.executeUpdate stmt)))))))
+    (let [jdbc-spec (sql-jdbc.conn/connection-details->spec :presto-jdbc (clone-db-details))]
+      (with-open [conn (jdbc/get-connection jdbc-spec)]
+        (doseq [ddl-stmt ddl-statements]
+          (with-open [stmt (.prepareStatement conn ddl-stmt)]
+            (.executeUpdate stmt)))))))
 
 (deftest specific-schema-sync-test
   (mt/test-driver :presto-jdbc
@@ -240,7 +220,7 @@
       (let [db-details (assoc (:details (mt/db)) :let-user-control-scheduling false)]
         (is (nil? (api.database/test-database-connection :presto-jdbc db-details)))))))
 
-(deftest ^:parallel kerberos-properties-test
+(deftest kerberos-properties-test
   (testing "Kerberos related properties are set correctly"
     (let [details {:host                         "presto-server"
                    :port                         7778

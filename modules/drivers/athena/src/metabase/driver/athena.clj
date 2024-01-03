@@ -5,7 +5,7 @@
    [clojure.set :as set]
    [clojure.string :as str]
    [honey.sql :as sql]
-   [java-time.api :as t]
+   [java-time :as t]
    [medley.core :as m]
    [metabase.driver :as driver]
    [metabase.driver.athena.schema-parser :as athena.schema-parser]
@@ -22,12 +22,16 @@
    [metabase.util.i18n :refer [trs]]
    [metabase.util.log :as log])
   (:import
-   (java.sql Connection DatabaseMetaData)
+   (java.sql DatabaseMetaData)
    (java.time OffsetDateTime ZonedDateTime)))
 
 (set! *warn-on-reflection* true)
 
 (driver/register! :athena, :parent #{:sql-jdbc})
+
+(defmethod sql.qp/honey-sql-version :athena
+  [_driver]
+  2)
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                          metabase.driver method impls                                          |
@@ -188,8 +192,8 @@
   [_driver _top-level-clause honeysql-form {{:keys [items page]} :page}]
   ;; this is identical to the normal version except for the `::offset` instead of `:offset`
   (assoc honeysql-form
-         :limit (sql.qp/inline-num items)
-         ::offset (sql.qp/inline-num (* items (dec page)))))
+         :limit items
+         ::offset (* items (dec page))))
 
 (defn- date-trunc [unit expr] [:date_trunc (h2x/literal unit) expr])
 
@@ -364,17 +368,12 @@
 
 (defmethod driver/describe-table :athena
   [driver {{:keys [catalog]} :details, :as database} table]
-  (sql-jdbc.execute/do-with-connection-with-options
-   driver
-   database
-   nil
-   (fn [^Connection conn]
-     (let [metadata (.getMetaData conn)]
-       (assoc (select-keys table [:name :schema])
-              :fields (try
-                        (describe-table-fields metadata database driver table catalog)
-                        (catch Throwable _
-                          (set nil))))))))
+  (jdbc/with-db-metadata [metadata (sql-jdbc.conn/db->pooled-connection-spec database)]
+    (assoc (select-keys table [:name :schema])
+           :fields (try
+                     (describe-table-fields metadata database driver table catalog)
+                     (catch Throwable _
+                       (set nil))))))
 
 (defn- get-tables
   "Athena can query EXTERNAL and MANAGED tables."
@@ -425,13 +424,8 @@
 ; If we want to limit the initial connection to a specific database/schema, I think we'd have to do that here...
 (defmethod driver/describe-database :athena
   [driver {details :details, :as database}]
-  (sql-jdbc.execute/do-with-connection-with-options
-   driver
-   database
-   nil
-   (fn [^Connection conn]
-     (let [metadata (.getMetaData conn)]
-       {:tables (fast-active-tables driver metadata details)}))))
+  {:tables (jdbc/with-db-metadata [metadata (sql-jdbc.conn/db->pooled-connection-spec database)]
+             (fast-active-tables driver metadata details))})
 
 ; Unsure if this is the right way to approach building the parameterized query...but it works
 (defn- prepare-query [driver {query :native, :as outer-query}]

@@ -5,7 +5,6 @@ import {
   editDashboard,
   saveDashboard,
   sidebar,
-  getDashboardCard,
 } from "e2e/support/helpers";
 import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
 
@@ -43,14 +42,14 @@ describe("issue 22788", () => {
 
     cy.createQuestionAndDashboard({ questionDetails, dashboardDetails }).then(
       ({ body: { dashboard_id, card_id, id } }) => {
-        cy.request("PUT", `/api/dashboard/${dashboard_id}`, {
-          dashcards: [
+        cy.request("PUT", `/api/dashboard/${dashboard_id}/cards`, {
+          cards: [
             {
               id,
               card_id,
               row: 0,
               col: 0,
-              size_x: 11,
+              size_x: 8,
               size_y: 6,
               parameter_mappings: [
                 {
@@ -76,11 +75,12 @@ describe("issue 22788", () => {
     openFilterSettings();
 
     // Make sure the filter is still connected to the custom column
-
-    getDashboardCard().within(() => {
-      cy.findByText("Column to filter on");
-      cy.findByText(ccDisplayName);
-    });
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Column to filter on")
+      .parent()
+      .within(() => {
+        cy.findByText(ccDisplayName);
+      });
 
     // need to actually change the dashboard to test a real save
     sidebar().within(() => {

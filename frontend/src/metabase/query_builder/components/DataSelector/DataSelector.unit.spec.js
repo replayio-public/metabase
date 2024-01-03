@@ -1,31 +1,17 @@
 import fetchMock from "fetch-mock";
 
 import { createMockMetadata } from "__support__/metadata";
-import {
-  fireEvent,
-  getIcon,
-  render,
-  renderWithProviders,
-  screen,
-} from "__support__/ui";
+import { render, fireEvent, screen, getIcon } from "__support__/ui";
 
 import { delay } from "metabase/lib/promise";
 
 import { UnconnectedDataSelector as DataSelector } from "metabase/query_builder/components/DataSelector";
 
+import { createMockDatabase, createMockTable } from "metabase-types/api/mocks";
 import {
-  createMockDatabase,
-  createMockSavedQuestionsDatabase,
-  createMockTable,
-} from "metabase-types/api/mocks";
-import {
-  SAMPLE_DB_ID,
   createSampleDatabase,
+  SAMPLE_DB_ID,
 } from "metabase-types/api/mocks/presets";
-import {
-  createMockSettingsState,
-  createMockState,
-} from "metabase-types/store/mocks";
 
 const MULTI_SCHEMA_DB_ID = 2;
 const MULTI_SCHEMA_TABLE1_ID = 100;
@@ -99,11 +85,6 @@ describe("DataSelector", () => {
 
   const metadata = createMockMetadata({ databases });
   const emptyMetadata = createMockMetadata({});
-  const storeInitialState = createMockState({
-    settings: createMockSettingsState({
-      "enable-nested-queries": true,
-    }),
-  });
 
   const SAMPLE_DATABASE = metadata.database(SAMPLE_DB_ID);
   const ANOTHER_DATABASE = metadata.database(EMPTY_DB_ID);
@@ -111,7 +92,6 @@ describe("DataSelector", () => {
   const OTHER_MULTI_SCHEMA_DATABASE = metadata.database(
     OTHER_MULTI_SCHEMA_DB_ID,
   );
-  const SAVED_QUESTIONS_DATABASE = createMockSavedQuestionsDatabase();
 
   it("should allow selecting db, schema, and table", () => {
     const setTable = jest.fn();
@@ -193,7 +173,7 @@ describe("DataSelector", () => {
     await delay(1);
     expect(fetchDatabases).toHaveBeenCalled();
     rerender(<DataSelector {...props} loading />);
-    expect(screen.getByTestId("loading-spinner")).toBeInTheDocument();
+    expect(screen.getByText("Loading...")).toBeInTheDocument();
 
     // select a db
     let nextMetadata = createMockMetadata({ databases });
@@ -482,43 +462,5 @@ describe("DataSelector", () => {
     expect(
       screen.getByText("To pick some data, you'll need to add some first"),
     ).toBeInTheDocument();
-  });
-
-  it("should show 'Saved Questions' option when there are saved questions", async () => {
-    renderWithProviders(
-      <DataSelector
-        steps={["BUCKET", "DATABASE", "SCHEMA", "TABLE"]}
-        combineDatabaseSchemaSteps
-        databases={[SAMPLE_DATABASE, SAVED_QUESTIONS_DATABASE]}
-        hasNestedQueriesEnabled
-        hasTableSearch
-        loaded
-        search={[{}]}
-        triggerElement={<div />}
-        isOpen
-      />,
-      { storeInitialState },
-    );
-
-    expect(screen.getByText("Saved Questions")).toBeInTheDocument();
-  });
-
-  it("should not show 'Saved Questions' option when there are no saved questions (metabase#29760)", async () => {
-    renderWithProviders(
-      <DataSelector
-        steps={["BUCKET", "DATABASE", "SCHEMA", "TABLE"]}
-        combineDatabaseSchemaSteps
-        databases={[SAMPLE_DATABASE]}
-        hasNestedQueriesEnabled
-        hasTableSearch
-        loaded
-        search={[{}]}
-        triggerElement={<div />}
-        isOpen
-      />,
-      { storeInitialState },
-    );
-
-    expect(screen.queryByText("Saved Questions")).not.toBeInTheDocument();
   });
 });

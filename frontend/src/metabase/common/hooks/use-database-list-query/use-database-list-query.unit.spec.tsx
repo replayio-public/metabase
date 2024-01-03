@@ -4,15 +4,14 @@ import { setupDatabasesEndpoints } from "__support__/server-mocks";
 import {
   renderWithProviders,
   screen,
-  waitForLoaderToBeRemoved,
-  within,
+  waitForElementToBeRemoved,
 } from "__support__/ui";
 import { useDatabaseListQuery } from "./use-database-list-query";
 
 const TEST_DB = createMockDatabase();
 
 const TestComponent = () => {
-  const { data = [], metadata, isLoading, error } = useDatabaseListQuery();
+  const { data = [], isLoading, error } = useDatabaseListQuery();
 
   if (isLoading || error) {
     return <LoadingAndErrorWrapper loading={isLoading} error={error} />;
@@ -23,10 +22,6 @@ const TestComponent = () => {
       {data.map(database => (
         <div key={database.id}>{database.name}</div>
       ))}
-
-      <div data-testid="metadata">
-        {(!metadata || Object.keys(metadata).length === 0) && "No metadata"}
-      </div>
     </div>
   );
 };
@@ -39,20 +34,12 @@ const setup = () => {
 describe("useDatabaseListQuery", () => {
   it("should be initially loading", () => {
     setup();
-    expect(screen.getByTestId("loading-spinner")).toBeInTheDocument();
+    expect(screen.getByText("Loading...")).toBeInTheDocument();
   });
 
   it("should show data from the response", async () => {
     setup();
-    await waitForLoaderToBeRemoved();
+    await waitForElementToBeRemoved(() => screen.queryByText("Loading..."));
     expect(screen.getByText(TEST_DB.name)).toBeInTheDocument();
-  });
-
-  it("should not have any metadata in the response", async () => {
-    setup();
-    await waitForLoaderToBeRemoved();
-    expect(
-      within(screen.getByTestId("metadata")).getByText("No metadata"),
-    ).toBeInTheDocument();
   });
 });

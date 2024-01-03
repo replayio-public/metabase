@@ -8,8 +8,7 @@
    [metabase.util.date-2 :as u.date]
    [metabase.util.i18n :refer [trs]]
    [metabase.util.log :as log]
-   [metabase.util.malli :as mu]
-   [metabase.util.malli.schema :as ms]))
+   [schema.core :as s]))
 
 (def ^:private optimizable-units
   #{:second :minute :hour :day :week :month :quarter :year})
@@ -63,12 +62,10 @@
     (and (field-and-temporal-value-have-compatible-units? field temporal-value-1)
          (field-and-temporal-value-have-compatible-units? field temporal-value-2))))
 
-(mu/defn ^:private temporal-literal-lower-bound
-  [unit t :- (ms/InstanceOfClass java.time.temporal.Temporal)]
+(s/defn ^:private temporal-literal-lower-bound [unit t :- java.time.temporal.Temporal]
   (:start (u.date/range t unit)))
 
-(mu/defn ^:private temporal-literal-upper-bound
-  [unit t :- (ms/InstanceOfClass java.time.temporal.Temporal)]
+(s/defn ^:private temporal-literal-upper-bound [unit t :- java.time.temporal.Temporal]
   (:end (u.date/range t unit)))
 
 (defn- change-temporal-unit-to-default [field]
@@ -111,7 +108,7 @@
   mbql.u/dispatch-by-clause-name-or-class)
 
 (defmethod optimize-filter :=
-  [[_tag field temporal-value]]
+  [[_ field temporal-value]]
   (let [temporal-unit (mbql.u/match-one field [:field _ (opts :guard :temporal-unit)] (:temporal-unit opts))]
     (when (field-and-temporal-value-have-compatible-units? field temporal-value)
       (let [field' (change-temporal-unit-to-default field)]

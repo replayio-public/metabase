@@ -6,7 +6,7 @@
 
 (defn- has-segmented-perms-when-segmented-db-exists? [user-kw]
   (met/with-gtaps-for-user user-kw {:gtaps {:venues {}}}
-    (mt.api.u/sandboxed-user?)))
+    (mt.api.u/segmented-user?)))
 
 (deftest never-segment-admins-test
   (testing "Admins should not be classified as segmented users -- enterprise #147"

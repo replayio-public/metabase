@@ -36,7 +36,9 @@ Assuming your site is localhost serving on port 3000:
 
 Navigate to the **Admin**>**Settings** section of the Admin area, then click on the **Authentication** tab. Click the **Configure** button in the JWT section of this page, and you'll see this form:
 
-![JWT form](images/JWT-auth-form.png)
+![SAML form](images/JWT-auth-form.png)
+
+Click the toggle at the top of the form to enable JWT-based authentication. **Make sure to set the toggle to Enabled**, otherwise JWT authentication won't work, even if all of your other settings are correct.
 
 Here's a breakdown of each of the settings:
 

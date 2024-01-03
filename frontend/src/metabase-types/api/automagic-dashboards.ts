@@ -1,4 +1,4 @@
-import type { DatabaseId } from "metabase-types/api/database";
+import { DatabaseId } from "metabase-types/api/database";
 
 export interface DatabaseCandidate {
   id: string;

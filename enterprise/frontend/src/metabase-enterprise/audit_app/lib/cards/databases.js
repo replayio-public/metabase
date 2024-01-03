@@ -1,8 +1,6 @@
-import { t } from "ttag";
-
 export const totalQueryExecutionsByDb = () => ({
   card: {
-    name: t`Total queries and their average speed`,
+    name: "Total queries and their average speed",
     display: "bar",
     dataset_query: {
       type: "internal",
@@ -23,12 +21,28 @@ export const totalQueryExecutionsByDb = () => ({
 // DEPRECATED
 export const queryExecutionsPerDbPerDay = () => ({
   card: {
-    name: t`Queries per database each day`,
+    name: "Queries per database each day",
     display: "line",
     dataset_query: {
       type: "internal",
       fn: "metabase-enterprise.audit-app.pages.databases/query-executions-per-db-per-day",
       args: [],
+    },
+    visualization_settings: {
+      "graph.dimensions": ["date", "database_id"],
+      "graph.metrics": ["count"],
+    },
+  },
+});
+
+export const queryExecutionsByTime = () => ({
+  card: {
+    name: "Query executions per day",
+    display: "line",
+    dataset_query: {
+      type: "internal",
+      fn: "metabase-enterprise.audit-app.pages.databases/query-executions-by-time",
+      args: ["day"],
     },
     visualization_settings: {
       "graph.dimensions": ["date", "database_id"],

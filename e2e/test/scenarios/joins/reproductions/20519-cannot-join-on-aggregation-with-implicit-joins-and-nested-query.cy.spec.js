@@ -2,7 +2,6 @@ import {
   restore,
   enterCustomColumnDetails,
   visualize,
-  getNotebookStep,
 } from "e2e/support/helpers";
 
 import { SAMPLE_DB_ID } from "e2e/support/cypress_data";
@@ -55,8 +54,6 @@ describe("issue 20519", () => {
     });
 
     cy.button("Done").click();
-
-    getNotebookStep("expression", { stage: 1 }).contains("Two").should("exist");
 
     visualize(response => {
       expect(response.body.error).not.to.exist;

@@ -8,12 +8,7 @@ import { color } from "metabase/lib/colors";
 import { Icon } from "metabase/core/components/Icon";
 import LoadingSpinner from "metabase/components/LoadingSpinner";
 import ListSearchField from "metabase/components/ListSearchField";
-import { Box } from "metabase/ui";
-import {
-  ListCellItem,
-  FilterContainer,
-  Content,
-} from "./AccordionListCell.styled";
+import { ListCellItem, FilterContainer } from "./AccordionListCell.styled";
 
 export const AccordionListCell = ({
   style,
@@ -27,12 +22,12 @@ export const AccordionListCell = ({
   alwaysExpanded,
   toggleSection,
   renderSectionIcon,
+  renderSectionExtra,
   renderItemName,
   renderItemDescription,
   renderItemIcon,
   renderItemExtra,
   renderItemWrapper,
-  showSpinner,
   searchText,
   onChangeSearchText,
   searchPlaceholder = t`Find...`,
@@ -57,6 +52,7 @@ export const AccordionListCell = ({
       );
     } else {
       const icon = renderSectionIcon(section);
+      const extra = renderSectionExtra(section, sectionIndex);
       const name = section.name;
       content = (
         <div
@@ -78,11 +74,7 @@ export const AccordionListCell = ({
             </span>
           )}
           {name && <h3 className="List-section-title text-wrap">{name}</h3>}
-          {showSpinner(section) && (
-            <Box ml="0.5rem">
-              <LoadingSpinner size={16} borderWidth={2} />
-            </Box>
-          )}
+          {extra}
           {sections.length > 1 && section.items && section.items.length > 0 && (
             <span className="flex-align-right ml1 hover-child">
               <Icon
@@ -124,14 +116,12 @@ export const AccordionListCell = ({
     const icon = renderItemIcon(item);
     const name = renderItemName(item);
     const description = renderItemDescription(item);
-    const extra = renderItemExtra(item, isSelected);
     content = (
       <ListCellItem
         data-testid={itemTestId}
         aria-label={name}
         role="option"
         aria-selected={isSelected}
-        aria-disabled={!isClickable}
         isClickable={isClickable}
         className={cx(
           "List-item flex mx1",
@@ -145,8 +135,11 @@ export const AccordionListCell = ({
         )}
         style={getItemStyles(item, itemIndex)}
       >
-        <Content
-          isClickable={isClickable}
+        <span
+          className={cx(
+            "p1 flex-auto flex align-center",
+            isClickable ? "cursor-pointer" : "cursor-default",
+          )}
           onClick={isClickable ? () => onChange(item) : undefined}
         >
           {icon && (
@@ -162,13 +155,8 @@ export const AccordionListCell = ({
               </p>
             )}
           </div>
-          {showSpinner(item) && (
-            <Box ml="0.5rem">
-              <LoadingSpinner size={16} borderWidth={2} />
-            </Box>
-          )}
-        </Content>
-        {extra}
+        </span>
+        {renderItemExtra(item, itemIndex, isSelected)}
         {showItemArrows && (
           <div className="List-item-arrow flex align-center px1">
             <Icon name="chevronright" size={8} />

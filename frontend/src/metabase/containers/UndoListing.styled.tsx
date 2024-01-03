@@ -1,23 +1,16 @@
 import styled from "@emotion/styled";
-import type { BoxProps } from "metabase/ui";
-import { Box } from "metabase/ui";
 import Card from "metabase/components/Card";
 import { Icon } from "metabase/core/components/Icon";
 import Link from "metabase/core/components/Link";
 import { alpha, color, lighten } from "metabase/lib/colors";
 import { space } from "metabase/styled-components/theme";
 
-const LIST_H_MARGINS = space(2);
-
 export const UndoList = styled.ul`
   position: fixed;
   left: 0;
   bottom: 0;
-  margin: ${LIST_H_MARGINS};
+  margin: ${space(2)};
   z-index: 999;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
 `;
 
 export const ToastCard = styled(Card)<{
@@ -27,7 +20,6 @@ export const ToastCard = styled(Card)<{
   padding: 10px ${space(2)};
   margin-top: ${space(1)};
   min-width: 310px;
-  max-width: calc(100vw - 2 * ${LIST_H_MARGINS});
   transform: ${props => `translateY(${props.translateY}px)`};
   ${props => (props.color ? `background-color: ${color(props.color)}` : "")}
 `;
@@ -38,19 +30,13 @@ export const CardContent = styled.div`
   justify-content: space-between;
 `;
 
-export const CardContentSide = styled(Box)<BoxProps>`
+export const CardContentSide = styled.div`
   display: flex;
   align-items: center;
-  overflow: hidden;
-`;
-
-export const ControlsCardContent = styled(CardContentSide)`
-  flex-shrink: 0;
 `;
 
 export const CardIcon = styled(Icon)`
   margin-right: ${space(1)};
-  flex-shrink: 0;
 `;
 
 export const DefaultText = styled.span`

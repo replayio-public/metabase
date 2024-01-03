@@ -3,16 +3,14 @@
   See https://developers.google.com/analytics/devguides/reporting/core/v3"
   (:require
    [clojure.string :as str]
-   [java-time.api :as t]
-   [metabase.lib.metadata :as lib.metadata]
-   [metabase.lib.schema.common :as lib.schema.common]
+   [java-time :as t]
    [metabase.mbql.util :as mbql.u]
    [metabase.query-processor.error-type :as qp.error-type]
    [metabase.query-processor.store :as qp.store]
    [metabase.query-processor.timezone :as qp.timezone]
    [metabase.util.date-2 :as u.date]
    [metabase.util.i18n :refer [tru]]
-   [metabase.util.malli :as mu]
+   [metabase.util.schema :as su]
    [schema.core :as s]))
 
 (def ^:private ^:const earliest-date "2005-01-01")
@@ -27,7 +25,7 @@
 (defmethod ->rvalue :field
   [[_ id-or-name _options]]
   (if (integer? id-or-name)
-    (:name (lib.metadata/field (qp.store/metadata-provider) id-or-name))
+    (:name (qp.store/field id-or-name))
     id-or-name))
 
 ;; TODO - I think these next two methods are no longer used, since `->date-range` handles these clauses
@@ -72,7 +70,7 @@
 ;;; -------------------------------------------------- source-table --------------------------------------------------
 
 (defn- handle-source-table [{source-table-id :source-table}]
-  (let [{source-table-name :name} (lib.metadata/table (qp.store/metadata-provider) source-table-id)]
+  (let [{source-table-name :name} (qp.store/table source-table-id)]
     {:ids (str "ga:" source-table-name)}))
 
 
@@ -309,7 +307,7 @@
                     (count (filter some? (map k filters))))]
     (if (and (< (key-count :start-date) 2)
              (< (key-count :end-date) 2))
-      (into {} filters)
+      (reduce merge filters)
       (throw (ex-info (tru "Multiple date filters are not supported.")
                       {:type    qp.error-type/invalid-query
                        :filters filters})))))
@@ -370,7 +368,7 @@
 
 ;;; ------------------------------------------- filter (built-in segments) -------------------------------------------
 
-(mu/defn ^:private built-in-segment :- [:maybe ::lib.schema.common/non-blank-string]
+(s/defn ^:private built-in-segment :- (s/maybe su/NonBlankString)
   [{filter-clause :filter}]
   (let [segments (mbql.u/match filter-clause [:segment (segment-name :guard mbql.u/ga-id?)] segment-name)]
     (when (> (count segments) 1)

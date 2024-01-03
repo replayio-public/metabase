@@ -6,7 +6,7 @@
    [metabase.test :as mt]
    [toucan2.tools.with-temp :as t2.with-temp]))
 
-(deftest ^:parallel basic-test
+(deftest basic-test
   (mt/test-drivers (mt/normal-drivers-with-feature :basic-aggregations)
     (is (= 179.0
            (->> {:aggregation [[:sum-where
@@ -27,7 +27,7 @@
                   ffirst
                   double))))))
 
-(deftest ^:parallel compound-condition-test
+(deftest compound-condition-test
   (mt/test-drivers (mt/normal-drivers-with-feature :basic-aggregations)
     (is (= 34.0
            (->> {:aggregation [[:sum-where
@@ -40,7 +40,7 @@
                 ffirst
                 double)))))
 
-(deftest ^:parallel filter-test
+(deftest filter-test
   (mt/test-drivers (mt/normal-drivers-with-feature :basic-aggregations)
     (is (= nil
            (->> {:aggregation [[:sum-where [:field (mt/id :venues :price) nil] [:< [:field (mt/id :venues :price) nil] 4]]]
@@ -49,7 +49,7 @@
                 mt/rows
                 ffirst)))))
 
-(deftest ^:parallel breakout-test
+(deftest breakout-test
   (mt/test-drivers (mt/normal-drivers-with-feature :basic-aggregations)
     (is (= [[2 0.0]
             [3 0.0]
@@ -66,7 +66,7 @@
                 (map (fn [[k v]]
                        [(long k) (double v)])))))))
 
-(deftest ^:parallel sum-where-inside-expressions-test
+(deftest sum-where-inside-expressions-test
   (mt/test-drivers (mt/normal-drivers-with-feature :basic-aggregations :expressions)
     (is (= 90.5
            (->> {:aggregation [[:+

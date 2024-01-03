@@ -5,23 +5,10 @@
    [metabase.util.i18n :refer [tru]]
    [metabase.util.malli :as mu]
    [metabase.util.malli.schema :as ms]
-   [methodical.core :as methodical]
+   [toucan.models :as models]
    [toucan2.core :as t2]))
 
-;;; ----------------------------------------------- Entity & Lifecycle -----------------------------------------------
-(def ParameterCard
-  "Used to be the toucan1 model name defined using [[toucan.models/defmodel]], not it's a reference to the toucan2 model name.
-  We'll keep this till we replace all these symbols in our codebase."
-  :model/ParameterCard)
-
-(methodical/defmethod t2/table-name :model/ParameterCard [_model] :parameter_card)
-
-(doto :model/ParameterCard
-  (derive :metabase/model)
-  (derive :hook/timestamped?))
-
-(t2/deftransforms :model/ParameterCard
- {:parameterized_object_type mi/transform-keyword})
+(models/defmodel ParameterCard :parameter_card)
 
 (defonce ^{:doc "Set of valid parameterized_object_type for a ParameterCard"}
   valid-parameterized-object-type #{"dashboard" "card"})
@@ -32,16 +19,26 @@
     (throw (ex-info (tru "invalid parameterized_object_type")
                     {:allowed-types valid-parameterized-object-type}))))
 
-(t2/define-before-insert :model/ParameterCard
+;;; ----------------------------------------------- Entity & Lifecycle -----------------------------------------------
+
+(defn- pre-insert
   [pc]
   (u/prog1 pc
     (validate-parameterized-object-type pc)))
 
-(t2/define-before-update :model/ParameterCard
+(defn- pre-update
   [pc]
-  (u/prog1 (t2/changes pc)
-    (when (:parameterized_object_type <>)
-      (validate-parameterized-object-type <>))))
+  (u/prog1 pc
+    (when (:parameterized_object_type pc)
+      (validate-parameterized-object-type pc))))
+
+(mi/define-methods
+ ParameterCard
+ {:properties (constantly {::mi/timestamped? true
+                           ::mi/entity-id    true})
+  :types      (constantly {:parameterized_object_type :keyword})
+  :pre-insert pre-insert
+  :pre-update pre-update})
 
 (defn delete-all-for-parameterized-object!
   "Delete all ParameterCard for a give Parameterized Object and NOT listed in the optional

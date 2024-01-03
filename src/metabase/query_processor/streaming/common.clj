@@ -1,7 +1,7 @@
 (ns metabase.query-processor.streaming.common
   "Shared util fns for various export (download) streaming formats."
   (:require
-   [java-time.api :as t]
+   [java-time :as t]
    [metabase.query-processor.store :as qp.store]
    [metabase.query-processor.timezone :as qp.timezone]
    [metabase.util.date-2 :as u.date])

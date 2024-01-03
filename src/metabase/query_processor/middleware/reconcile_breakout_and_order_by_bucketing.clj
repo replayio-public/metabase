@@ -36,10 +36,10 @@
   (:require
    [metabase.mbql.schema :as mbql.s]
    [metabase.mbql.util :as mbql.u]
-   [metabase.util.malli :as mu]))
+   [schema.core :as s]))
 
-(mu/defn ^:private reconcile-bucketing :- mbql.s/Query
-  [{{breakouts :breakout} :query, :as query} :- :map]
+(s/defn ^:private reconcile-bucketing :- mbql.s/Query
+  [{{breakouts :breakout} :query, :as query}]
   ;; Look for bucketed fields in the `breakout` clause and build a map of unbucketed reference -> bucketed reference,
   ;; like:
   ;;

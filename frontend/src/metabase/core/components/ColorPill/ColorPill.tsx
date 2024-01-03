@@ -1,7 +1,12 @@
-import type { MouseEvent, HTMLAttributes, Ref } from "react";
-import { forwardRef, useCallback } from "react";
+import {
+  forwardRef,
+  MouseEvent,
+  HTMLAttributes,
+  Ref,
+  useCallback,
+} from "react";
 import { ColorPillContent, ColorPillRoot } from "./ColorPill.styled";
-import type { PillSize } from "./types";
+import { PillSize } from "./types";
 
 export type ColorPillAttributes = Omit<
   HTMLAttributes<HTMLDivElement>,

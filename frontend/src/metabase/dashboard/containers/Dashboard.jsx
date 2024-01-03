@@ -5,7 +5,8 @@ import { Component } from "react";
 import cx from "classnames";
 
 import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper";
-import { DashboardGridConnected } from "metabase/dashboard/components/DashboardGrid";
+import DashboardGrid from "metabase/dashboard/components/DashboardGrid";
+import DashboardData from "metabase/dashboard/hoc/DashboardData";
 
 export class Dashboard extends Component {
   render() {
@@ -19,13 +20,11 @@ export class Dashboard extends Component {
         noBackground
       >
         {() => (
-          <DashboardGridConnected
-            dashboard={dashboard}
-            {...props}
-            className="spread"
-          />
+          <DashboardGrid dashboard={dashboard} {...props} className="spread" />
         )}
       </LoadingAndErrorWrapper>
     );
   }
 }
+
+export default DashboardData(Dashboard);

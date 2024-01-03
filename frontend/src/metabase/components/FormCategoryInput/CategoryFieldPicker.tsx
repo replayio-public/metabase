@@ -1,5 +1,5 @@
 import CategoryFieldInput from "./CategoryFieldInput";
-import type { CategoryWidgetProps } from "./types";
+import { CategoryWidgetProps } from "./types";
 
 import CategoryRadioPicker from "./CategoryRadioPicker";
 

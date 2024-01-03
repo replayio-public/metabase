@@ -3,18 +3,15 @@
    [clojure.string :as str]
    [metabuild-common.core :as u]))
 
-(set! *warn-on-reflection* true)
+(def downloads-cloudfront-distribution-id "E35CJLWZIZVG7K")
+(def static-cloudfront-distribution-id "E1HU16PWP1JPMC")
 
-(def downloads-cloudfront-distribution-id
-  "The CloudFront distribution where the downloads live."
-  "E35CJLWZIZVG7K")
-(def static-cloudfront-distribution-id
-  "The CloudFront distribution where the version info lives."
-  "E1HU16PWP1JPMC")
+(def ^String root-directory
+  "e.g. /Users/cam/metabase"
+  u/project-root-directory)
 
 (def ^String uberjar-path
-  "Fully-qualified path to the uberjar we're building."
-  (u/filename u/project-root-directory "target" "uberjar" "metabase.jar"))
+  (u/filename root-directory "target" "uberjar" "metabase.jar"))
 
 (defonce ^:private ^:dynamic *build-options*
   (atom nil))
@@ -38,9 +35,7 @@
   []
   (build-option-or-throw :version))
 
-(defn set-version!
-  "Change the version we're building."
-  [new-version]
+(defn set-version! [new-version]
   ;; strip off initial `v` if present
   (swap! *build-options* assoc :version (str/replace new-version #"^v" "")))
 
@@ -50,9 +45,7 @@
   []
   (build-option-or-throw :github-milestone))
 
-(defn set-github-milestone!
-  "Change the GitHub milestone we should reference when generating a new release."
-  [new-github-milestone]
+(defn set-github-milestone! [new-github-milestone]
   (swap! *build-options* assoc :github-milestone new-github-milestone))
 
 (defn branch
@@ -60,9 +53,7 @@
   []
   (build-option-or-throw :branch))
 
-(defn set-branch!
-  "Change the branch we're building from."
-  [new-branch]
+(defn set-branch! [new-branch]
   (swap! *build-options* assoc :branch new-branch))
 
 (defn edition
@@ -71,9 +62,7 @@
   {:post [(#{:oss :ee} %)]}
   (build-option-or-throw :edition))
 
-(defn set-edition!
-  "Change the edition we're building, either `:oss` or `:ee`."
-  [new-edition]
+(defn set-edition! [new-edition]
   (assert (#{:oss :ee} new-edition))
   (swap! *build-options* assoc :edition new-edition))
 
@@ -91,12 +80,12 @@
     (not (zero? (Integer/parseUnsignedInt patch)))
     false))
 
-(defn- docker-image-name []
+(defn docker-image-name []
   (case (edition)
     :oss "metabase/metabase"
     :ee "metabase/metabase-enterprise"))
 
-(defn- downloads-url []
+(defn downloads-url []
   (case (edition)
     :oss "downloads.metabase.com"
     :ee "downloads.metabase.com/enterprise"))
@@ -111,6 +100,11 @@
            (downloads-url)
            (if (= version "latest") "latest" (str "v" version))
            filename)))
+
+(defn website-repo []
+  (case (edition)
+    :oss "metabase/metabase.github.io"
+    nil))
 
 (defn metabase-repo
   "Metabase GitHub repo"

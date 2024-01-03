@@ -4,7 +4,7 @@ import {
   isSyncCompleted,
   isSyncInProgress,
 } from "metabase/lib/syncing";
-import type Database from "metabase-lib/metadata/Database";
+import Database from "metabase-lib/metadata/Database";
 
 import StatusLarge from "../StatusLarge";
 

@@ -1,4 +1,3 @@
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
 import moment from "moment-timezone";
 import {
   restore,
@@ -9,14 +8,13 @@ import {
   setFilter,
   visitDashboard,
 } from "e2e/support/helpers";
-import { ORDERS_DASHBOARD_ID } from "e2e/support/cypress_sample_instance_data";
 
 describe("issue 22482", () => {
   beforeEach(() => {
     restore();
     cy.signInAsAdmin();
 
-    visitDashboard(ORDERS_DASHBOARD_ID);
+    visitDashboard(1);
 
     editDashboard();
     setFilter("Time", "All Options");

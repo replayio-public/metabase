@@ -32,21 +32,6 @@ export interface NativeDatasetQuery {
 
 export type DatasetQuery = StructuredDatasetQuery | NativeDatasetQuery;
 
-interface PublicStructuredDatasetQuery {
-  type: "query";
-}
-
-interface PublicNativeDatasetQuery {
-  type: "native";
-  native: {
-    "template-tags"?: TemplateTags;
-  };
-}
-
-export type PublicDatasetQuery =
-  | PublicStructuredDatasetQuery
-  | PublicNativeDatasetQuery;
-
 export type DatetimeUnit =
   | "default"
   | "minute"
@@ -149,7 +134,12 @@ type SumAgg = ["sum", ConcreteFieldReference];
 type MinAgg = ["min", ConcreteFieldReference];
 type MaxAgg = ["max", ConcreteFieldReference];
 
-type CommonAggregation =
+type MetricAgg = ["metric", MetricId];
+
+/**
+ * An aggregation MBQL clause
+ */
+export type Aggregation =
   | CountAgg
   | CountFieldAgg
   | AvgAgg
@@ -159,20 +149,8 @@ type CommonAggregation =
   | StdDevAgg
   | SumAgg
   | MinAgg
-  | MaxAgg;
-
-type MetricAgg = ["metric", MetricId];
-
-type InlineExpressionAgg = [
-  "aggregation-options",
-  CommonAggregation,
-  { name: string; "display-name": string },
-];
-
-/**
- * An aggregation MBQL clause
- */
-export type Aggregation = CommonAggregation | MetricAgg | InlineExpressionAgg;
+  | MaxAgg
+  | MetricAgg;
 
 type BreakoutClause = Breakout[];
 export type Breakout = ConcreteFieldReference;
@@ -199,7 +177,7 @@ export type FieldFilter =
 type NotFilter = ["not", Filter];
 
 type EqualityFilter = ["=" | "!=", ConcreteFieldReference, Value];
-export type ComparisonFilter = [
+type ComparisonFilter = [
   "<" | "<=" | ">=" | ">",
   ConcreteFieldReference,
   OrderableValue,
@@ -336,9 +314,11 @@ export type BinnedField = [
   },
 ];
 
-export type AggregateFieldReference =
-  | ["aggregation", number, ReferenceOptions | null]
-  | ["aggregation", number];
+export type AggregateFieldReference = [
+  "aggregation",
+  number,
+  ReferenceOptions | null,
+];
 
 export type ExpressionClause = {
   [key: ExpressionName]: Expression;
@@ -355,8 +335,7 @@ export type Expression =
       ExpressionOperand,
       ExpressionOperand,
       ExpressionOperand,
-    ]
-  | ConcreteFieldReference;
+    ];
 
 type ExpressionOperator = string;
 type ExpressionOperand =

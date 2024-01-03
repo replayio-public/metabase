@@ -9,12 +9,13 @@
    [metabase.driver.bigquery-cloud-sdk.common :as bigquery.common]
    [metabase.driver.bigquery-cloud-sdk.params :as bigquery.params]
    [metabase.driver.bigquery-cloud-sdk.query-processor :as bigquery.qp]
-   [metabase.driver.sql.util :as sql.u]
    [metabase.driver.sync :as driver.s]
-   [metabase.lib.metadata :as lib.metadata]
-   [metabase.lib.schema.common :as lib.schema.common]
    [metabase.models :refer [Database]]
-   [metabase.models.table :as table]
+   [metabase.models.table
+    :as table
+    :refer [Table]
+    :rename
+    {Table MetabaseTable}]
    [metabase.query-processor.context :as qp.context]
    [metabase.query-processor.error-type :as qp.error-type]
    [metabase.query-processor.store :as qp.store]
@@ -23,16 +24,15 @@
    [metabase.util :as u]
    [metabase.util.i18n :refer [trs tru]]
    [metabase.util.log :as log]
-   [metabase.util.malli :as mu]
-   [metabase.util.malli.schema :as ms]
-   #_{:clj-kondo/ignore [:discouraged-namespace]}
+   [metabase.util.schema :as su]
+   [schema.core :as s]
    [toucan2.core :as t2])
   (:import
    (clojure.lang PersistentList)
    (com.google.cloud.bigquery BigQuery BigQuery$DatasetListOption BigQuery$JobOption BigQuery$TableDataListOption
                               BigQuery$TableListOption BigQuery$TableOption BigQueryException BigQueryOptions Dataset
-                              DatasetId Field Field$Mode FieldValue FieldValueList QueryJobConfiguration Schema StandardTableDefinition
-                              Table TableDefinition$Type TableId TableResult)))
+                              DatasetId Field Field$Mode FieldValue FieldValueList QueryJobConfiguration Schema Table
+                              TableDefinition$Type TableId TableResult)))
 
 (set! *warn-on-reflection* true)
 
@@ -52,9 +52,9 @@
   '("https://www.googleapis.com/auth/bigquery"
     "https://www.googleapis.com/auth/drive"))
 
-(defn- database-details->client
-  ^BigQuery [details]
-  (let [creds   (bigquery.common/database-details->service-account-credential details)
+(defn- database->client
+  ^BigQuery [database]
+  (let [creds   (bigquery.common/database-details->service-account-credential (:details database))
         bq-bldr (doto (BigQueryOptions/newBuilder)
                   (.setCredentials (.createScoped creds bigquery-scopes)))]
     (.. bq-bldr build getService)))
@@ -65,23 +65,25 @@
 
 (defn- list-tables
   "Fetch all tables (new pages are loaded automatically by the API)."
-  (^Iterable [database-details]
-   (list-tables database-details {:validate-dataset? false}))
-  (^Iterable [{:keys [project-id dataset-filters-type dataset-filters-patterns] :as details} {:keys [validate-dataset?]}]
-   (let [client (database-details->client details)
-         project-id (or project-id (bigquery.common/database-details->credential-project-id details))
-         datasets (.listDatasets client project-id (u/varargs BigQuery$DatasetListOption))
-         inclusion-patterns (when (= "inclusion" dataset-filters-type) dataset-filters-patterns)
-         exclusion-patterns (when (= "exclusion" dataset-filters-type) dataset-filters-patterns)
+  (^Iterable [database]
+   (list-tables database false))
+  (^Iterable [{{:keys [project-id dataset-filters-type dataset-filters-patterns]} :details, :as database} validate-dataset?]
+   (list-tables (database->client database)
+                (or project-id (bigquery.common/database-details->credential-project-id (:details database)))
+                dataset-filters-type
+                dataset-filters-patterns
+                (boolean validate-dataset?)))
+  (^Iterable [^BigQuery client ^String project-id ^String filter-type ^String filter-patterns ^Boolean validate-dataset?]
+   (let [datasets (.listDatasets client project-id (u/varargs BigQuery$DatasetListOption))
+         inclusion-patterns (when (= "inclusion" filter-type) filter-patterns)
+         exclusion-patterns (when (= "exclusion" filter-type) filter-patterns)
          dataset-iter (for [^Dataset dataset (.iterateAll datasets)
                             :let [^DatasetId dataset-id (.. dataset getDatasetId)]
                             :when (driver.s/include-schema? inclusion-patterns
                                                             exclusion-patterns
                                                             (.getDataset dataset-id))]
                         dataset-id)]
-     (when (and (not= dataset-filters-type "all")
-                validate-dataset?
-                (zero? (count dataset-iter)))
+     (when (and (not= filter-type "all") validate-dataset? (zero? (count dataset-iter)))
        (throw (ex-info (tru "Looks like we cannot find any matching datasets.")
                        {::driver/can-connect-message? true})))
      (apply concat (for [^DatasetId dataset-id dataset-iter]
@@ -90,10 +92,18 @@
                          .iterator
                          iterator-seq))))))
 
+(defmethod driver/describe-database :bigquery-cloud-sdk
+  [_ database]
+  (let [tables (list-tables database)]
+    {:tables (set (for [^Table table tables
+                        :let  [^TableId table-id  (.getTableId table)
+                               ^String dataset-id (.getDataset table-id)]]
+                    {:schema dataset-id, :name (.getTable table-id)}))}))
+
 (defmethod driver/can-connect? :bigquery-cloud-sdk
   [_ details-map]
   ;; check whether we can connect by seeing whether listing tables succeeds
-  (try (some? (list-tables details-map {:validate-dataset? true}))
+  (try (some? (list-tables {:details details-map} ::validate-dataset))
        (catch Exception e
          (when (::driver/can-connect-message? (ex-data e))
            (throw e))
@@ -103,45 +113,15 @@
 (def ^:private empty-table-options
   (u/varargs BigQuery$TableOption))
 
-(mu/defn ^:private get-table :- (ms/InstanceOfClass Table)
-  (^Table [{{:keys [project-id]} :details, :as database} dataset-id table-id]
-   (get-table (database-details->client (:details database)) project-id dataset-id table-id))
+(s/defn ^:private get-table :- Table
+  ([{{:keys [project-id]} :details, :as database} dataset-id table-id]
+   (get-table (database->client database) project-id dataset-id table-id))
 
-  (^Table [^BigQuery client :- (ms/InstanceOfClass BigQuery)
-           project-id       :- [:maybe ::lib.schema.common/non-blank-string]
-           dataset-id       :- ::lib.schema.common/non-blank-string
-           table-id         :- ::lib.schema.common/non-blank-string]
+  ([client :- BigQuery, project-id :- (s/maybe su/NonBlankString), dataset-id :- su/NonBlankString,
+    table-id :- su/NonBlankString]
    (if project-id
      (.getTable client (TableId/of project-id dataset-id table-id) empty-table-options)
      (.getTable client dataset-id table-id empty-table-options))))
-
-(defmethod driver/describe-database :bigquery-cloud-sdk
-  [_ database]
-  (let [tables (list-tables (:details database))]
-    {:tables (set (for [^Table table tables
-                        :let  [^TableId                 table-id   (.getTableId table)
-                               ^String                  dataset-id (.getDataset table-id)
-                               ^StandardTableDefinition tabledef   (.getDefinition table)
-                                                        table-name (str (.getTable table-id))]]
-                    {:schema                  dataset-id
-                     :name                    table-name
-                     :database_require_filter
-                     (boolean
-                      (and
-                       ;; Materialiezed views can be partitioned, and whether the view require a filter or not is based
-                       ;; on the base table it selects from, without parsing the view query we can't find out the base table,
-                       ;; thus we can't know whether the view require a filter or not.
-                       ;; Maybe this is something we can do once we can parse sql
-                       (= TableDefinition$Type/TABLE (. tabledef getType))
-                       (when (or (.getRangePartitioning tabledef)
-                                 (.getTimePartitioning tabledef))
-                         ;; having to use `get-table` here is inefficient, but calling `(.getRequirePartitionFilter)`
-                         ;; on the `table` object from `list-tables` will return `nil` even though the table requires
-                         ;; a partition filter.
-                         ;; This is an upstream bug where the v2 API is incomplete when setting object values see
-                         ;; https://github.com/googleapis/java-bigquery/blob/main/google-cloud-bigquery/src/main/java/com/google/cloud/bigquery/spi/v2/HttpBigQueryRpc.java#L343C23-L343C23
-                         ;; Anyway, we only call it when the table is partitioned, so I don't think it's a big deal
-                         (.getRequirePartitionFilter (get-table database dataset-id table-name)))))}))}))
 
 (defn- bigquery-type->base-type
   "Returns the base type for the given BigQuery field's `field-mode` and `field-type`. In BQ, an ARRAY of INTEGER has
@@ -167,8 +147,8 @@
       "BIGNUMERIC" :type/Decimal
       :type/*)))
 
-(mu/defn ^:private table-schema->metabase-field-info
-  [^Schema schema :- (ms/InstanceOfClass Schema)]
+(s/defn ^:private table-schema->metabase-field-info
+  [schema :- Schema]
   (for [[idx ^Field field] (m/indexed (.getFields schema))]
     (let [type-name (.. field getType name)
           f-mode    (.getMode field)]
@@ -242,7 +222,7 @@
         bq-table (get-table database dataset-id table-name)]
     (if (#{TableDefinition$Type/MATERIALIZED_VIEW TableDefinition$Type/VIEW
            ;; We couldn't easily test if the following two can show up as
-           ;; tables and if `.list` is supported for them, so they are here
+           ;; tables and if `.list` is supported for hem, so they are here
            ;; to make sure we don't break existing instances.
            TableDefinition$Type/EXTERNAL TableDefinition$Type/SNAPSHOT}
          (.. bq-table getDefinition getType))
@@ -315,11 +295,11 @@
 (defn- execute-bigquery-on-db
   ^TableResult [database sql parameters cancel-chan cancel-requested?]
   (execute-bigquery
-   (database-details->client (:details database))
-   sql
-   parameters
-   cancel-chan
-   cancel-requested?))
+    (database->client database)
+    sql
+    parameters
+    cancel-chan
+    cancel-requested?))
 
 (defn- fetch-page [^TableResult response cancel-requested?]
   (when response
@@ -338,7 +318,7 @@
   `metabase.driver/execute-reducible-query`, and has the signature
 
     (respond results-metadata rows)"
-  [respond ^TableResult resp cancel-requested?]
+  [_database respond ^TableResult resp cancel-requested?]
   (let [^Schema schema
         (.getSchema resp)
 
@@ -355,13 +335,14 @@
      (for [^FieldValueList row (fetch-page resp cancel-requested?)]
        (map parse-field-value row parsers)))))
 
-(defn- ^:dynamic *process-native* [respond database sql parameters cancel-chan]
+(defn- process-native* [respond database sql parameters cancel-chan]
   {:pre [(map? database) (map? (:details database))]}
   ;; automatically retry the query if it times out or otherwise fails. This is on top of the auto-retry added by
   ;; `execute`
   (let [cancel-requested? (atom false)
         thunk             (fn []
-                            (post-process-native respond
+                            (post-process-native database
+                                                 respond
                                                  (execute-bigquery-on-db
                                                   database
                                                   sql
@@ -384,13 +365,13 @@
 
 (defmethod driver/execute-reducible-query :bigquery-cloud-sdk
   [_ {{sql :query, :keys [params]} :native, :as outer-query} context respond]
-  (let [database (lib.metadata/database (qp.store/metadata-provider))]
+  (let [database (qp.store/database)]
     (binding [bigquery.common/*bigquery-timezone-id* (effective-query-timezone-id database)]
       (log/tracef "Running BigQuery query in %s timezone" bigquery.common/*bigquery-timezone-id*)
       (let [sql (if (get-in database [:details :include-user-id-and-hash] true)
                   (str "-- " (qp.util/query->remark :bigquery-cloud-sdk outer-query) "\n" sql)
                   sql)]
-        (*process-native* respond database sql params (qp.context/canceled-chan context))))))
+        (process-native* respond database sql params (qp.context/canceled-chan context))))))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                           Other Driver Method Impls                                            |
@@ -432,9 +413,9 @@
   [database dataset-id]
   (let [db-id (u/the-id database)]
     (log/infof (trs "DB {0} had hardcoded dataset-id; changing to an inclusion pattern and updating table schemas"
-                    (pr-str db-id)))
+                    db-id))
     (try
-      (t2/query-one {:update (t2/table-name :model/Table)
+      (t2/query-one {:update (t2/table-name MetabaseTable)
                      :set    {:schema dataset-id}
                      :where  [:and
                               [:= :db_id db-id]
@@ -452,7 +433,7 @@
       updated-db)))
 
 (defmethod driver/normalize-db-details :bigquery-cloud-sdk
-  [_driver {:keys [details] :as database}]
+  [_driver {:keys [:details] :as database}]
   (when-not (empty? (filter some? ((juxt :auth-code :client-id :client-secret) details)))
     (log/errorf (str "Database ID %d, which was migrated from the legacy :bigquery driver to :bigquery-cloud-sdk, has"
                      " one or more OAuth style authentication scheme parameters saved to db-details, which cannot"
@@ -464,7 +445,3 @@
     (when-not (str/blank? dataset-id)
       (convert-dataset-id-to-filters! database dataset-id))
     database))
-
-(defmethod driver/prettify-native-form :bigquery-cloud-sdk
-  [_ native-form]
-  (sql.u/format-sql-and-fix-params :mysql native-form))

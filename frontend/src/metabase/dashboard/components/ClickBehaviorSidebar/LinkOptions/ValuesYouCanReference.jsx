@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { t } from "ttag";
 
 import AccordionList from "metabase/core/components/AccordionList";
@@ -8,7 +9,6 @@ import {
   withUserAttributes,
   isMappableColumn,
 } from "metabase/dashboard/components/ClickMappings";
-import { PopoverTrigger } from "./ValuesYouCanReference.styled";
 
 function prefixIfNeeded(values, prefix, otherLists) {
   const otherValues = otherLists.flat().map(s => s.toLowerCase());
@@ -17,7 +17,7 @@ function prefixIfNeeded(values, prefix, otherLists) {
   );
 }
 
-export const ValuesYouCanReference = withUserAttributes(
+const ValuesYouCanReference = withUserAttributes(
   ({ dashcard, parameters, userAttributes }) => {
     const columnMetadata = dashcard.card.result_metadata || [];
     const columns = columnMetadata?.filter(isMappableColumn).map(c => c.name);
@@ -53,10 +53,10 @@ export const ValuesYouCanReference = withUserAttributes(
     return (
       <PopoverWithTrigger
         triggerElement={
-          <PopoverTrigger>
+          <div className="flex align-center cursor-pointer my2 text-medium text-brand-hover">
             <h4>{t`Values you can reference`}</h4>
             <Icon name="chevrondown" className="ml1" size={12} />
-          </PopoverTrigger>
+          </div>
         }
       >
         <AccordionList
@@ -69,3 +69,5 @@ export const ValuesYouCanReference = withUserAttributes(
     );
   },
 );
+
+export default ValuesYouCanReference;

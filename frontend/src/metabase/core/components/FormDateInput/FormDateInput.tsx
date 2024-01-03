@@ -1,13 +1,10 @@
-import type { ReactNode, Ref } from "react";
-import { forwardRef, useCallback, useMemo } from "react";
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
-import type { Moment } from "moment-timezone";
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
-import moment from "moment-timezone";
+import { forwardRef, ReactNode, Ref, useCallback, useMemo } from "react";
+import moment, { Moment } from "moment-timezone";
 import { useField } from "formik";
 import { useUniqueId } from "metabase/hooks/use-unique-id";
-import type { DateWidgetProps } from "metabase/core/components/DateWidget";
-import DateWidget from "metabase/core/components/DateWidget";
+import DateWidget, {
+  DateWidgetProps,
+} from "metabase/core/components/DateWidget";
 import FormField from "metabase/core/components/FormField";
 
 export interface FormDateInputProps

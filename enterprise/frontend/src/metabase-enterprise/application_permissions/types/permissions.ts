@@ -1,4 +1,4 @@
-import type { GroupId } from "metabase-types/api";
+import { GroupId } from "metabase-types/api";
 
 export type ApplicationPermissionKey =
   | "subscription"

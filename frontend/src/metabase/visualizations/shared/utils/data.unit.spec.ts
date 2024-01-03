@@ -1,9 +1,9 @@
 import { createMockColumn } from "metabase-types/api/mocks";
-import type {
+import {
   BreakoutChartColumns,
   MultipleMetricsChartColumns,
 } from "metabase/visualizations/lib/graph/columns";
-import type { ColumnFormatter } from "metabase/visualizations/shared/types/format";
+import { ColumnFormatter } from "metabase/visualizations/shared/types/format";
 import { getGroupedDataset } from "./data";
 
 const columnFormatter: ColumnFormatter = (value: any) => String(value);

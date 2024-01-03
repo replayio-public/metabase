@@ -18,8 +18,9 @@
    [metabase.util :as u]
    [metabase.util.i18n :refer [deferred-tru tru]]
    [metabase.util.log :as log]
-   [metabase.util.malli :as mu]
-   [metabase.util.malli.schema :as ms]
+   [metabase.util.schema :as su]
+   [schema.core :as s]
+   [toucan.hydrate :refer [hydrate]]
    [toucan2.core :as t2]))
 
 (set! *warn-on-reflection* true)
@@ -50,14 +51,15 @@
                            limit             (sql.helpers/limit limit)
                            offset            (sql.helpers/offset offset))]
     (as-> (t2/select PersistedInfo query) results
-      (t2/hydrate results :creator)
+      (hydrate results :creator)
       (map (fn [{:keys [database_id] :as pi}]
              (assoc pi
                     :schema_name (ddl.i/schema-name {:id database_id} site-uuid-str)
                     :next-fire-time (get-in db-id->fire-time [database_id :next-fire-time])))
            results))))
 
-(api/defendpoint GET "/"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema GET "/"
   "List the entries of [[PersistedInfo]] in order to show a status page."
   []
   (validation/check-has-application-permission :monitoring)
@@ -75,31 +77,35 @@
      :limit  mw.offset-paging/*limit*
      :offset mw.offset-paging/*offset*}))
 
-(api/defendpoint GET "/:persisted-info-id"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema GET "/:persisted-info-id"
   "Fetch a particular [[PersistedInfo]] by id."
   [persisted-info-id]
-  {persisted-info-id [:maybe ms/PositiveInt]}
+  {persisted-info-id (s/maybe su/IntGreaterThanZero)}
   (api/let-404 [persisted-info (first (fetch-persisted-info {:persisted-info-id persisted-info-id} nil nil))]
     (api/write-check (t2/select-one Database :id (:database_id persisted-info)))
     persisted-info))
 
-(api/defendpoint GET "/card/:card-id"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema GET "/card/:card-id"
   "Fetch a particular [[PersistedInfo]] by card-id."
   [card-id]
-  {card-id [:maybe ms/PositiveInt]}
+  {card-id (s/maybe su/IntGreaterThanZero)}
   (api/let-404 [persisted-info (first (fetch-persisted-info {:card-id card-id} nil nil))]
     (api/write-check (t2/select-one Database :id (:database_id persisted-info)))
     persisted-info))
 
 (def ^:private CronSchedule
   "Schema representing valid cron schedule for refreshing persisted models."
-  (mu/with-api-error-message
-    [:and
-     ms/NonBlankString
-     [:fn {:error/message (deferred-tru "String representing a cron schedule")} #(= 7 (count (str/split % #" ")))]]
+  (su/with-api-error-message
+    (s/constrained s/Str (fn [t]
+                           (let [parts (str/split t #" ")]
+                             (= 7 (count parts))))
+                   (deferred-tru "String representing a cron schedule"))
     (deferred-tru "Value must be a string representing a cron schedule of format <seconds> <minutes> <hours> <day of month> <month> <day of week> <year>")))
 
-(api/defendpoint POST "/set-refresh-schedule"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema POST "/set-refresh-schedule"
   "Set the cron schedule to refresh persisted models.
    Shape should be JSON like {cron: \"0 30 1/8 * * ? *\"}."
   [:as {{:keys [cron], :as _body} :body}]
@@ -115,7 +121,8 @@
   (task.persist-refresh/reschedule-refresh!)
   api/generic-204-no-content)
 
-(api/defendpoint POST "/enable"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema POST "/enable"
   "Enable global setting to allow databases to persist models."
   []
   (validation/check-has-application-permission :setting)
@@ -127,18 +134,19 @@
 (defn- disable-persisting
   "Disables persistence.
   - update all [[PersistedInfo]] rows to be inactive and deletable
-  - remove `:persist-models-enabled` from relevant [[Database]] settings
+  - remove `:persist-models-enabled` from relevant [[Database]] options
   - schedule a task to [[metabase.driver.ddl.interface/unpersist]] each table"
   []
   (let [id->db      (m/index-by :id (t2/select Database))
-        enabled-dbs (filter (comp :persist-models-enabled :settings) (vals id->db))]
+        enabled-dbs (filter (comp :persist-models-enabled :options) (vals id->db))]
     (log/info (tru "Disabling model persistence"))
     (doseq [db enabled-dbs]
       (t2/update! Database (u/the-id db)
-                  {:settings (not-empty (dissoc (:settings db) :persist-models-enabled))}))
+                  {:options (not-empty (dissoc (:options db) :persist-models-enabled))}))
     (task.persist-refresh/disable-persisting!)))
 
-(api/defendpoint POST "/disable"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema POST "/disable"
   "Disable global setting to allow databases to persist models. This will remove all tasks to refresh tables, remove
   that option from databases which might have it enabled, and delete all cached tables."
   []

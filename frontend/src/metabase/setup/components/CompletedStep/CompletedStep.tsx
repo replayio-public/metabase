@@ -18,7 +18,7 @@ export const CompletedStep = (): JSX.Element | null => {
     return null;
   }
 
-  const baseUrl = window.MetabaseRoot ?? "/";
+  const baseUrl = (window as any).MetabaseRoot || "/";
 
   return (
     <StepRoot>

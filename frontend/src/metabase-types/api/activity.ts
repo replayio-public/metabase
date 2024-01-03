@@ -1,8 +1,6 @@
 export type ModelType = "table" | "card" | "dataset" | "dashboard";
 
 export interface ModelObject {
-  display_name?: string;
-  moderated_status?: string;
   name: string;
 }
 

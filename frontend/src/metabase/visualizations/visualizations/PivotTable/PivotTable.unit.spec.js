@@ -11,10 +11,7 @@ import {
   SAMPLE_DB_ID,
 } from "metabase-types/api/mocks/presets";
 import ChartSettings from "metabase/visualizations/components/ChartSettings";
-import registerVisualizations from "metabase/visualizations/register";
 import Question from "metabase-lib/Question";
-
-registerVisualizations();
 
 const metadata = createMockMetadata({
   databases: [createSampleDatabase()],

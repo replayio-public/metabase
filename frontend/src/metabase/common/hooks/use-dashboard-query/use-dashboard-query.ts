@@ -1,10 +1,10 @@
 import Dashboards from "metabase/entities/dashboards";
-import type {
+import {
+  useEntityQuery,
   UseEntityQueryProps,
   UseEntityQueryResult,
 } from "metabase/common/hooks/use-entity-query";
-import { useEntityQuery } from "metabase/common/hooks/use-entity-query";
-import type { DashboardId, Dashboard } from "metabase-types/api";
+import { DashboardId, Dashboard } from "metabase-types/api";
 
 export const useDashboardQuery = (
   props: UseEntityQueryProps<DashboardId, null>,

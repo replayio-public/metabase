@@ -1,1 +1,2 @@
-export { FullAppEmbeddingLinkWidget } from "./FullAppEmbeddingLinkWidget";
+// eslint-disable-next-line import/no-default-export -- deprecated usage
+export { default } from "./FullAppEmbeddingLinkWidget";

@@ -1,34 +1,18 @@
-import fetchMock from "fetch-mock";
-import {
-  setupUserRecipientsEndpoint,
-  setupUsersEndpoints,
-} from "__support__/server-mocks";
+import { setupUsersEndpoints } from "__support__/server-mocks/user";
 import {
   renderWithProviders,
   screen,
-  waitForLoaderToBeRemoved,
-  within,
+  waitForElementToBeRemoved,
 } from "__support__/ui";
-import { createMockUserListResult } from "metabase-types/api/mocks";
+import { createMockUserInfo } from "metabase-types/api/mocks";
 import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper/LoadingAndErrorWrapper";
 
 import { useUserListQuery } from "./use-user-list-query";
 
-const TEST_USER = createMockUserListResult();
+const TEST_USER = createMockUserInfo();
 
-type TestComponentProps = { getRecipients?: boolean };
-
-function TestComponent({ getRecipients = false }: TestComponentProps) {
-  const {
-    data = [],
-    metadata,
-    isLoading,
-    error,
-  } = useUserListQuery({
-    query: {
-      recipients: getRecipients,
-    },
-  });
+function TestComponent() {
+  const { data = [], isLoading, error } = useUserListQuery();
 
   if (isLoading || error) {
     return <LoadingAndErrorWrapper loading={isLoading} error={error} />;
@@ -39,53 +23,24 @@ function TestComponent({ getRecipients = false }: TestComponentProps) {
       {data.map(user => (
         <div key={user.id}>{user.common_name}</div>
       ))}
-
-      <div data-testid="metadata">
-        {(!metadata || Object.keys(metadata).length === 0) && "No metadata"}
-      </div>
     </div>
   );
 }
 
-function setup({ getRecipients = false }: TestComponentProps = {}) {
+function setup() {
   setupUsersEndpoints([TEST_USER]);
-  setupUserRecipientsEndpoint({
-    users: [TEST_USER],
-  });
-  renderWithProviders(<TestComponent getRecipients={getRecipients} />);
+  renderWithProviders(<TestComponent />);
 }
 
 describe("useUserListQuery", () => {
   it("should be initially loading", () => {
     setup();
-    expect(screen.getByTestId("loading-spinner")).toBeInTheDocument();
+    expect(screen.getByText("Loading...")).toBeInTheDocument();
   });
 
   it("should show data from the response", async () => {
     setup();
-    await waitForLoaderToBeRemoved();
+    await waitForElementToBeRemoved(() => screen.queryByText("Loading..."));
     expect(screen.getByText("Testy Tableton")).toBeInTheDocument();
-  });
-
-  it("should not have any metadata in the response", async () => {
-    setup();
-    await waitForLoaderToBeRemoved();
-    expect(
-      within(screen.getByTestId("metadata")).getByText("No metadata"),
-    ).toBeInTheDocument();
-  });
-
-  it("should call /api/user when recipient isn't passed or is false", () => {
-    setup();
-
-    expect(fetchMock.calls("path:/api/user")).toHaveLength(1);
-    expect(fetchMock.calls("path:/api/user/recipients")).toHaveLength(0);
-  });
-
-  it("should call /api/user/recipients when the `recipient` is passed", () => {
-    setup({ getRecipients: true });
-
-    expect(fetchMock.calls("path:/api/user")).toHaveLength(0);
-    expect(fetchMock.calls("path:/api/user/recipients")).toHaveLength(1);
   });
 });

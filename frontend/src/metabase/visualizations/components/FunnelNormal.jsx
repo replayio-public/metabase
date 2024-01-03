@@ -3,21 +3,13 @@ import { Component } from "react";
 
 import cx from "classnames";
 
-import { Ellipsified } from "metabase/core/components/Ellipsified";
+import Ellipsified from "metabase/core/components/Ellipsified";
 import { formatValue } from "metabase/lib/formatting";
 import { getFriendlyName } from "metabase/visualizations/lib/utils";
 import { findSeriesByKey } from "metabase/visualizations/lib/series";
 
 import { color } from "metabase/lib/colors";
-import {
-  FunnelNormalRoot,
-  FunnelStart,
-  FunnelStep,
-  Head,
-  Info,
-  Subtitle,
-  Title,
-} from "metabase/visualizations/components/FunnelNormal.styled";
+import styles from "./FunnelNormal.css";
 
 export default class FunnelNormal extends Component {
   render() {
@@ -126,47 +118,55 @@ export default class FunnelNormal extends Component {
 
     const initial = infos[0];
 
-    const isClickable = onVisualizationClick != null;
-
-    const handleClick = e => {
-      if (onVisualizationClick && visualizationIsClickable(infos[0].clicked)) {
-        onVisualizationClick(e);
-      }
-    };
+    const isClickable = visualizationIsClickable(infos[0].clicked);
 
     return (
-      <FunnelNormalRoot
-        className={className}
-        isSmall={isSmall}
+      <div
         data-testid="funnel-chart"
+        className={cx(className, styles.Funnel, "flex", {
+          [styles["Funnel--narrow"]]: isNarrow,
+          p1: isSmall,
+          p2: !isSmall,
+        })}
       >
-        <FunnelStep isFirst>
-          <Head isNarrow={isNarrow}>
-            <Ellipsified data-testid="funnel-chart-header">
-              {formatDimension(rows[0][dimensionIndex])}
-            </Ellipsified>
-          </Head>
-          <FunnelStart isNarrow={isNarrow}>
-            <Title>{formatMetric(rows[0][metricIndex])}</Title>
-            <Subtitle>{getFriendlyName(cols[metricIndex])}</Subtitle>
-          </FunnelStart>
+        <div
+          className={cx(styles.FunnelStep, styles.Initial, "flex flex-column")}
+        >
+          <Ellipsified
+            className={styles.Head}
+            data-testid="funnel-chart-header"
+          >
+            {formatDimension(rows[0][dimensionIndex])}
+          </Ellipsified>
+          <div className={styles.Start}>
+            <div className={styles.Title}>
+              {formatMetric(rows[0][metricIndex])}
+            </div>
+            <div className={styles.Subtitle}>
+              {getFriendlyName(cols[metricIndex])}
+            </div>
+          </div>
           {/* This part of code in used only to share height between .Start and .Graph columns. */}
-          <Info isNarrow={isNarrow}>
-            <Title>&nbsp;</Title>
-            <Subtitle>&nbsp;</Subtitle>
-          </Info>
-        </FunnelStep>
+          <div className={styles.Infos}>
+            <div className={styles.Title}>&nbsp;</div>
+            <div className={styles.Subtitle}>&nbsp;</div>
+          </div>
+        </div>
         {infos.slice(1).map((info, index) => {
           const stepPercentage =
             initial.value > 0 ? info.value / initial.value : 0;
 
           return (
-            <FunnelStep key={index}>
-              <Head isNarrow={isNarrow}>
-                <Ellipsified data-testid="funnel-chart-header">
-                  {formatDimension(rows[index + 1][dimensionIndex])}
-                </Ellipsified>
-              </Head>
+            <div
+              key={index}
+              className={cx(styles.FunnelStep, "flex flex-column")}
+            >
+              <Ellipsified
+                className={styles.Head}
+                data-testid="funnel-chart-header"
+              >
+                {formatDimension(rows[index + 1][dimensionIndex])}
+              </Ellipsified>
               <GraphSection
                 className={cx({ "cursor-pointer": isClickable })}
                 index={index}
@@ -174,22 +174,20 @@ export default class FunnelNormal extends Component {
                 infos={infos}
                 hovered={hovered}
                 onHoverChange={onHoverChange}
-                onVisualizationClick={handleClick}
+                onVisualizationClick={isClickable ? onVisualizationClick : null}
               />
-              <Info isNarrow={isNarrow}>
-                <Title>
-                  <Ellipsified>{formatPercent(stepPercentage)}</Ellipsified>
-                </Title>
-                <Subtitle>
-                  <Ellipsified>
-                    {formatMetric(rows[index + 1][metricIndex])}
-                  </Ellipsified>
-                </Subtitle>
-              </Info>
-            </FunnelStep>
+              <div className={styles.Infos}>
+                <Ellipsified className={styles.Title}>
+                  {formatPercent(stepPercentage)}
+                </Ellipsified>
+                <Ellipsified className={styles.Subtitle}>
+                  {formatMetric(rows[index + 1][metricIndex])}
+                </Ellipsified>
+              </div>
+            </div>
           );
         })}
-      </FunnelNormalRoot>
+      </div>
     );
   }
 }

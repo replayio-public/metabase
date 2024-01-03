@@ -1,9 +1,8 @@
-import type {
+import {
   Database,
-  DatasetColumn,
   Field,
   FieldDimensionOption,
-  FieldValuesResult,
+  FieldValues,
   Table,
 } from "metabase-types/api";
 import {
@@ -15,7 +14,6 @@ import {
   createMockTextFieldFingerprint,
   createMockNumberFieldFingerprint,
   createMockDateTimeFieldFingerprint,
-  createMockColumn,
 } from "metabase-types/api/mocks";
 
 export const SAMPLE_DB_ID = 1;
@@ -76,19 +74,19 @@ export const REVIEWS = {
 // Field values are not included in the field object in the API response
 // Please use `setupFieldValuesEndpoints` utility from `__support__/server-mocks`
 
-export const PRODUCT_CATEGORY_VALUES: FieldValuesResult = {
+export const PRODUCT_CATEGORY_VALUES: FieldValues = {
   field_id: PRODUCTS.CATEGORY,
   values: [["Doohickey"], ["Gadget"], ["Gizmo"], ["Widget"]],
   has_more_values: false,
 };
 
-export const PRODUCT_VENDOR_VALUES: FieldValuesResult = {
+export const PRODUCT_VENDOR_VALUES: FieldValues = {
   field_id: PRODUCTS.VENDOR,
   values: [["Vendor 1"], ["Vendor 2"], ["Vendor 3"], ["Vendor 4"]],
   has_more_values: true,
 };
 
-export const PEOPLE_SOURCE_VALUES: FieldValuesResult = {
+export const PEOPLE_SOURCE_VALUES: FieldValues = {
   field_id: PEOPLE.SOURCE,
   values: [["Affiliate"], ["Facebook"], ["Google"], ["Organic"], ["Twitter"]],
   has_more_values: false,
@@ -1341,288 +1339,3 @@ function createNumericFieldBinningOptions() {
 function createCoordinateFieldBinningOptions() {
   return Object.values(createCoordinateBinningOptions());
 }
-
-export const createOrdersIdDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createOrdersIdField(),
-    id: ORDERS.ID,
-    source: "fields",
-    field_ref: ["field", ORDERS.ID, { "base-type": "type/Integer" }],
-    semantic_type: "type/PK",
-    ...opts,
-  });
-
-export const createOrdersUserIdDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createOrdersUserIdField(),
-    id: ORDERS.USER_ID,
-    source: "fields",
-    field_ref: ["field", ORDERS.USER_ID, { "base-type": "type/Integer" }],
-    ...opts,
-  });
-
-export const createOrdersProductIdDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createOrdersProductIdField(),
-    id: ORDERS.PRODUCT_ID,
-    source: "fields",
-    field_ref: ["field", ORDERS.PRODUCT_ID, { "base-type": "type/Integer" }],
-    ...opts,
-  });
-
-export const createOrdersSubtotalDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createOrdersSubtotalField(),
-    id: ORDERS.SUBTOTAL,
-    source: "fields",
-    field_ref: ["field", ORDERS.SUBTOTAL, { "base-type": "type/Float" }],
-    ...opts,
-  });
-
-export const createOrdersTaxDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createOrdersTaxField(),
-    id: ORDERS.TAX,
-    source: "fields",
-    field_ref: ["field", ORDERS.TAX, { "base-type": "type/Float" }],
-    ...opts,
-  });
-
-export const createOrdersTotalDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createOrdersTotalField(),
-    id: ORDERS.TOTAL,
-    source: "fields",
-    field_ref: ["field", ORDERS.TOTAL, { "base-type": "type/Float" }],
-    ...opts,
-  });
-
-export const createOrdersDiscountDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createOrdersDiscountField(),
-    id: ORDERS.DISCOUNT,
-    source: "fields",
-    field_ref: ["field", ORDERS.DISCOUNT, { "base-type": "type/Float" }],
-    ...opts,
-  });
-
-export const createOrdersCreatedAtDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createOrdersCreatedAtField(),
-    id: ORDERS.CREATED_AT,
-    source: "fields",
-    field_ref: [
-      "field",
-      ORDERS.CREATED_AT,
-      {
-        "temporal-unit": "default",
-        "base-type": "type/DateTime",
-      },
-    ],
-    ...opts,
-  });
-
-export const createOrdersQuantityDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createOrdersQuantityField(),
-    id: ORDERS.QUANTITY,
-    source: "fields",
-    field_ref: ["field", ORDERS.QUANTITY, { "base-type": "type/Integer" }],
-    ...opts,
-  });
-
-export const createOrdersTableDatasetColumns = () => [
-  createOrdersIdDatasetColumn(),
-  createOrdersUserIdDatasetColumn(),
-  createOrdersProductIdDatasetColumn(),
-  createOrdersSubtotalDatasetColumn(),
-  createOrdersTaxDatasetColumn(),
-  createOrdersTotalDatasetColumn(),
-  createOrdersDiscountDatasetColumn(),
-  createOrdersCreatedAtDatasetColumn(),
-  createOrdersQuantityDatasetColumn(),
-];
-
-export const createProductsIdDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createProductsIdField(),
-    id: PRODUCTS.ID,
-    source: "fields",
-    field_ref: ["field", PRODUCTS.ID, null],
-    semantic_type: "type/PK",
-    ...opts,
-  });
-
-export const createProductsEanDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createProductsEanField(),
-    id: PRODUCTS.EAN,
-    source: "fields",
-    field_ref: ["field", PRODUCTS.EAN, null],
-    ...opts,
-  });
-
-export const createProductsTitleDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createProductsTitleField(),
-    id: PRODUCTS.TITLE,
-    source: "fields",
-    field_ref: ["field", PRODUCTS.TITLE, null],
-    ...opts,
-  });
-
-export const createProductsCategoryDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createProductsCategoryField(),
-    id: PRODUCTS.CATEGORY,
-    source: "fields",
-    field_ref: ["field", PRODUCTS.CATEGORY, null],
-    ...opts,
-  });
-
-export const createProductsVendorDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createProductsVendorField(),
-    id: PRODUCTS.VENDOR,
-    source: "fields",
-    field_ref: ["field", PRODUCTS.VENDOR, null],
-    ...opts,
-  });
-
-export const createProductsPriceDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createProductsPriceField(),
-    id: PRODUCTS.PRICE,
-    source: "fields",
-    field_ref: ["field", PRODUCTS.PRICE, null],
-    ...opts,
-  });
-
-export const createProductsRatingDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createProductsRatingField(),
-    id: PRODUCTS.RATING,
-    source: "fields",
-    field_ref: ["field", PRODUCTS.RATING, null],
-    ...opts,
-  });
-
-export const createProductsCreatedAtDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createProductsCreatedAtField(),
-    id: PRODUCTS.CREATED_AT,
-    source: "fields",
-    field_ref: ["field", PRODUCTS.CREATED_AT, null],
-    ...opts,
-  });
-
-export const createProductsTableDatasetColumns = () => [
-  createProductsIdDatasetColumn(),
-  createProductsEanDatasetColumn(),
-  createProductsTitleDatasetColumn(),
-  createProductsCategoryDatasetColumn(),
-  createProductsVendorDatasetColumn(),
-  createProductsPriceDatasetColumn(),
-  createProductsRatingDatasetColumn(),
-  createProductsCreatedAtDatasetColumn(),
-];
-
-export const createPeopleStateDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createPeopleStateField(),
-    id: PEOPLE.STATE,
-    source: "fields",
-    field_ref: ["field", PEOPLE.STATE, null],
-    ...opts,
-  });
-
-export const createPeopleCityDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createPeopleCityField(),
-    id: PEOPLE.CITY,
-    source: "fields",
-    field_ref: ["field", PEOPLE.CITY, null],
-    ...opts,
-  });
-
-export const createPeopleLatitudeDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createPeopleLatitudeField(),
-    id: PEOPLE.LATITUDE,
-    source: "fields",
-    field_ref: ["field", PEOPLE.LATITUDE, null],
-    ...opts,
-  });
-
-export const createPeopleLongitudeDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createPeopleLongitudeField(),
-    id: PEOPLE.LONGITUDE,
-    source: "fields",
-    field_ref: ["field", PEOPLE.LONGITUDE, null],
-    ...opts,
-  });
-
-export const createReviewsReviewerDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createReviewsReviewerField(),
-    id: REVIEWS.REVIEWER,
-    source: "fields",
-    field_ref: ["field", REVIEWS.REVIEWER, null],
-    ...opts,
-  });
-
-export const createReviewsBodyDatasetColumn = (
-  opts?: Partial<DatasetColumn>,
-): DatasetColumn =>
-  createMockColumn({
-    ...createReviewsBodyField(),
-    id: REVIEWS.BODY,
-    source: "fields",
-    field_ref: ["field", REVIEWS.BODY, null],
-    ...opts,
-  });

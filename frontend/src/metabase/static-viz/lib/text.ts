@@ -6,7 +6,7 @@ const DEFAULT_FONT_WEIGHT = 400;
 
 export const { getTextWidth } = init(CHAR_SIZES);
 
-export const measureTextWidth = (
+export const measureText = (
   text: string,
   fontSize: number,
   fontWeight = DEFAULT_FONT_WEIGHT,
@@ -31,13 +31,13 @@ export const truncateText = (
   fontSize: number,
   fontWeight = DEFAULT_FONT_WEIGHT,
 ) => {
-  if (measureTextWidth(text, fontSize, fontWeight) <= width) {
+  if (measureText(text, fontSize, fontWeight) <= width) {
     return text;
   }
 
   while (
     text.length &&
-    measureTextWidth(text + CHAR_ELLIPSES, fontSize, fontWeight) > width
+    measureText(text + CHAR_ELLIPSES, fontSize, fontWeight) > width
   ) {
     text = text.substring(0, text.length - 1).trim();
   }

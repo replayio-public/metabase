@@ -43,22 +43,19 @@ describe("urls", () => {
         );
       });
 
-      it("includes undefined params", () => {
+      it("does not include undefined params", () => {
         expect(question(null, { query: { foo: undefined } })).toEqual(
-          "/question?foo=",
+          "/question",
         );
         expect(
           question(null, { query: { foo: undefined, bar: "bar" } }),
-        ).toEqual("/question?foo=&bar=bar");
+        ).toEqual("/question?bar=bar");
       });
 
       it("includes null params", () => {
         expect(question(null, { query: { foo: null } })).toEqual(
-          "/question?foo=",
+          "/question?foo=null",
         );
-        expect(
-          question(null, { query: { foo: undefined, bar: "bar" } }),
-        ).toEqual("/question?foo=&bar=bar");
       });
     });
 

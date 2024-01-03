@@ -1,4 +1,4 @@
-(ns ^:mb/once metabase-enterprise.audit-app.pages.common-test
+(ns metabase-enterprise.audit-app.pages.common-test
   (:require
    [clojure.test :refer :all]
    [metabase-enterprise.audit-app.interface :as audit.i]
@@ -20,8 +20,8 @@
 
 (defmethod audit.i/internal-query ::legacy-format-query-fn
   [_ a1]
-  {:metadata [[:a {:display_name "A", :base_type :type/DateTime}]
-              [:b {:display_name "B", :base_type :type/Integer}]]
+  {:metadata [[:A {:display_name "A", :base_type :type/DateTime}]
+              [:B {:display_name "B", :base_type :type/Integer}]]
    :results  (common/query
               {:union-all [{:select [[[:inline a1] :A]
                                      [[:inline 2] :B]]}
@@ -30,8 +30,8 @@
 
 (defmethod audit.i/internal-query ::reducible-format-query-fn
   [_ a1]
-  {:metadata [[:a {:display_name "A", :base_type :type/DateTime}]
-              [:b {:display_name "B", :base_type :type/Integer}]]
+  {:metadata [[:A {:display_name "A", :base_type :type/DateTime}]
+              [:B {:display_name "B", :base_type :type/Integer}]]
    :results  (common/reducible-query
               {:union-all [{:select [[[:inline a1] :A]
                                      [[:inline 2] :B]]}
@@ -49,8 +49,8 @@
         (testing (format "format = %s" format-name)
           (let [results (delay (run-query query-type :args [100]))]
             (testing "cols"
-              (is (= [{:display_name "A", :base_type :type/DateTime, :name "a"}
-                      {:display_name "B", :base_type :type/Integer, :name "b"}]
+              (is (= [{:display_name "A", :base_type :type/DateTime, :name "A"}
+                      {:display_name "B", :base_type :type/Integer, :name "B"}]
                      (mt/cols @results))))
             (testing "rows"
               (is (= expected-rows

@@ -9,8 +9,8 @@ import {
   isAdminGroup,
   getGroupNameLocalized,
 } from "metabase/lib/groups";
-import type { Group, GroupListQuery, Member } from "metabase-types/api";
-import { isNotNull } from "metabase/lib/types";
+import { Group, Member } from "metabase-types/api";
+import { isNotNull } from "metabase/core/utils/types";
 import GroupSummary from "../GroupSummary";
 import {
   MembershipActionsContainer,
@@ -19,7 +19,7 @@ import {
   MembershipSelectItem,
 } from "./MembershipSelect.styled";
 
-const getGroupSections = (groups: GroupListQuery[]) => {
+const getGroupSections = (groups: Group[]) => {
   const defaultGroup = groups.find(isDefaultGroup);
   const adminGroup = groups.find(isAdminGroup);
   const pinnedGroups = [defaultGroup, adminGroup].filter(isNotNull);
@@ -42,9 +42,9 @@ const getGroupSections = (groups: GroupListQuery[]) => {
 type Memberships = Map<Group["id"], Partial<Member>>;
 
 interface MembershipSelectProps {
-  groups: GroupListQuery[];
+  groups: Group[];
   memberships: Memberships;
-  isCurrentUser?: boolean;
+  isCurrentUser: boolean;
   isUserAdmin: boolean;
   emptyListMessage?: string;
   onAdd: (groupId: number, membershipData: Partial<Member>) => void;
@@ -64,7 +64,7 @@ export const MembershipSelect = ({
 }: MembershipSelectProps) => {
   const selectedGroupIds = Array.from(memberships.keys());
   const triggerElement = (
-    <div className="flex align-center" aria-label="group-summary">
+    <div className="flex align-center">
       <span className="mr1 text-medium">
         <GroupSummary groups={groups} selectedGroupIds={selectedGroupIds} />
       </span>
@@ -116,7 +116,6 @@ export const MembershipSelect = ({
                 <MembershipSelectItem
                   isDisabled={isDisabled}
                   key={group.id}
-                  aria-label={group.name}
                   onClick={() =>
                     isDisabled ? undefined : handleToggleMembership(group.id)
                   }

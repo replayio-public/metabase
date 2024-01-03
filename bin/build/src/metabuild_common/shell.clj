@@ -7,8 +7,6 @@
   (:import
    (java.io BufferedReader File InputStreamReader)))
 
-(set! *warn-on-reflection* true)
-
 (defn- read-lines [^java.io.BufferedReader reader {:keys [quiet? err?]}]
   (loop [lines []]
     (if-let [line (.readLine reader)]

@@ -1,8 +1,6 @@
-import type { ReactNode } from "react";
-import { useMemo } from "react";
+import { ReactNode, useMemo } from "react";
 import { useUniqueId } from "metabase/hooks/use-unique-id";
-import type { TabContextType } from "../Tab";
-import { TabContext } from "../Tab";
+import { TabContext, TabContextType } from "../Tab";
 
 export interface TabContentProps<T> {
   value?: T;

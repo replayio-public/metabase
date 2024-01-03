@@ -1,5 +1,4 @@
 (ns metabase.api.metabot
-  "These Metabot endpoints are for an experimental feature."
   (:require
    [clojure.string :as str]
    [compojure.core :refer [POST]]
@@ -9,7 +8,7 @@
    [metabase.metabot.util :as metabot-util]
    [metabase.models :refer [Card Database]]
    [metabase.util.log :as log]
-   [metabase.util.malli.schema :as ms]
+   [metabase.util.schema :as su]
    [toucan2.core :as t2]))
 
 (set! *warn-on-reflection* true)
@@ -48,11 +47,12 @@
       prompt_template_version
       (update :prompt_template_versions conj prompt_template_version))))
 
-(api/defendpoint POST "/model/:model-id"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema POST "/model/:model-id"
   "Ask Metabot to generate a SQL query given a prompt about a given model."
   [model-id :as {{:keys [question]} :body}]
-  {model-id ms/PositiveInt
-   question ms/NonBlankString}
+  ;{model-id ms/PositiveInt
+  ; question string?}
   (log/infof
    "Metabot '/api/metabot/model/%s' being called with prompt: '%s'"
    model-id
@@ -65,11 +65,12 @@
         dataset (infer-sql-or-throw context question)]
     (add-viz-to-dataset context dataset)))
 
-(api/defendpoint POST "/database/:database-id"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema POST "/database/:database-id"
   "Ask Metabot to generate a native question given a prompt about a given database."
   [database-id :as {{:keys [question]} :body}]
-  {database-id ms/PositiveInt
-   question    ms/NonBlankString}
+  {database-id su/IntGreaterThanZero
+   question    su/NonBlankString}
   (log/infof
    "Metabot '/api/metabot/database/%s' being called with prompt: '%s'"
    database-id
@@ -95,11 +96,12 @@
           {:status-code 400
            :message     message}))))))
 
-(api/defendpoint POST "/database/:database-id/query"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema POST "/database/:database-id/query"
   "Ask Metabot to generate a SQL query given a prompt about a given database."
   [database-id :as {{:keys [question]} :body}]
-  {database-id ms/PositiveInt
-   question    ms/NonBlankString}
+  {database-id su/IntGreaterThanZero
+   question    su/NonBlankString}
   (log/infof
    "Metabot '/api/metabot/database/%s/query' being called with prompt: '%s'"
    database-id
@@ -111,7 +113,8 @@
                  :prompt_task :infer_native_sql}]
     (metabot/infer-native-sql-query context)))
 
-(api/defendpoint POST "/feedback"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema POST "/feedback"
   "Record feedback on metabot results."
   [:as {feedback :body}]
   (if-some [stored-feedback (metabot-feedback/submit-feedback feedback)]

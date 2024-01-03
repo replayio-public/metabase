@@ -1,10 +1,4 @@
-import { SAMPLE_DB_ID } from "e2e/support/cypress_data";
-import {
-  restore,
-  typeAndBlurUsingLabel,
-  isEE,
-  setTokenFeatures,
-} from "e2e/support/helpers";
+import { restore, typeAndBlurUsingLabel, isEE } from "e2e/support/helpers";
 
 describe("scenarios > admin > databases > exceptions", () => {
   beforeEach(() => {
@@ -13,7 +7,7 @@ describe("scenarios > admin > databases > exceptions", () => {
   });
 
   it("should handle malformed (null) database details (metabase#25715)", () => {
-    cy.intercept("GET", `/api/database/${SAMPLE_DB_ID}`, req => {
+    cy.intercept("GET", "/api/database/1", req => {
       req.reply(res => {
         res.body.details = null;
       });
@@ -67,8 +61,6 @@ describe("scenarios > admin > databases > exceptions", () => {
 
   it("should handle a failure to `GET` the list of all databases (metabase#20471)", () => {
     const errorMessage = "Lorem ipsum dolor sit amet, consectetur adip";
-
-    isEE && setTokenFeatures("all");
 
     cy.intercept(
       {

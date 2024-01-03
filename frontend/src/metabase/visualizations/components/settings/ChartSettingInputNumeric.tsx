@@ -1,53 +1,33 @@
 import { useState } from "react";
-import type * as React from "react";
+import * as React from "react";
 import _ from "underscore";
 import { ChartSettingNumericInput } from "./ChartSettingInputNumeric.styled";
 
-const ALLOWED_CHARS = [
-  "0",
-  "1",
-  "2",
-  "3",
-  "4",
-  "5",
-  "6",
-  "7",
-  "8",
-  "9",
-  ".",
-  "-",
-];
-
 interface ChartSettingInputProps {
-  value: number | undefined;
+  value: number;
   onChange: (value: number | undefined) => void;
   onChangeSettings: () => void;
 }
 
-export const ChartSettingInputNumeric = ({
+const ChartSettingInputNumeric = ({
   onChange,
   value,
   ...props
 }: ChartSettingInputProps) => {
-  const [internalValue, setInternalValue] = useState(value?.toString() ?? "");
+  const [internalValue, setInternalValue] = useState(value);
 
   return (
     <ChartSettingNumericInput
-      type="text"
+      type="number"
       {..._.omit(props, "onChangeSettings")}
-      error={internalValue !== "" && isNaN(Number(internalValue))}
+      error={!!internalValue && isNaN(internalValue)}
       value={internalValue}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-        const everyCharValid = e.target.value
-          .split("")
-          .every(char => ALLOWED_CHARS.includes(char));
-
-        if (everyCharValid) {
-          setInternalValue(e.target.value);
-        }
+        const num = parseFloat(e.target.value);
+        setInternalValue(num);
       }}
       onBlur={(e: React.ChangeEvent<HTMLInputElement>) => {
-        const num = e.target.value !== "" ? Number(e.target.value) : Number.NaN;
+        const num = parseFloat(e.target.value);
         if (isNaN(num)) {
           onChange(undefined);
         } else {
@@ -57,3 +37,6 @@ export const ChartSettingInputNumeric = ({
     />
   );
 };
+
+// eslint-disable-next-line import/no-default-export -- deprecated usage
+export default ChartSettingInputNumeric;

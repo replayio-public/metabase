@@ -1,12 +1,11 @@
 import {
-  modal,
   restore,
   runNativeQuery,
   summarize,
   popover,
   openQuestionActions,
 } from "e2e/support/helpers";
-import { ORDERS_QUESTION_ID } from "e2e/support/cypress_sample_instance_data";
+
 import { selectFromDropdown } from "./helpers/e2e-models-helpers";
 
 describe("scenarios > models query editor", () => {
@@ -21,14 +20,14 @@ describe("scenarios > models query editor", () => {
 
   describe("GUI models", () => {
     beforeEach(() => {
-      cy.request("PUT", `/api/card/${ORDERS_QUESTION_ID}`, {
+      cy.request("PUT", "/api/card/1", {
         name: "Orders Model",
         dataset: true,
       });
     });
 
     it("allows to edit GUI model query", () => {
-      cy.visit(`/model/${ORDERS_QUESTION_ID}`);
+      cy.visit("/model/1");
       cy.wait("@dataset");
 
       cy.get(".cellData").should("contain", "37.65").and("contain", "109.22");
@@ -56,9 +55,7 @@ describe("scenarios > models query editor", () => {
       cy.button("Save changes").click();
       cy.wait("@updateCard");
 
-      cy.url()
-        .should("include", `/model/${ORDERS_QUESTION_ID}`)
-        .and("not.include", "/query");
+      cy.url().should("include", "/model/1").and("not.include", "/query");
       cy.location("hash").should("eq", "");
 
       cy.get(".cellData")
@@ -67,7 +64,7 @@ describe("scenarios > models query editor", () => {
     });
 
     it("allows for canceling changes", () => {
-      cy.visit(`/model/${ORDERS_QUESTION_ID}`);
+      cy.visit("/model/1");
       cy.wait("@dataset");
 
       cy.get(".cellData").should("contain", "37.65").and("contain", "109.22");
@@ -90,19 +87,16 @@ describe("scenarios > models query editor", () => {
         .and("not.contain", "109.22");
 
       cy.button("Cancel").click();
-      modal().button("Discard changes").click();
       cy.wait("@cardQuery");
 
-      cy.url()
-        .should("include", `/model/${ORDERS_QUESTION_ID}`)
-        .and("not.include", "/query");
+      cy.url().should("include", "/model/1").and("not.include", "/query");
       cy.location("hash").should("eq", "");
 
       cy.get(".cellData").should("contain", "37.65").and("contain", "109.22");
     });
 
     it("locks display to table", () => {
-      cy.visit(`/model/${ORDERS_QUESTION_ID}/query`);
+      cy.visit("/model/1/query");
 
       summarize({ mode: "notebook" });
 
@@ -189,7 +183,6 @@ describe("scenarios > models query editor", () => {
         .and("not.contain", "109.22");
 
       cy.button("Cancel").click();
-      modal().button("Discard changes").click();
       cy.wait("@cardQuery");
 
       cy.get(".cellData").should("contain", "37.65").and("contain", "109.22");

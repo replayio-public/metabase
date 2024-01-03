@@ -1,5 +1,4 @@
-import type { InputHTMLAttributes, Ref } from "react";
-import { forwardRef } from "react";
+import { forwardRef, InputHTMLAttributes, Ref } from "react";
 import cx from "classnames";
 import { FormInputRoot } from "./FormInput.styled";
 

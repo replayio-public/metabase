@@ -1,8 +1,6 @@
-import type { CustomPickerInjectedProps } from "react-color";
-import { CustomPicker } from "react-color";
+import { CustomPicker, CustomPickerInjectedProps } from "react-color";
 import { Hue, Saturation } from "react-color/lib/components/common";
 import {
-  ControlsRoot,
   HueContainer,
   HuePointer,
   SaturationContainer,
@@ -20,7 +18,7 @@ const ColorPickerControls = CustomPicker(function ColorControls(
   props: CustomPickerInjectedProps,
 ) {
   return (
-    <ControlsRoot>
+    <div>
       <SaturationContainer>
         <Saturation
           {...props}
@@ -31,7 +29,7 @@ const ColorPickerControls = CustomPicker(function ColorControls(
       <HueContainer>
         <Hue {...props} pointer={HuePointer} />
       </HueContainer>
-    </ControlsRoot>
+    </div>
   );
 });
 

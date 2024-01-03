@@ -1,5 +1,4 @@
 import { Fragment, useMemo } from "react";
-import type { MouseEvent } from "react";
 import cx from "classnames";
 import { t } from "ttag";
 
@@ -9,13 +8,7 @@ import ExpandableString from "metabase/query_builder/components/ExpandableString
 import EmptyState from "metabase/components/EmptyState";
 
 import { formatValue, formatColumn } from "metabase/lib/formatting";
-import { Ellipsified } from "metabase/core/components/Ellipsified";
-import {
-  isa,
-  isID,
-  isImageURL,
-  isAvatarURL,
-} from "metabase-lib/types/utils/isa";
+import { isa, isID } from "metabase-lib/types/utils/isa";
 import { TYPE } from "metabase-lib/types/constants";
 import { findColumnIndexForColumnSetting } from "metabase-lib/queries/utils/dataset";
 
@@ -24,8 +17,7 @@ import {
   ObjectDetailsTable,
   GridContainer,
   GridCell,
-  FitImage,
-} from "./ObjectDetailsTable.styled";
+} from "./ObjectDetail.styled";
 
 export interface DetailsTableCellProps {
   column: any;
@@ -55,8 +47,7 @@ export function DetailsTableCell({
     columnSettings?.["_column_title_full"] || formatColumn(column);
 
   if (isColumnName) {
-    const title = column !== null ? columnTitle : null;
-    cellValue = <Ellipsified lines={8}>{title}</Ellipsified>;
+    cellValue = column !== null ? columnTitle : null;
     clicked.column = column;
     isLink = false;
   } else {
@@ -88,39 +79,28 @@ export function DetailsTableCell({
     isLink = isID(column);
   }
 
-  const isClickable = onVisualizationClick != null;
-
-  const isImage =
-    !isColumnName &&
-    (isImageURL(column) || isAvatarURL(column)) &&
-    typeof value === "string" &&
-    value.startsWith("http");
-
-  const handleClick = (e: MouseEvent<HTMLSpanElement>) => {
-    if (onVisualizationClick && visualizationIsClickable(clicked)) {
-      onVisualizationClick({ ...clicked, element: e.currentTarget });
-    }
-  };
+  const isClickable = onVisualizationClick && visualizationIsClickable(clicked);
 
   return (
     <div>
       <span
         className={cx(
           {
-            "cursor-pointer": onVisualizationClick,
+            "cursor-pointer": isClickable,
             link: isClickable && isLink,
           },
           className,
         )}
-        onClick={handleClick}
+        onClick={
+          isClickable
+            ? e => {
+                onVisualizationClick({ ...clicked, element: e.currentTarget });
+              }
+            : undefined
+        }
       >
         {cellValue}
       </span>
-      {isImage && (
-        <div>
-          <FitImage src={value} alt={value} />
-        </div>
-      )}
     </div>
   );
 }
@@ -176,36 +156,32 @@ export function DetailsTable({
   return (
     <ObjectDetailsTable>
       <GridContainer cols={3}>
-        {cols.map((column, columnIndex) => {
-          const columnValue = row[columnIndex];
-
-          return (
-            <Fragment key={columnIndex}>
-              <GridCell>
-                <DetailsTableCell
-                  column={column}
-                  value={row[columnIndex] ?? t`Empty`}
-                  isColumnName
-                  settings={settings}
-                  className="text-bold text-medium"
-                  onVisualizationClick={onVisualizationClick}
-                  visualizationIsClickable={visualizationIsClickable}
-                />
-              </GridCell>
-              <GridCell colSpan={2}>
-                <DetailsTableCell
-                  column={column}
-                  value={columnValue}
-                  isColumnName={false}
-                  settings={settings}
-                  className="text-bold text-dark text-spaced text-wrap"
-                  onVisualizationClick={onVisualizationClick}
-                  visualizationIsClickable={visualizationIsClickable}
-                />
-              </GridCell>
-            </Fragment>
-          );
-        })}
+        {cols.map((column, columnIndex) => (
+          <Fragment key={columnIndex}>
+            <GridCell>
+              <DetailsTableCell
+                column={column}
+                value={row[columnIndex] ?? t`Empty`}
+                isColumnName
+                settings={settings}
+                className="text-bold text-medium"
+                onVisualizationClick={onVisualizationClick}
+                visualizationIsClickable={visualizationIsClickable}
+              />
+            </GridCell>
+            <GridCell colSpan={2}>
+              <DetailsTableCell
+                column={column}
+                value={row[columnIndex]}
+                isColumnName={false}
+                settings={settings}
+                className="text-bold text-dark text-spaced text-wrap"
+                onVisualizationClick={onVisualizationClick}
+                visualizationIsClickable={visualizationIsClickable}
+              />
+            </GridCell>
+          </Fragment>
+        ))}
       </GridContainer>
     </ObjectDetailsTable>
   );

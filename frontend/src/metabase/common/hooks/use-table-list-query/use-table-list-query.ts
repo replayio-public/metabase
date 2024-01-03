@@ -1,11 +1,11 @@
 import Tables from "metabase/entities/tables";
-import type {
+import {
+  useEntityListQuery,
   UseEntityListQueryProps,
   UseEntityListQueryResult,
 } from "metabase/common/hooks/use-entity-list-query";
-import { useEntityListQuery } from "metabase/common/hooks/use-entity-list-query";
-import type { TableListQuery } from "metabase-types/api";
-import type Table from "metabase-lib/metadata/Table";
+import { TableListQuery } from "metabase-types/api";
+import Table from "metabase-lib/metadata/Table";
 
 export const useTableListQuery = (
   props: UseEntityListQueryProps<TableListQuery> = {},
@@ -16,6 +16,5 @@ export const useTableListQuery = (
     getLoading: Tables.selectors.getLoading,
     getLoaded: Tables.selectors.getLoaded,
     getError: Tables.selectors.getError,
-    getListMetadata: Tables.selectors.getListMetadata,
   });
 };

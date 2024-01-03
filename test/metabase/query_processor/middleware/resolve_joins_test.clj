@@ -1,61 +1,71 @@
 (ns metabase.query-processor.middleware.resolve-joins-test
   (:require
    [clojure.test :refer :all]
-   [metabase.lib.test-metadata :as meta]
-   [metabase.lib.test-util :as lib.tu]
+   [metabase.models :refer [Database Table]]
    [metabase.query-processor :as qp]
    [metabase.query-processor.middleware.resolve-joins :as resolve-joins]
    [metabase.query-processor.store :as qp.store]
+   [metabase.query-processor.test-util :as qp.test-util]
    [metabase.test :as mt]))
 
 (defn- resolve-joins [query]
-  (if (qp.store/initialized?)
-    (resolve-joins/resolve-joins query)
-    (qp.store/with-metadata-provider (mt/id)
-      (resolve-joins/resolve-joins query))))
+  (mt/with-everything-store
+    (resolve-joins/resolve-joins query)))
 
-(deftest ^:parallel joins->fields-test
-  (is (= [1 2 3 4]
-         (#'resolve-joins/joins->fields [{:fields :all}
-                                         {:fields [1 2]}
-                                         {:fields [3 4]}]))))
-
-(deftest ^:parallel no-op-test
+(deftest no-op-test
   (testing "Does the middleware function if the query has no joins?"
     (is (= (mt/mbql-query venues)
            (resolve-joins
             (mt/mbql-query venues))))))
 
-(deftest ^:parallel fields-none-test
+(defn- resolve-joins-and-inspect-store [query]
+  (qp.store/with-store
+    (qp.test-util/store-referenced-database! query)
+    {:resolved (resolve-joins query)
+     :store    (qp.test-util/store-contents)}))
+
+(deftest fields-none-test
   (testing "Can we resolve some joins w/ fields = none?"
-    (is (= (mt/mbql-query venues
-             {:joins
-              [{:source-table $$categories
-                :alias        "c"
-                :strategy     :left-join
-                :condition    [:= $category_id &c.categories.id]}]})
-           (resolve-joins
+    (is (= {:resolved
+            (mt/mbql-query venues
+              {:joins
+               [{:source-table $$categories
+                 :alias        "c"
+                 :strategy     :left-join
+                 :condition    [:= $category_id &c.categories.id]}]})
+            :store
+            {:database "test-data"
+             :tables   #{"CATEGORIES" "VENUES"}
+             :fields   #{["CATEGORIES" "ID"] ["VENUES" "CATEGORY_ID"]}}}
+           (resolve-joins-and-inspect-store
             (mt/mbql-query venues
               {:joins [{:source-table $$categories
                         :alias        "c"
                         :condition    [:= $category_id &c.categories.id]
                         :fields       :none}]}))))))
 
-(deftest ^:parallel fields-all-test
+(deftest fields-all-test
   (testing "Can we resolve some joins w/ fields = all ???"
-    (is (query= (mt/mbql-query venues
-                  {:joins
-                   [{:source-table $$categories
-                     :alias        "c"
-                     :strategy     :left-join
-                     :condition    [:= $category_id &c.categories.id]
-                     :fields       [&c.categories.id
-                                    &c.categories.name]}]
-                   :fields [$venues.id
-                            $venues.name
-                            &c.categories.id
-                            &c.categories.name]})
-                (resolve-joins
+    (is (query= {:resolved
+                 (mt/mbql-query venues
+                   {:joins
+                    [{:source-table $$categories
+                      :alias        "c"
+                      :strategy     :left-join
+                      :condition    [:= $category_id &c.categories.id]
+                      :fields       [&c.categories.id
+                                     &c.categories.name]}]
+                    :fields [$venues.id
+                             $venues.name
+                             &c.categories.id
+                             &c.categories.name]})
+                 :store
+                 {:database "test-data"
+                  :tables   #{"CATEGORIES" "VENUES"}
+                  :fields   #{["CATEGORIES" "ID"]
+                              ["VENUES" "CATEGORY_ID"]
+                              ["CATEGORIES" "NAME"]}}}
+                (resolve-joins-and-inspect-store
                  (mt/mbql-query venues
                    {:fields [$venues.id $venues.name]
                     :joins  [{:source-table $$categories
@@ -63,19 +73,26 @@
                               :condition    [:= $category_id &c.categories.id]
                               :fields       :all}]}))))))
 
-(deftest ^:parallel fields-sequence-test
+(deftest fields-sequence-test
   (testing "can we resolve joins w/ fields = <sequence>"
-    (is (query= (mt/mbql-query venues
-                  {:joins
-                   [{:source-table $$categories
-                     :alias        "c"
-                     :strategy     :left-join
-                     :condition    [:= $category_id &c.categories.id]
-                     :fields       [&c.categories.name]}]
-                   :fields [$venues.id
-                            $venues.name
-                            &c.categories.name]})
-                (resolve-joins
+    (is (query= {:resolved
+                 (mt/mbql-query venues
+                   {:joins
+                    [{:source-table $$categories
+                      :alias        "c"
+                      :strategy     :left-join
+                      :condition    [:= $category_id &c.categories.id]
+                      :fields       [&c.categories.name]}]
+                    :fields [$venues.id
+                             $venues.name
+                             &c.categories.name]})
+                 :store
+                 {:database "test-data"
+                  :tables   #{"CATEGORIES" "VENUES"}
+                  :fields   #{["CATEGORIES" "ID"]
+                              ["VENUES" "CATEGORY_ID"]
+                              ["CATEGORIES" "NAME"]}}}
+                (resolve-joins-and-inspect-store
                  (mt/mbql-query venues
                    {:fields [$venues.id $venues.name]
                     :joins  [{:source-table $$categories
@@ -83,7 +100,7 @@
                               :condition    [:= $category_id &c.categories.id]
                               :fields       [&c.categories.name]}]}))))))
 
-(deftest ^:parallel join-table-without-alias-test
+(deftest join-table-without-alias-test
   (testing "Does joining a table an explicit alias add a default alias?"
     (is (= (mt/mbql-query venues
              {:joins        [{:source-table $$categories
@@ -102,21 +119,20 @@
                        {:source-table $$categories
                         :condition    [:= $category_id 2]}]}))))))
 
-(deftest ^:parallel disallow-joins-against-table-on-different-db-test
+(deftest disallow-joins-against-table-on-different-db-test
   (testing "Test that joining against a table in a different DB throws an Exception"
-    (qp.store/with-metadata-provider (lib.tu/mock-metadata-provider
-                                      {:database meta/database
-                                       :tables   [(meta/table-metadata :venues)]})
+    (mt/with-temp* [Database [{database-id :id}]
+                    Table    [{table-id :id}    {:db_id database-id}]]
       (is (thrown-with-msg?
            clojure.lang.ExceptionInfo
-           #"\QFailed to fetch :metadata/table\E"
+           #"Table does not exist, or belongs to a different Database"
            (resolve-joins
             (mt/mbql-query venues
-              {:joins [{:source-table (meta/id :categories)
+              {:joins [{:source-table table-id
                         :alias        "t"
                         :condition    [:= $category_id 1]}]})))))))
 
-(deftest ^:parallel resolve-explicit-joins-when-implicit-joins-are-present-test
+(deftest resolve-explicit-joins-when-implicit-joins-are-present-test
   (testing "test that resolving explicit joins still works if implict joins are present"
     (is (= (mt/mbql-query checkins
              {:source-table $$checkins
@@ -152,18 +168,24 @@
                                               [:field %users.id {:join-alias "u"}]]}]
                :limit        10}))))))
 
-(deftest ^:parallel join-with-source-query-test
+(deftest join-with-source-query-test
   (testing "Does a join using a source query get its Tables resolved?"
-    (is (= (mt/mbql-query venues
-             {:joins    [{:alias        "cat"
-                          :source-query {:source-table $$categories}
-                          :strategy     :left-join
-                          :condition    [:=
-                                         $category_id
-                                         [:field "ID" {:base-type :type/BigInteger, :join-alias "cat"}]]}]
-              :order-by [[:asc $name]]
-              :limit    3})
-           (resolve-joins
+    (is (= {:store
+            {:database "test-data"
+             :tables   #{"VENUES" "CATEGORIES"}
+             :fields   #{["VENUES" "CATEGORY_ID"]}}
+
+            :resolved
+            (mt/mbql-query venues
+              {:joins    [{:alias        "cat"
+                           :source-query {:source-table $$categories}
+                           :strategy     :left-join
+                           :condition    [:=
+                                          $category_id
+                                          [:field "ID" {:base-type :type/BigInteger, :join-alias "cat"}]]}]
+               :order-by [[:asc $name]]
+               :limit    3})}
+           (resolve-joins-and-inspect-store
             (mt/mbql-query venues
               {:joins    [{:alias        "cat"
                            :source-query {:source-table $$categories}
@@ -173,21 +195,21 @@
                :order-by [[:asc $name]]
                :limit    3}))))))
 
-(deftest ^:parallel resolve-source-query-with-fields-all-test
+(deftest resolve-source-query-with-fields-all-test
   (testing "Can we resolve joins using a `:source-query` and `:fields` `:all`?"
-    (let [source-metadata (get-in (qp/process-userland-query (mt/mbql-query categories {:limit 1}))
-                                  [:data :results_metadata :columns])
-          resolved        (resolve-joins
-                           (mt/mbql-query venues
-                             {:joins    [{:alias           "cat"
-                                          :source-query    {:source-table $$categories}
-                                          :source-metadata source-metadata
-                                          :fields          :all
-                                          :condition       [:=
-                                                            $category_id
-                                                            [:field "ID" {:base-type :type/BigInteger, :join-alias "cat"}]]}]
-                              :order-by [[:asc $name]]
-                              :limit    3}))]
+    (let [source-metadata          (get-in (qp/process-userland-query (mt/mbql-query categories {:limit 1}))
+                                           [:data :results_metadata :columns])
+          {:keys [resolved store]} (resolve-joins-and-inspect-store
+                                    (mt/mbql-query venues
+                                      {:joins    [{:alias           "cat"
+                                                   :source-query    {:source-table $$categories}
+                                                   :source-metadata source-metadata
+                                                   :fields          :all
+                                                   :condition       [:=
+                                                                     $category_id
+                                                                     [:field "ID" {:base-type :type/BigInteger, :join-alias "cat"}]]}]
+                                       :order-by [[:asc $name]]
+                                       :limit    3}))]
       (is (query= (mt/mbql-query venues
                     {:fields   [[:field (mt/id :categories :id) {:join-alias "cat"}]
                                 [:field (mt/id :categories :name) {:join-alias "cat"}]]
@@ -200,9 +222,13 @@
                                                    &cat.categories.name]}]
                      :order-by [[:asc $name]]
                      :limit    3})
-                  resolved)))))
+                  resolved))
+      (is (= {:database "test-data"
+              :tables   #{"CATEGORIES" "VENUES"}
+              :fields   #{["CATEGORIES" "ID"] ["VENUES" "CATEGORY_ID"] ["CATEGORIES" "NAME"]}}
+             store)))))
 
-(deftest ^:parallel dont-append-fields-if-parent-has-breakout-or-aggregation-test
+(deftest dont-append-fields-if-parent-has-breakout-or-aggregation-test
   (testing "if the parent level has a breakout or aggregation, we shouldn't append Join fields to the parent level"
     (is (query= (mt/mbql-query users
                   {:joins       [{:source-table $$checkins
@@ -224,7 +250,7 @@
                     :aggregation [[:sum [:field "id" {:base-type :type/Float, :join-alias "c"}]]]
                     :breakout    [[:field %last_login {:temporal-unit :month}]]}))))))
 
-(deftest ^:parallel aggregation-field-ref-test
+(deftest aggregation-field-ref-test
   (testing "Should correctly handle [:aggregation n] field refs"
     (is (some? (resolve-joins
                 (mt/mbql-query users
@@ -253,7 +279,7 @@
                                :fingerprint   nil}]}]
                    :limit  10}))))))
 
-(deftest ^:parallel join-against-source-query-test
+(deftest join-against-source-query-test
   (is (query= (mt/mbql-query venues
                 {:joins    [{:source-query {:source-table $$categories
                                             :fields       [$categories.id

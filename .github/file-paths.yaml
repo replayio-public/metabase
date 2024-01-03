@@ -1,19 +1,16 @@
 default: &default
   - "locales/**"
-  - "bin/**/!(*.md)"
+  - "bin/**"
+
+ci: &ci
+  - ".github/**/!(*.md)"
 
 shared_sources: &shared_sources
-  - "src/**/*.cljc"
-  - "src/**/*.cljs"
+  - "shared/src/**"
+  - "src/metabase/lib/**"
 
 shared_specs: &shared_specs
-  - "test/**/*.cljc"
-  - "test/**/*.cljs"
-
-frontend_ci: &frontend_ci
-  - ".github/actions/prepare-frontend/**"
-  - ".github/actions/prepare-backend/**"
-  - ".github/workflows/frontend.yml"
+  - "shared/test/**"
 
 frontend_sources: &frontend_sources
   - *shared_sources
@@ -30,22 +27,14 @@ frontend_sources: &frontend_sources
 frontend_specs: &frontend_specs
   - *shared_specs
   - "frontend/test/**"
-  - "frontend/**/tests/**"
   - "frontend/**/*.unit.*"
-  - "jest.config.json"
+  - "jest.unit.conf.json"
   - "jest.tz.unit.conf.json"
 
 frontend_all: &frontend_all
-  - *frontend_ci
+  - *ci
   - *frontend_sources
   - *frontend_specs
-
-backend_ci: &backend_ci
-  - ".github/actions/prepare-frontend/**"
-  - ".github/actions/prepare-backend/**"
-  - ".github/actions/test-driver/**"
-  - ".github/workflows/backend.yml"
-  - ".github/workflows/drivers.yml"
 
 backend_presto_kerberos:
   - "**/presto_jdbc/**"
@@ -71,24 +60,15 @@ backend_specs: &backend_specs
 
 backend_all: &backend_all
   - *default
-  - *backend_ci
+  - *ci
   - *backend_sources
   - *backend_specs
+  - *frontend_sources # keep it here until we detect static viz changes
 
 sources: &sources
   - *shared_sources
   - *frontend_sources
   - *backend_sources
-
-e2e_ci: &e2e_ci
-  - ".github/actions/build-e2e-matrix/**"
-  - ".github/actions/prepare-frontend/**"
-  - ".github/actions/prepare-backend/**"
-  - ".github/actions/prepare-uberjar-artifact/**"
-  - ".github/actions/e2e-prepare-containers/**"
-  - ".github/actions/prepare-cypress/**"
-  - ".github/actions/run-snowplow-micro/**"
-  - ".github/workflows/e2e-tests.yml"
 
 e2e_specs: &e2e_specs
   - "**/*.cy.*.js"
@@ -98,12 +78,12 @@ e2e_specs: &e2e_specs
 
 e2e_all:
   - *default
-  - *e2e_ci
-  - *sources
+  - *ci
   - *e2e_specs
+  - *sources
 
 snowplow:
-  - ".github/workflows/snowplow.yml"
+  - *ci
   - "snowplow/**"
 
 documentation:
@@ -120,9 +100,7 @@ codeql:
 
 i18n:
   - *default
-  - ".github/actions/prepare-frontend/**"
-  - ".github/actions/prepare-backend/**"
-  - ".github/workflows/i18n.yml"
+  - *ci
   - *sources
 
 visualizations:

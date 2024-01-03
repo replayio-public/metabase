@@ -7,7 +7,6 @@ import AccordionList from "metabase/core/components/AccordionList";
 import { Icon } from "metabase/core/components/Icon";
 import PopoverWithTrigger from "metabase/components/PopoverWithTrigger";
 import Tooltip from "metabase/core/components/Tooltip";
-import { Box } from "metabase/ui";
 import { FieldDimension } from "metabase-lib/Dimension";
 
 import { DimensionPicker } from "./DimensionPicker";
@@ -73,7 +72,7 @@ export default class DimensionList extends Component {
     );
   };
 
-  renderItemExtra = (item, isSelected) => {
+  renderItemExtra = (item, itemIndex, isSelected) => {
     const {
       enableSubDimensions,
       preventNumberSubDimensions,
@@ -103,7 +102,7 @@ export default class DimensionList extends Component {
         );
 
     return (
-      <Box className="Field-extra">
+      <div className="Field-extra flex align-center">
         {item.dimension?.tag && (
           <span className="h5 text-light px1">{item.dimension.tag}</span>
         )}
@@ -156,7 +155,7 @@ export default class DimensionList extends Component {
             }}
           />
         )}
-      </Box>
+      </div>
     );
   };
 

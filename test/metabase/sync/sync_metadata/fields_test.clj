@@ -12,13 +12,23 @@
    [metabase.test :as mt]
    [metabase.test.data.one-off-dbs :as one-off-dbs]
    [metabase.util :as u]
+   [toucan.hydrate :refer [hydrate]]
    [toucan2.core :as t2]))
 
-(defn- do-with-test-db [thunk]
+(defn- with-test-db-before-and-after-altering
+  "Testing function that performs the following steps:
+   1.  Create a temporary test database & syncs it
+   2.  Executes `(f database)`
+   3.  Drops one of the columns from the test DB & syncs it again
+   4.  Executes `(f database)` a second time
+   5.  Returns a map containing results from both calls to `f` for comparison."
+  {:style/indent [:fn]}
+  [alter-sql f]
+  ;; first, create a new in-memory test DB and add some data to it
   (one-off-dbs/with-blank-db
-    (doseq [statement [;; H2 needs that 'guest' user for QP purposes. Set that up
+    (doseq [statement [ ;; H2 needs that 'guest' user for QP purposes. Set that up
                        "CREATE USER IF NOT EXISTS GUEST PASSWORD 'guest';"
-                       ;; Keep DB open until we say otherwise
+                       ;; Keep DB open until we say otherwise :)
                        "SET DB_CLOSE_DELAY -1;"
                        ;; create table & load data
                        "DROP TABLE IF EXISTS \"birds\";"
@@ -29,30 +39,6 @@
                             "('California Gull', 'Steven Seagull'), "
                             "('Chicken', 'Colin Fowl');")]]
       (jdbc/execute! one-off-dbs/*conn* [statement]))
-    (thunk)))
-
-(defmacro with-test-db
-  "An empty canvas upon which you may paint your dreams.
-
-  Creates a one-off tempory in-memory H2 database and binds this DB with `data/with-db` so you can use `data/db` and
-  `data/id` to access it. `*conn*` is bound to a JDBC connection spec so you can execute DDL statements to populate it
-  as needed."
-  {:style/indent 0}
-  [& body]
-  `(do-with-test-db (fn [] ~@body)))
-
-(defn- with-test-db-before-and-after-altering
-  "Testing function that performs the following steps:
-   1.  Create a temporary test database & syncs it
-   2.  Optionally executes `(do-something-before database)`
-   3.  Executes `(f database)`
-   4.  Drops one of the columns from the test DB & syncs it again
-   5.  Executes `(f database)` a second time
-   6.  Returns a map containing results from both calls to `f` for comparison."
-  {:style/indent [:fn]}
-  [alter-sql f]
-  ;; first, create a new in-memory test DB and add some data to it
-  (with-test-db
     ;; now sync
     (sync/sync-database! (mt/db))
     ;; ok, let's see what (f) gives us
@@ -88,59 +74,27 @@
 
 (deftest mark-inactive-test
   (testing "make sure sync correctly marks a Field as active = false when it gets dropped from the DB"
-    (is (=? {:before-sync {"species"      {:active true}
-                           "example_name" {:active true}}
-             :after-sync  {"species"      {:active true}
-                           "example_name" {:active false}}}
-            (with-test-db-before-and-after-altering
-              "ALTER TABLE \"birds\" DROP COLUMN \"example_name\";"
-              (fn [database]
-                (t2/select-fn->fn :name (partial into {}) :model/Field
-                                  :table_id [:in (t2/select-pks-set Table :db_id (u/the-id database))])))))))
-
-(deftest mark-inactive-remove-fks-test
-  (testing "when a column is dropped from the DB, sync should wipe foreign key targets and their semantic type"
-    (with-test-db
-      (doseq [statement ["CREATE TABLE \"flocks\" (\"id\" INTEGER PRIMARY KEY, \"example_bird_name\" VARCHAR);"
-                         (str "INSERT INTO \"flocks\" (\"id\", \"example_bird_name\") VALUES "
-                              "(1, 'Marshawn Finch'),  "
-                              "(2, 'Steven Seagull'), "
-                              "(3, 'Colin Fowl');")]]
-        (jdbc/execute! one-off-dbs/*conn* [statement]))
-      (sync/sync-database! (mt/db))
-      (let [tables          (t2/select-pks-set Table :db_id (u/the-id (mt/db)))
-            get-field-to-update (fn []
-                                  (t2/select-one
-                                   :model/Field
-                                   :name "example_bird_name"
-                                   :table_id [:in tables]))
-            field-to-drop   (t2/select-one Field :name "example_name" :table_id [:in tables])
-            field-to-update (get-field-to-update)]
-        (t2/update! :model/Field (u/the-id field-to-update) {:semantic_type      :type/FK
-                                                             :fk_target_field_id (u/the-id field-to-drop)})
-        ;; get the field before sync
-        (let [field-before-sync (get-field-to-update)]
-          ;; ok cool! now delete one of those columns...
-          (jdbc/execute! one-off-dbs/*conn* ["ALTER TABLE \"birds\" DROP COLUMN \"example_name\";"])
-          ;; ...and re-sync...
-          (sync/sync-database! (mt/db))
-          ;; ...now let's see how the field may have changed! Compare to original.
-          (is (=? {:before-sync {:semantic_type      :type/FK
-                                 :fk_target_field_id int?}
-                   :after-sync  {:semantic_type      nil
-                                 :fk_target_field_id nil}}
-                  {:before-sync field-before-sync
-                   :after-sync  (get-field-to-update)})))))))
+    (is (= {:before-sync #{{:name "species",      :active true}
+                           {:name "example_name", :active true}}
+            :after-sync  #{{:name "species",      :active true}
+                           {:name "example_name", :active false}}}
+           (with-test-db-before-and-after-altering
+            "ALTER TABLE \"birds\" DROP COLUMN \"example_name\";"
+            (fn [database]
+              (set
+               (map (partial into {})
+                    (t2/select [Field :name :active]
+                      :table_id [:in (t2/select-pks-set Table :db_id (u/the-id database))])))))))))
 
 (deftest dont-show-deleted-fields-test
   (testing "make sure deleted fields doesn't show up in `:fields` of a table"
     (is (= {:before-sync #{"species" "example_name"}
             :after-sync  #{"species"}}
            (with-test-db-before-and-after-altering
-             "ALTER TABLE \"birds\" DROP COLUMN \"example_name\";"
-             (fn [database]
-               (let [table (t2/hydrate (t2/select-one Table :db_id (u/the-id database)) :fields)]
-                 (set (map :name (:fields table))))))))))
+            "ALTER TABLE \"birds\" DROP COLUMN \"example_name\";"
+            (fn [database]
+              (let [table (hydrate (t2/select-one Table :db_id (u/the-id database)) :fields)]
+                (set (map :name (:fields table))))))))))
 
 (deftest dont-splice-inactive-columns-into-queries-test
   (testing (str "make sure that inactive columns don't end up getting spliced into queries! This test arguably "
@@ -162,7 +116,7 @@
                (-> (qp/process-query {:database (u/the-id database)
                                       :type     :query
                                       :query    {:source-table (t2/select-one-pk Table
-                                                                                 :db_id (u/the-id database), :name "birds")}})
+                                                                 :db_id (u/the-id database), :name "birds")}})
                    :data
                    :native_form
                    :query)))))))
@@ -222,37 +176,15 @@
                    :semantic-type     semantic_type
                    :fk-target-exists? (t2/exists? Field :id fk_target_field_id)}))]
         (testing "before"
-          (is (= {:step-info         {:total-fks 6, :updated-fks 0, :total-failed 0}
-                  :task-details      {:total-fks 6, :updated-fks 0, :total-failed 0}
+          (is (= {:step-info         {:total-fks 3, :updated-fks 0, :total-failed 0}
+                  :task-details      {:total-fks 3, :updated-fks 0, :total-failed 0}
                   :semantic-type     :type/FK
                   :fk-target-exists? true}
                  (state))))
         (t2/update! Field (mt/id :checkins :user_id) {:semantic_type nil, :fk_target_field_id nil})
         (testing "after"
-          (is (= {:step-info         {:total-fks 6, :updated-fks 1, :total-failed 0}
-                  :task-details      {:total-fks 6, :updated-fks 1, :total-failed 0}
+          (is (= {:step-info         {:total-fks 3, :updated-fks 1, :total-failed 0}
+                  :task-details      {:total-fks 3, :updated-fks 1, :total-failed 0}
                   :semantic-type     :type/FK
                   :fk-target-exists? true}
                  (state))))))))
-
-(deftest case-sensitive-conflict-test
-  (testing "Two columns with same lower-case name can be synced (#17387)"
-    (one-off-dbs/with-blank-db
-      (doseq [statement [;; H2 needs that 'guest' user for QP purposes. Set that up
-                         "CREATE USER IF NOT EXISTS GUEST PASSWORD 'guest';"
-                         ;; Keep DB open until we say otherwise :)
-                         "SET DB_CLOSE_DELAY -1;"
-                         ;; create table & load data
-                         "DROP TABLE IF EXISTS \"birds\";"
-                         "CREATE TABLE \"birds\" (\"event\" VARCHAR, \"eVent\" VARCHAR);"
-                         "GRANT ALL ON \"birds\" TO GUEST;"
-                         (str "INSERT INTO \"birds\" (\"event\", \"eVent\") VALUES "
-                              "('a', 'b'),  "
-                              "('c', 'd');")]]
-        (jdbc/execute! one-off-dbs/*conn* [statement]))
-      (let [sync-info (sync/sync-database! (mt/db))
-            field-sync-info (->> sync-info
-                                 (m/find-first (comp #{"metadata"} :name))
-                                 :steps
-                                 (m/find-first (comp #{"sync-fields"} first)))]
-        (is (=? ["sync-fields" {:total-fields 2 :updated-fields 2}] field-sync-info))))))

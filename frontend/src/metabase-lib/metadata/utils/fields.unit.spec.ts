@@ -1,4 +1,4 @@
-import type { FieldReference } from "metabase-types/api";
+import { FieldReference } from "metabase-types/api";
 import { createMockField, createMockTable } from "metabase-types/api/mocks";
 import { createMockMetadata } from "__support__/metadata";
 import { getUniqueFieldId } from "./fields";

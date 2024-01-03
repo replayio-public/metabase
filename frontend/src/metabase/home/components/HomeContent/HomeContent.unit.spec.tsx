@@ -1,9 +1,4 @@
-import type {
-  Database,
-  PopularItem,
-  RecentItem,
-  User,
-} from "metabase-types/api";
+import { Database, PopularItem, RecentItem, User } from "metabase-types/api";
 import {
   createMockDatabase,
   createMockPopularItem,
@@ -17,7 +12,7 @@ import {
 import {
   renderWithProviders,
   screen,
-  waitForLoaderToBeRemoved,
+  waitForElementToBeRemoved,
 } from "__support__/ui";
 import {
   setupDatabaseCandidatesEndpoint,
@@ -56,7 +51,7 @@ const setup = async ({
 
   renderWithProviders(<HomeContent />, { storeInitialState: state });
 
-  await waitForLoaderToBeRemoved();
+  await waitForElementToBeRemoved(() => screen.queryByText(/Loading/i));
 };
 
 describe("HomeContent", () => {

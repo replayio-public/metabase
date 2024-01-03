@@ -3,10 +3,9 @@ import { t } from "ttag";
 
 import { color } from "metabase/lib/colors";
 
-import { DashCardCardParameterMapperConnected } from "./DashCardCardParameterMapper";
-import { MapperSettingsContainer } from "./DashCardParameterMapper.styled";
+import DashCardCardParameterMapper from "./DashCardCardParameterMapper";
 
-export const DashCardParameterMapper = ({ dashcard, isMobile }) => (
+const DashCardParameterMapper = ({ dashcard, isMobile }) => (
   <div className="relative flex-full flex flex-column layout-centered">
     {dashcard.series && dashcard.series.length > 0 && (
       <div
@@ -20,15 +19,17 @@ export const DashCardParameterMapper = ({ dashcard, isMobile }) => (
         {t`Make sure to make a selection for each series, or the filter won't work on this card.`}
       </div>
     )}
-    <MapperSettingsContainer>
+    <div className="flex mx4 z1" style={{ justifyContent: "space-around" }}>
       {[dashcard.card].concat(dashcard.series || []).map(card => (
-        <DashCardCardParameterMapperConnected
+        <DashCardCardParameterMapper
           key={`${dashcard.id},${card.id}`}
           dashcard={dashcard}
           card={card}
           isMobile={isMobile}
         />
       ))}
-    </MapperSettingsContainer>
+    </div>
   </div>
 );
+
+export default DashCardParameterMapper;

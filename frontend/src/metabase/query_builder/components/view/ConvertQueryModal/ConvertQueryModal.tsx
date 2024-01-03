@@ -8,9 +8,9 @@ import {
   getNativeQueryFn,
   getQuestion,
 } from "metabase/query_builder/selectors";
-import type { NativeQueryForm } from "metabase-types/api";
-import type { QueryBuilderUIControls, State } from "metabase-types/store";
-import type Question from "metabase-lib/Question";
+import { NativeQueryForm } from "metabase-types/api";
+import { State } from "metabase-types/store";
+import Question from "metabase-lib/Question";
 
 import NativeQueryModal, { useNativeQuery } from "../NativeQueryModal";
 
@@ -33,8 +33,7 @@ interface UpdateQuestionOpts {
 interface ConvertQueryModalProps {
   question: Question;
   onLoadQuery: () => Promise<NativeQueryForm>;
-  onUpdateQuestion: (question: Question, opts?: UpdateQuestionOpts) => void;
-  onSetUIControls: (changes: Partial<QueryBuilderUIControls>) => void;
+  onUpdateQuestion?: (question: Question, opts?: UpdateQuestionOpts) => void;
   onClose?: () => void;
 }
 
@@ -42,7 +41,6 @@ const ConvertQueryModal = ({
   question,
   onLoadQuery,
   onUpdateQuestion,
-  onSetUIControls,
   onClose,
 }: ConvertQueryModalProps): JSX.Element => {
   const engineType = getEngineNativeType(question.database()?.engine);
@@ -57,9 +55,8 @@ const ConvertQueryModal = ({
     const newQuestion = question.setDatasetQuery(newDatasetQuery);
 
     onUpdateQuestion?.(newQuestion, { shouldUpdateUrl: true });
-    onSetUIControls({ isNativeEditorOpen: true });
     onClose?.();
-  }, [question, query, onUpdateQuestion, onSetUIControls, onClose]);
+  }, [question, query, onUpdateQuestion, onClose]);
 
   return (
     <NativeQueryModal

@@ -1,7 +1,6 @@
-import type { IconName } from "metabase/core/components/Icon";
-import type { UserId } from "./user";
-import type { CardDisplayType } from "./card";
-import type { DatabaseId } from "./database";
+import { UserId } from "./user";
+import { CardDisplayType } from "./card";
+import { DatabaseId } from "./database";
 
 export type RegularCollectionId = number;
 
@@ -11,20 +10,10 @@ export type CollectionContentModel = "card" | "dataset";
 
 export type CollectionAuthorityLevel = "official" | null;
 
-export type CollectionType = "instance-analytics" | null;
-
 export type CollectionAuthorityLevelConfig = {
   type: CollectionAuthorityLevel;
   name: string;
-  icon: IconName;
-  color?: string;
-  tooltips?: Record<string, string>;
-};
-
-export type CollectionInstanceAnaltyicsConfig = {
-  type: CollectionType;
-  name: string;
-  icon: IconName;
+  icon: string;
   color?: string;
   tooltips?: Record<string, string>;
 };
@@ -32,18 +21,15 @@ export type CollectionInstanceAnaltyicsConfig = {
 export interface Collection {
   id: CollectionId;
   name: string;
-  slug?: string;
-  entity_id?: string;
   description: string | null;
   can_write: boolean;
+  color?: string;
   archived: boolean;
   children?: Collection[];
   authority_level?: "official" | null;
-  type?: "instance-analytics" | null;
 
   parent_id?: CollectionId;
   personal_owner_id?: UserId;
-  is_personal?: boolean;
 
   location?: string;
   effective_ancestors?: Collection[];
@@ -56,14 +42,12 @@ export interface Collection {
   path?: CollectionId[];
 }
 
-export type CollectionItemModel =
+type CollectionItemModel =
   | "card"
   | "dataset"
   | "dashboard"
   | "pulse"
-  | "snippet"
-  | "collection"
-  | "indexed-entity";
+  | "collection";
 
 export type CollectionItemId = number;
 
@@ -76,23 +60,15 @@ export interface CollectionItem {
   collection_position?: number | null;
   collection_preview?: boolean | null;
   fully_parametrized?: boolean | null;
-  collection?: Collection | null;
+  collection?: Collection;
   display?: CardDisplayType;
   personal_owner_id?: UserId;
   database_id?: DatabaseId;
   moderated_status?: string;
-  type?: string;
-  can_write?: boolean;
-  getIcon: () => { name: IconName };
+  getIcon: () => { name: string };
   getUrl: (opts?: Record<string, unknown>) => string;
   setArchived?: (isArchived: boolean) => void;
   setPinned?: (isPinned: boolean) => void;
   setCollection?: (collection: Collection) => void;
   setCollectionPreview?: (isEnabled: boolean) => void;
-}
-
-export interface CollectionListQuery {
-  archived?: boolean;
-  "exclude-other-user-collections"?: boolean;
-  namespace?: string;
 }

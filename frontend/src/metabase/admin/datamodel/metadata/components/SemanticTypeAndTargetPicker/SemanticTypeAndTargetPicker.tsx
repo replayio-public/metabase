@@ -4,11 +4,13 @@ import { t } from "ttag";
 import { currency } from "cljs/metabase.shared.util.currency";
 import * as MetabaseCore from "metabase/lib/core";
 import { trackStructEvent } from "metabase/lib/analytics";
-import type { SelectChangeEvent } from "metabase/core/components/Select";
-import Select, { Option } from "metabase/core/components/Select";
+import Select, {
+  Option,
+  SelectChangeEvent,
+} from "metabase/core/components/Select";
 import { getGlobalSettingsForColumn } from "metabase/visualizations/lib/settings/column";
-import type { FieldFormattingSettings, FieldId } from "metabase-types/api";
-import type Field from "metabase-lib/metadata/Field";
+import { FieldFormattingSettings, FieldId } from "metabase-types/api";
+import Field from "metabase-lib/metadata/Field";
 import FieldSeparator from "../FieldSeparator";
 
 const TYPE_OPTIONS = [

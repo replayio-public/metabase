@@ -1,19 +1,22 @@
 import { useCallback, useState } from "react";
-import type { ValuesSourceConfig, ValuesSourceType } from "metabase-types/api";
+import {
+  Parameter,
+  ValuesSourceConfig,
+  ValuesSourceType,
+} from "metabase-types/api";
 import {
   getSourceConfig,
   getSourceConfigForType,
   getSourceType,
 } from "metabase-lib/parameters/utils/parameter-source";
-import type { UiParameter } from "metabase-lib/parameters/types";
-import { hasFields } from "metabase-lib/parameters/utils/parameter-fields";
+import { ParameterWithTemplateTagTarget } from "metabase-lib/parameters/types";
 import ValuesSourceTypeModal from "./ValuesSourceTypeModal";
 import ValuesSourceCardModal from "./ValuesSourceCardModal";
 
 type ModalStep = "main" | "card";
 
 interface ModalProps {
-  parameter: UiParameter;
+  parameter: Parameter;
   onSubmit: (
     sourceType: ValuesSourceType,
     sourceConfig: ValuesSourceConfig,
@@ -65,14 +68,12 @@ const ValuesSourceModal = ({
   );
 };
 
-/**
- * after using this function to initialize sourceType, we know that:
- * (intial sourceType === null) => hasFields(parameter)
- */
-const getInitialSourceType = (parameter: UiParameter) => {
+const getInitialSourceType = (parameter: ParameterWithTemplateTagTarget) => {
   const sourceType = getSourceType(parameter);
 
-  return sourceType === null && !hasFields(parameter) ? "card" : sourceType;
+  return sourceType === null && parameter.hasVariableTemplateTagTarget
+    ? "card"
+    : sourceType;
 };
 
 // eslint-disable-next-line import/no-default-export -- deprecated usage

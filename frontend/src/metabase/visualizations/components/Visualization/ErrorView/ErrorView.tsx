@@ -10,7 +10,7 @@ interface ErrorViewProps {
   isSmall: boolean;
 }
 
-export function ErrorView({
+function ErrorView({
   error,
   icon = "warning",
   isDashboard,
@@ -25,3 +25,6 @@ export function ErrorView({
     </Root>
   );
 }
+
+// eslint-disable-next-line import/no-default-export -- deprecated usage
+export default ErrorView;

@@ -51,7 +51,7 @@ function CategoryFieldInput({
         autoFocus={false}
         alwaysShowOptions={false}
         disableSearch={false}
-        disableList
+        forceTokenField
         layoutRenderer={DefaultTokenFieldLayout}
         valueRenderer={(val: string) => <span>{val}</span>}
         color="brand"

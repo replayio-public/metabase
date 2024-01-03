@@ -6,7 +6,6 @@
   As much as possible, this namespace aims to abstract away the `nio.file` library and expose a set of high-level
   *file-manipulation* functions for the sorts of operations the plugin system needs to perform."
   (:require
-   [babashka.fs :as fs]
    [clojure.java.io :as io]
    [clojure.string :as str]
    [metabase.util :as u]
@@ -15,11 +14,9 @@
   (:import
    (java.io FileNotFoundException)
    (java.net URL)
-   (java.nio.file CopyOption Files FileSystem FileSystemAlreadyExistsException FileSystems
-                  LinkOption OpenOption Path Paths StandardCopyOption)
+   (java.nio.file CopyOption Files FileSystem FileSystems LinkOption OpenOption Path Paths StandardCopyOption)
    (java.nio.file.attribute FileAttribute)
-   (java.util Collections)
-   (java.util.zip ZipInputStream)))
+   (java.util Collections)))
 
 (set! *warn-on-reflection* true)
 
@@ -68,8 +65,6 @@
 (defn create-dir-if-not-exists!
   "Self-explanatory. Create a directory with `path` if it does not already exist."
   [^Path path]
-  (when-let [parent (fs/parent path)]
-    (create-dir-if-not-exists! parent))
   (when-not (exists? path)
     (Files/createDirectory path (u/varargs FileAttribute))))
 
@@ -113,12 +108,7 @@
     (str/includes? (.getFile url) ".jar!/")))
 
 (defn- jar-file-system-from-url ^FileSystem [^URL url]
-  (let [uri (.toURI url)]
-    (try
-      (FileSystems/newFileSystem uri Collections/EMPTY_MAP)
-      (catch FileSystemAlreadyExistsException _
-        (log/info "File system at" uri "already exists")
-        (FileSystems/getFileSystem uri)))))
+  (FileSystems/newFileSystem (.toURI url) Collections/EMPTY_MAP))
 
 (defn do-with-open-path-to-resource
   "Impl for `with-open-path-to-resource`."
@@ -132,7 +122,7 @@
       (f (get-path (.toString (Paths/get (.toURI url))))))))
 
 (defmacro with-open-path-to-resource
-  "Execute `body` with a Path to a resource file or directory (i.e. a file in the project `resources/` directory, or
+  "Execute `body` with an Path to a resource file or directory (i.e. a file in the project `resources/` directory, or
   inside the uberjar), cleaning up when finished.
 
   Throws a FileNotFoundException if the resource does not exist; be sure to check with `io/resource` or similar before
@@ -166,23 +156,3 @@
       (when (exists? file-path)
         (with-open [is (Files/newInputStream file-path (u/varargs OpenOption))]
           (slurp is))))))
-
-(defn unzip-file
-  "Decompress a zip archive from input to output."
-  [zip-file mod-fn]
-  (with-open [stream (-> zip-file io/input-stream ZipInputStream.)]
-    (loop [entry (.getNextEntry stream)]
-      (when entry
-        (let [out-path (mod-fn (.getName entry))
-              out-file (io/file out-path)]
-          (if (.isDirectory entry)
-            (when-not (.exists out-file) (.mkdirs out-file))
-            (let [parent-dir (fs/parent out-path)]
-              (when-not (fs/exists? (str parent-dir)) (fs/create-dirs parent-dir))
-              (io/copy stream out-file)))
-          (recur (.getNextEntry stream)))))))
-
-(defn relative-path
-  "Returns a java.nio.file.Path "
-  [path]
-  (fs/relativize (fs/absolutize ".") path))

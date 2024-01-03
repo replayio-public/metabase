@@ -356,9 +356,9 @@ describe("Dimension", () => {
     const dimension = Dimension.parseMBQL(mbql, metadata);
 
     describe("INSTANCE METHODS", () => {
-      describe("_isBinnable()", () => {
+      describe("isBinnable()", () => {
         it("should return truthy", () => {
-          expect(dimension._isBinnable()).toBeTruthy();
+          expect(dimension.isBinnable()).toBeTruthy();
         });
       });
 

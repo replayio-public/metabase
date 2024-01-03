@@ -1,8 +1,5 @@
 import { Area, LinePath } from "@visx/shape";
-import type {
-  AccessorForArrayItem,
-  PositionScale,
-} from "@visx/shape/lib/types";
+import { AccessorForArrayItem, PositionScale } from "@visx/shape/lib/types";
 
 interface AreaProps<Datum> {
   x: AccessorForArrayItem<Datum, number>;

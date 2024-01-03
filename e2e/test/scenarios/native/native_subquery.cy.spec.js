@@ -7,7 +7,6 @@ import {
   runNativeQuery,
 } from "e2e/support/helpers";
 
-import { ORDERS_QUESTION_ID } from "e2e/support/cypress_sample_instance_data";
 import * as SQLFilter from "../native-filters/helpers/e2e-sql-filter-helpers";
 
 describe("scenarios > question > native subquery", () => {
@@ -182,7 +181,6 @@ describe("scenarios > question > native subquery", () => {
         query: "SELECT id AS a_unique_column_name FROM PEOPLE",
       },
     }).then(({ body: { id: questionId1 } }) => {
-      cy.wrap(questionId1).as("questionId");
       const tagID = `#${questionId1}`;
       cy.createNativeQuestion({
         name: "Count of People",
@@ -202,11 +200,7 @@ describe("scenarios > question > native subquery", () => {
         // check the original name is in the query
         cy.visit(`/question/${questionId2}`);
         cy.findByText("Open Editor").click();
-        cy.get("@questionId").then(questionId => {
-          cy.get(".ace_content:visible").contains(
-            `{{#${questionId}-a-people-question-1}}`,
-          );
-        });
+        cy.get(".ace_content:visible").contains("{{#4-a-people-question-1}}");
 
         // change the name
         cy.visit(`/question/${questionId1}`);
@@ -217,11 +211,9 @@ describe("scenarios > question > native subquery", () => {
         // check the name has changed
         cy.visit(`/question/${questionId2}`);
         cy.findByText("Open Editor").click();
-        cy.get("@questionId").then(questionId => {
-          cy.get(".ace_content:visible").contains(
-            `{{#${questionId}-a-people-question-1-changed}}`,
-          );
-        });
+        cy.get(".ace_content:visible").contains(
+          "{{#4-a-people-question-1-changed}}",
+        );
       });
     });
   });
@@ -280,7 +272,7 @@ describe("scenarios > question > native subquery", () => {
     const questionDetails = {
       name: "Nested GUI question",
       query: {
-        "source-table": `card__${ORDERS_QUESTION_ID}`,
+        "source-table": "card__1",
         limit: 2,
       },
     };
@@ -308,27 +300,23 @@ describe("scenarios > question > native subquery", () => {
     );
   });
 
-  it(
-    "should be able to reference a saved native question that ends with a semicolon `;` (metabase#28218)",
-    { tags: "@flaky" },
-    () => {
-      const questionDetails = {
-        name: "28218",
-        native: { query: "select 1;" }, // semicolon is important here
-      };
+  it("should be able to reference a saved native question that ends with a semicolon `;` (metabase#28218)", () => {
+    const questionDetails = {
+      name: "28218",
+      native: { query: "select 1;" }, // semicolon is important here
+    };
 
-      cy.createNativeQuestion(questionDetails).then(
-        ({ body: { id: baseQuestionId } }) => {
-          const tagID = `#${baseQuestionId}`;
+    cy.createNativeQuestion(questionDetails).then(
+      ({ body: { id: baseQuestionId } }) => {
+        const tagID = `#${baseQuestionId}`;
 
-          startNewNativeQuestion();
-          SQLFilter.enterParameterizedQuery(`SELECT * FROM {{${tagID}`);
+        startNewNativeQuestion();
+        SQLFilter.enterParameterizedQuery(`SELECT * FROM {{${tagID}`);
 
-          runNativeQuery();
+        runNativeQuery();
 
-          cy.get(".cellData").should("contain", "1");
-        },
-      );
-    },
-  );
+        cy.get(".cellData").should("contain", "1");
+      },
+    );
+  });
 });

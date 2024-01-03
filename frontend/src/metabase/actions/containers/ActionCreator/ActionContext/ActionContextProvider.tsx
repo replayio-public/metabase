@@ -1,9 +1,11 @@
 import type { WritebackAction } from "metabase-types/api";
 
-import type { ImplicitActionContextProviderProps } from "./ImplicitActionContextProvider";
-import ImplicitActionContextProvider from "./ImplicitActionContextProvider";
-import type { QueryActionContextProviderProps } from "./QueryActionContextProvider";
-import QueryActionContextProvider from "./QueryActionContextProvider";
+import ImplicitActionContextProvider, {
+  ImplicitActionContextProviderProps,
+} from "./ImplicitActionContextProvider";
+import QueryActionContextProvider, {
+  QueryActionContextProviderProps,
+} from "./QueryActionContextProvider";
 
 type Props = Omit<ImplicitActionContextProviderProps, "initialAction"> &
   Omit<QueryActionContextProviderProps, "initialAction"> & {

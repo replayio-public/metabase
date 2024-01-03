@@ -5,8 +5,9 @@ import ModalContent from "metabase/components/ModalContent";
 
 import type { Collection } from "metabase-types/api";
 
-import type { SnippetCollectionFormOwnProps } from "./SnippetCollectionForm";
-import SnippetCollectionForm from "./SnippetCollectionForm";
+import SnippetCollectionForm, {
+  SnippetCollectionFormOwnProps,
+} from "./SnippetCollectionForm";
 
 interface SnippetCollectionFormModalOwnProps
   extends Omit<SnippetCollectionFormOwnProps, "onCancel"> {

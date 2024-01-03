@@ -45,8 +45,9 @@ const SnippetCollections = createEntity({
 
   selectors: {
     getExpandedCollectionsById: createSelector(
-      state => SnippetCollections.selectors.getList(state) || [],
-      collections => getExpandedCollectionsById(collections, null),
+      state => state.entities.snippetCollections || {},
+      collections =>
+        getExpandedCollectionsById(Object.values(collections), null),
     ),
   },
 

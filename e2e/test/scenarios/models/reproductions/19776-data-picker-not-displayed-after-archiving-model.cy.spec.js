@@ -1,12 +1,13 @@
-import { restore, popover, describeOSS } from "e2e/support/helpers";
+import { restore, popover } from "e2e/support/helpers";
 
 const modelName = "Orders Model";
 
-// this is only testable in OSS because EE always has models from auditv2
-describeOSS("issue 19776", { tags: "@OSS" }, () => {
+describe("issue 19776", () => {
   beforeEach(() => {
     restore();
     cy.signInAsAdmin();
+
+    cy.request("PUT", "/api/card/1", { name: modelName, dataset: true });
   });
 
   it("should show moved model in the data picker without refreshing (metabase#19776)", () => {

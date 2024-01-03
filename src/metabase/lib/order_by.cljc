@@ -41,18 +41,23 @@
   (assoc (lib.metadata.calculation/display-info query stage-number expr)
          :direction tag))
 
-(defmulti ^:private order-by-clause-method
-  {:arglists '([orderable])}
-  lib.dispatch/dispatch-value
+(defmulti ^:private ->order-by-clause
+  {:arglists '([query stage-number x])}
+  (fn [_query _stage-number x]
+    (lib.dispatch/dispatch-value x))
   :hierarchy lib.hierarchy/hierarchy)
 
-(defmethod order-by-clause-method ::order-by-clause
-  [clause]
+(defmethod ->order-by-clause ::order-by-clause
+  [_query _stage-number clause]
   (lib.options/ensure-uuid clause))
 
+(defmethod ->order-by-clause :dispatch-type/fn
+  [query stage-number f]
+  (->order-by-clause query stage-number (f query stage-number)))
+
 ;;; by default, try to convert `x` to a ref and then order by `:asc`
-(defmethod order-by-clause-method :default
-  [x]
+(defmethod ->order-by-clause :default
+  [_query _stage-number x]
   (when (nil? x)
     (throw (ex-info (i18n/tru "Can''t order by nil") {})))
   (lib.options/ensure-uuid [:asc (lib.ref/ref x)]))
@@ -65,12 +70,22 @@
 
 (mu/defn order-by-clause
   "Create an order-by clause independently of a query, e.g. for `replace` or whatever."
-  ([orderable]
-   (order-by-clause orderable :asc))
-
-  ([orderable :- some?
+  ([x]
+   (fn [query stage-number]
+     (order-by-clause query stage-number x nil)))
+  ([x
     direction :- [:maybe [:enum :asc :desc]]]
-   (-> (order-by-clause-method orderable)
+   (fn [query stage-number]
+     (order-by-clause query stage-number x direction)))
+  ([query :- ::lib.schema/query
+    stage-number :- [:maybe :int]
+    x]
+   (order-by-clause query stage-number x nil))
+  ([query :- ::lib.schema/query
+    stage-number :- [:maybe :int]
+    x
+    direction :- [:maybe [:enum :asc :desc]]]
+   (-> (->order-by-clause query (or stage-number -1) x)
        (with-direction (or direction :asc)))))
 
 (mu/defn order-by
@@ -78,19 +93,19 @@
   Field, or `:field` clause, or expression of some sort, etc.
 
   You can teach Metabase lib how to generate order by clauses for different things by implementing the
-  underlying [[order-by-clause-method]] multimethod."
-  ([query orderable]
-   (order-by query -1 orderable nil))
+  underlying [[->order-by-clause]] multimethod."
+  ([query x]
+   (order-by query -1 x nil))
 
-  ([query orderable direction]
-   (order-by query -1 orderable direction))
+  ([query x direction]
+   (order-by query -1 x direction))
 
   ([query
     stage-number :- [:maybe :int]
-    orderable    :- some?
+    x            :- some?
     direction    :- [:maybe [:enum :asc :desc]]]
    (let [stage-number (or stage-number -1)
-         new-order-by (cond-> (order-by-clause-method orderable)
+         new-order-by (cond-> (->order-by-clause query stage-number x)
                         direction (with-direction direction))]
      (lib.util/update-query-stage query stage-number update :order-by (fn [order-bys]
                                                                         (conj (vec order-bys) new-order-by))))))
@@ -133,36 +148,30 @@
 
   ([query        :- ::lib.schema/query
     stage-number :- :int]
-   (let [breakouts          (not-empty (lib.breakout/breakouts-metadata query stage-number))
+   (let [indexed-order-bys (map-indexed (fn [pos [_tag _opts expr]]
+                                          [pos expr])
+                                        (order-bys query stage-number))
+         order-by-pos
+         (fn [x]
+           (some (fn [[pos existing-order-by]]
+                   (let [a-ref (lib.ref/ref x)]
+                     (when (or (lib.equality/= a-ref existing-order-by)
+                               (lib.equality/= a-ref (lib.util/with-default-effective-type existing-order-by)))
+                       pos)))
+                 indexed-order-bys))
+
+         breakouts          (not-empty (lib.breakout/breakouts-metadata query stage-number))
          aggregations       (not-empty (lib.aggregation/aggregations-metadata query stage-number))
          columns            (if (or breakouts aggregations)
                               (concat breakouts aggregations)
-                              (let [stage   (lib.util/query-stage query stage-number)
-                                    options {:include-implicitly-joinable-for-source-card? false}]
-                                (lib.metadata.calculation/visible-columns query stage-number stage options)))
-         columns            (filter orderable-column? columns)
-         existing-order-bys (->> (order-bys query stage-number)
-                                 (map (fn [[_tag _opts expr]]
-                                        expr)))]
-     (cond
-       (empty? columns)
-       nil
-
-       (empty? existing-order-bys)
-       (vec columns)
-
-       :else
-       (let [matching (into {}
-                            (comp (map lib.ref/ref)
-                                  (keep-indexed (fn [index an-order-by]
-                                                  (when-let [col (lib.equality/find-matching-column
-                                                                   query stage-number an-order-by columns)]
-                                                    [col index]))))
-                            existing-order-bys)]
-         (mapv #(let [pos (matching %)]
-                  (cond-> %
-                    pos (assoc :order-by-position pos)))
-               columns))))))
+                              (let [stage (lib.util/query-stage query stage-number)]
+                                (lib.metadata.calculation/visible-columns query stage-number stage)))]
+     (some->> (not-empty columns)
+              (into [] (comp (filter orderable-column?)
+                             (map (fn [col]
+                                    (let [pos (order-by-pos col)]
+                                      (cond-> col
+                                        pos (assoc :order-by-position pos)))))))))))
 
 (def ^:private opposite-direction
   {:asc :desc
@@ -172,7 +181,7 @@
   "Flip the direction of `current-order-by` in `query`."
   ([query :- ::lib.schema/query
     current-order-by :- ::lib.schema.order-by/order-by]
-   (let [lib-uuid (lib.options/uuid current-order-by)]
+   (let [lib-uuid (lib.util/clause-uuid current-order-by)]
      (mbql.u.match/replace query
        [direction (_ :guard #(= (:lib/uuid %) lib-uuid)) _]
        (assoc &match 0 (opposite-direction direction))))))

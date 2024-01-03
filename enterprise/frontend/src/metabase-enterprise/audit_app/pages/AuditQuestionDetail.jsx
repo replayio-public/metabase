@@ -1,5 +1,4 @@
 import PropTypes from "prop-types";
-import { t } from "ttag";
 
 import Question from "metabase/entities/questions";
 import * as Urls from "metabase/lib/urls";
@@ -76,14 +75,14 @@ function AuditQuestionAuditLogTab({ questionId }) {
 AuditQuestionAuditLogTab.propTypes = tabPropTypes;
 
 AuditQuestionDetail.tabs = [
-  { path: "activity", title: t`Activity`, component: AuditQuestionActivityTab },
+  { path: "activity", title: "Activity", component: AuditQuestionActivityTab },
   { path: "details", title: "Details" },
   {
     path: "revisions",
-    title: t`Revision history`,
+    title: "Revision history",
     component: AuditQuestionRevisionsTab,
   },
-  { path: "log", title: t`Audit log`, component: AuditQuestionAuditLogTab },
+  { path: "log", title: "Audit log", component: AuditQuestionAuditLogTab },
 ];
 
 export default AuditQuestionDetail;

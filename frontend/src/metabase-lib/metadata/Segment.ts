@@ -1,4 +1,4 @@
-import type { Filter, NormalizedSegment } from "metabase-types/api";
+import { Filter, NormalizedSegment } from "metabase-types/api";
 import type Metadata from "./Metadata";
 import type Table from "./Table";
 

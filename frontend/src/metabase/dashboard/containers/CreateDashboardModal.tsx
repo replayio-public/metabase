@@ -4,7 +4,6 @@ import { connect } from "react-redux";
 import { push } from "react-router-redux";
 import type { LocationDescriptor } from "history";
 
-import { CreateCollectionOnTheGo } from "metabase/containers/CreateCollectionOnTheGo";
 import ModalContent from "metabase/components/ModalContent";
 
 import * as Urls from "metabase/lib/urls";
@@ -12,8 +11,9 @@ import * as Urls from "metabase/lib/urls";
 import type { Dashboard } from "metabase-types/api";
 import type { State } from "metabase-types/store";
 
-import type { CreateDashboardFormOwnProps } from "./CreateDashboardForm";
-import { CreateDashboardFormConnected } from "./CreateDashboardForm";
+import CreateDashboardForm, {
+  CreateDashboardFormOwnProps,
+} from "./CreateDashboardForm";
 
 interface CreateDashboardModalOwnProps
   extends Omit<CreateDashboardFormOwnProps, "onCancel"> {
@@ -49,22 +49,18 @@ function CreateDashboardModal({
   );
 
   return (
-    <CreateCollectionOnTheGo>
-      {({ resumedValues }) => (
-        <ModalContent title={t`New dashboard`} onClose={onClose}>
-          <CreateDashboardFormConnected
-            {...props}
-            onCreate={handleCreate}
-            onCancel={onClose}
-            initialValues={resumedValues}
-          />
-        </ModalContent>
-      )}
-    </CreateCollectionOnTheGo>
+    <ModalContent title={t`New dashboard`} onClose={onClose}>
+      <CreateDashboardForm
+        {...props}
+        onCreate={handleCreate}
+        onCancel={onClose}
+      />
+    </ModalContent>
   );
 }
 
-export const CreateDashboardModalConnected = connect<
+// eslint-disable-next-line import/no-default-export -- deprecated usage
+export default connect<
   unknown,
   CreateDashboardModalDispatchProps,
   CreateDashboardModalOwnProps,

@@ -2,7 +2,7 @@ import fetchMock from "fetch-mock";
 import {
   renderWithProviders,
   screen,
-  waitForLoaderToBeRemoved,
+  waitForElementToBeRemoved,
 } from "__support__/ui";
 import { setupCollectionsEndpoints } from "__support__/server-mocks";
 import {
@@ -64,16 +64,14 @@ function mockCollectionItemsEndpoint() {
 }
 
 async function setup() {
-  setupCollectionsEndpoints({
-    collections: [COLLECTIONS.PERSONAL, COLLECTIONS.REGULAR],
-  });
+  setupCollectionsEndpoints([COLLECTIONS.PERSONAL, COLLECTIONS.REGULAR]);
 
   mockCollectionItemsEndpoint();
 
   renderWithProviders(
     <SavedQuestionPicker onSelect={jest.fn()} onBack={jest.fn()} />,
   );
-  await waitForLoaderToBeRemoved();
+  await waitForElementToBeRemoved(() => screen.queryAllByText("Loading..."));
 }
 
 describe("SavedQuestionPicker", () => {

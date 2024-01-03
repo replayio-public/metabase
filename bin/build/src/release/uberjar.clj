@@ -8,11 +8,9 @@
    [release.common.http :as common.http]
    [release.common.upload :as common.upload]))
 
-(defn build-uberjar!
-  "Start a build step that builds the uberjar."
-  []
+(defn build-uberjar! []
   (u/step "Build uberjar"
-    (u/delete-file-if-exists! (str u/project-root-directory "/target"))
+    (u/delete-file-if-exists! (str c/root-directory "/target"))
     (build/build! {:version (str \v (c/version))
                    :edition (c/edition)})
     (u/step "Verify uberjar exists"
@@ -35,9 +33,7 @@
               (u/announce "Hash of %s is %s" url url-hash)
               (assert (= uberjar-hash url-hash)))))))))
 
-(defn upload-uberjar!
-  "Start a build step that uploads the uberjar and validates it."
-  []
+(defn upload-uberjar! []
   (u/step "Upload uberjar and validate"
     (u/step (format "Upload uberjar to %s" (c/artifact-download-url "metabase.jar"))
       (common.upload/upload-artifact! c/uberjar-path "metabase.jar"))

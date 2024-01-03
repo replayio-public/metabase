@@ -3,9 +3,9 @@ import * as Urls from "metabase/lib/urls";
 import { coerceCollectionId } from "metabase/collections/utils";
 
 import type { Dashboard } from "metabase-types/api";
-import type Question from "metabase-lib/Question";
+import Question from "metabase-lib/Question";
 
-import type { SelectedItem } from "./types";
+import { SelectedItem } from "./types";
 
 type Opts = {
   pathname: string;

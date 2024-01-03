@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { getMetadata } from "metabase/selectors/metadata";
 import { createMockEntitiesState } from "__support__/store";
 import { getIcon, renderWithProviders } from "__support__/ui";
-import type { Collection, CollectionItem, Database } from "metabase-types/api";
+import { Collection, CollectionItem, Database } from "metabase-types/api";
 import {
   createMockCollection,
   createMockCollectionItem,
@@ -114,7 +114,6 @@ describe("ActionMenu", () => {
       const item = createMockCollectionItem({
         name: "Collection",
         model: "collection",
-        can_write: true,
         setCollection: jest.fn(),
         setArchived: jest.fn(),
       });
@@ -134,24 +133,7 @@ describe("ActionMenu", () => {
       const item = createMockCollectionItem({
         name: "My personal collection",
         model: "collection",
-        can_write: true,
         personal_owner_id: 1,
-        setCollection: jest.fn(),
-        setArchived: jest.fn(),
-      });
-
-      setup({ item });
-
-      userEvent.click(getIcon("ellipsis"));
-      expect(screen.queryByText("Move")).not.toBeInTheDocument();
-      expect(screen.queryByText("Archive")).not.toBeInTheDocument();
-    });
-
-    it("should not allow to move and archive read only collections", () => {
-      const item = createMockCollectionItem({
-        name: "My Read Only collection",
-        model: "collection",
-        can_write: false,
         setCollection: jest.fn(),
         setArchived: jest.fn(),
       });

@@ -1,9 +1,5 @@
 import { SAMPLE_DB_ID } from "e2e/support/cypress_data";
 import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
-import {
-  createMetric,
-  createSegment,
-} from "e2e/support/helpers/e2e-table-metadata-helpers";
 
 const { ORDERS, ORDERS_ID, REVIEWS, PRODUCTS, PEOPLE } = SAMPLE_DATABASE;
 
@@ -116,8 +112,8 @@ it("should configure data model settings", () => {
     },
   };
 
-  createMetric(metric);
-  createSegment(segment);
+  cy.request("POST", "/api/metric", metric);
+  cy.request("POST", "/api/segment", segment);
 
   cy.visit("/admin/datamodel/segments");
   // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage

@@ -1,9 +1,9 @@
 import { push } from "react-router-redux";
 import { t } from "ttag";
 
-import type { Group, GroupsPermissions } from "metabase-types/api";
+import { Group, GroupsPermissions } from "metabase-types/api";
 import { UNABLE_TO_CHANGE_ADMIN_PERMISSIONS } from "metabase/admin/permissions/constants/messages";
-import type {
+import {
   EntityId,
   PermissionSubject,
   SchemaEntityId,
@@ -19,6 +19,7 @@ import {
   getPermissionWarningModal,
 } from "metabase/admin/permissions/selectors/confirmations";
 import { getGroupFocusPermissionsUrl } from "metabase/admin/permissions/utils/urls";
+import { PLUGIN_ADVANCED_PERMISSIONS } from "metabase/plugins";
 
 export const UNABLE_TO_DOWNLOAD_RESULTS = t`Groups with Block data access can't download results`;
 
@@ -104,9 +105,10 @@ export const buildDownloadPermission = (
   permissionSubject: PermissionSubject,
 ) => {
   const hasChildEntities = permissionSubject !== "fields";
-  const isBlockPermission = dataAccessPermissionValue === "block";
 
-  const value = isBlockPermission
+  const value = PLUGIN_ADVANCED_PERMISSIONS.isBlockPermission(
+    dataAccessPermissionValue,
+  )
     ? DOWNLOAD_PERMISSION_OPTIONS.none.value
     : getPermissionValue(permissions, groupId, entityId, permissionSubject);
 
@@ -117,9 +119,14 @@ export const buildDownloadPermission = (
     permissionSubject,
   );
 
-  const isDisabled = isAdmin || isBlockPermission;
+  const isDisabled =
+    isAdmin ||
+    PLUGIN_ADVANCED_PERMISSIONS.isBlockPermission(dataAccessPermissionValue);
 
-  const disabledTooltip = getTooltipMessage(isAdmin, isBlockPermission);
+  const disabledTooltip = getTooltipMessage(
+    isAdmin,
+    PLUGIN_ADVANCED_PERMISSIONS.isBlockPermission(dataAccessPermissionValue),
+  );
 
   const warning = getPermissionWarning(
     value,

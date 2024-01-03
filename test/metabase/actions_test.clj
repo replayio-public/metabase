@@ -10,7 +10,8 @@
    [metabase.query-processor :as qp]
    [metabase.test :as mt]
    [metabase.util :as u]
-   [metabase.util.malli.schema :as ms]
+   [metabase.util.schema :as su]
+   [schema.core :as s]
    [toucan2.core :as t2])
   (:import
    (org.apache.sshd.server SshServer)
@@ -54,9 +55,9 @@
       (with-actions-test-data-and-actions-permissively-enabled
         (let [response (actions/perform-action! :row/create
                                                 (assoc (mt/mbql-query categories) :create-row {(format-field-name :name) "created_row"}))]
-          (is (=? {:created-row {(format-field-name :id)   76
-                                 (format-field-name :name) "created_row"}}
-                  response)
+          (is (schema= {:created-row {(format-field-name :id)   (s/eq 76)
+                                      (format-field-name :name) (s/eq "created_row")}}
+                       response)
               "Create should return the entire row")
           (let [created-id (get-in response [:created-row (format-field-name :id)])]
             (is (= "created_row" (-> (mt/rows (mt/run-mbql-query categories {:filter [:= $id created-id]})) last last))
@@ -116,11 +117,9 @@
     :request-body (assoc (mt/mbql-query categories) :create-row {(format-field-name :name) "created_row"})
     :expect-fn    (fn [result]
                     ;; check that we return the entire row
-                    (is (malli= [:map {:closed true}
-                                 [:created-row [:map {:closed true}
-                                                [(format-field-name :id)   ms/PositiveInt]
-                                                [(format-field-name :name) ms/NonBlankString]]]]
-                         result)))}
+                    (is (schema= {:created-row {(format-field-name :id)   su/IntGreaterThanZero
+                                                (format-field-name :name) su/NonBlankString}}
+                                 result)))}
    {:action       :row/update
     :request-body (assoc (mt/mbql-query categories {:filter [:= $id 1]})
                          :update_row {(format-field-name :name) "updated_row"})
@@ -153,10 +152,10 @@
 
 (deftest actions-feature-test
   (testing "Only allow actions for drivers that support the `:actions` driver feature. (#22557)"
-    (mt/with-temp [Database {db-id :id}    {:name     "Birds"
-                                            :engine   ::feature-flag-test-driver
-                                            :settings {:database-enable-actions true}}
-                   Table    {table-id :id} {:db_id db-id}]
+    (mt/with-temp* [Database [{db-id :id} {:name     "Birds"
+                                           :engine   ::feature-flag-test-driver
+                                           :settings {:database-enable-actions true}}]
+                    Table    [{table-id :id} {:db_id db-id}]]
       (is (thrown-with-msg? Exception (re-pattern
                                        (format "%s Database %d \"Birds\" does not support actions."
                                                (u/qualified-name ::feature-flag-test-driver)
@@ -176,10 +175,8 @@
     (doseq [{:keys [action request-body]} (mock-requests)
             :when (row-action? action)]
       (testing (str action " without :query")
-        (is (thrown-with-msg?
-             Exception
-             #"\QMBQL queries must specify `:query`.\E"
-             (actions/perform-action! action (dissoc request-body :query))))))))
+        (is (thrown-with-msg? Exception #"Value does not match schema:.*"
+                              (actions/perform-action! action (dissoc request-body :query))))))))
 
 (deftest row-update-action-gives-400-when-matching-more-than-one
   (mt/test-drivers (mt/normal-drivers-with-feature :actions)
@@ -252,14 +249,12 @@
               (is (= 75
                      (categories-row-count))))))))))
 
-(defmacro is-ex-data [expected-schema actual-call]
+(defmacro is-ex-data [expected actual-call]
   `(try
-     ~actual-call
-     (is (= true false))
-     (catch clojure.lang.ExceptionInfo e#
-       (is (~'=?
-            ~expected-schema
-            (assoc (ex-data e#) ::message (ex-message e#)))))))
+    ~actual-call
+    (is (= true false))
+    (catch clojure.lang.ExceptionInfo e#
+      (is (~'schema= ~expected (ex-data e#))))))
 
 (deftest bulk-create-happy-path-test
   (testing "bulk/create"
@@ -290,20 +285,22 @@
                  (categories-row-count)))
           (testing "Should report indices of bad rows"
             (is-ex-data
-             {:errors [{:index 1
-                        :error (case driver/*driver*
-                                 :h2       #"(?s)^NULL not allowed for column \"NAME\".*"
-                                 :postgres #"(?s)^ERROR: null value in column \"name\".*"
-                                 :mysql    #"(?s).*Column 'name' cannot be null.*")}
-                       {:index 3
-                        :error (case driver/*driver*
-                                 :h2       #"(?s)^Data conversion error converting \"STRING\".*"
-                                 :postgres #"(?s)^ERROR: invalid input syntax for (?:type )?integer: \"STRING\".*"
-                                 ;; Newer versions of MySQL check for not null fields without default values
-                                 ;; before checking the type of the parameter.
-                                 ;; MySQL 5.7 checks the type of the parameter first.
-                                 :mysql    #"(?s)(?:.*Field 'name' doesn't have a default value.*)|(?:.*Incorrect integer value: 'STRING' for column 'id'.*)")}]
-              :status-code 400}
+             {:errors [(s/one {:index (s/eq 1)
+                               :error (case driver/*driver*
+                                        :h2       #"^NULL not allowed for column \"NAME\""
+                                        :postgres #"^ERROR: null value in column \"name\""
+                                        :mysql    #"Column 'name' cannot be null")}
+                              "first error")
+                       (s/one {:index (s/eq 3)
+                               :error (case driver/*driver*
+                                        :h2       #"^Data conversion error converting \"STRING\""
+                                        :postgres #"^ERROR: invalid input syntax for (?:type )?integer: \"STRING\""
+                                        ;; Newer versions of MySQL check for not null fields without default values
+                                        ;; before checking the type of the parameter.
+                                        ;; MySQL 5.7 checks the type of the parameter first.
+                                        :mysql    #"Field 'name' doesn't have a default value|Incorrect integer value: 'STRING' for column 'id'")}
+                              "second error")]
+              :status-code (s/eq 400)}
              (actions/perform-action! :bulk/create
                                       {:database (mt/id)
                                        :table-id (mt/id :categories)
@@ -342,11 +339,15 @@
           (testing "Should report indices of bad rows"
             (is-ex-data
              {:errors
-              [{:index 1
-                :error #"Error filtering against :type/(?:Big)?Integer Field: unable to parse String \"foo\" to a :type/(?:Big)?Integer"}
-               {:index 3
-                :error #"Sorry, the row you're trying to delete doesn't exist"}]
-              :status-code 400}
+              [(s/one
+                {:index (s/eq 1)
+                 :error #"Error filtering against :type/(?:Big)?Integer Field: unable to parse String \"foo\" to a :type/(?:Big)?Integer"}
+                "first error")
+               (s/one
+                {:index (s/eq 3)
+                 :error #"Sorry, the row you're trying to delete doesn't exist"}
+                "second error")]
+              :status-code (s/eq 400)}
              (actions/perform-action! :bulk/delete
                                       {:database (mt/id)
                                        :table-id (mt/id :categories)
@@ -429,7 +430,8 @@
                                    (actions/perform-action! :bulk/update
                                                             {:database (mt/id)
                                                              :table-id (mt/id :categories)
-                                                             :arg rows}))]
+                                                             :arg
+                                                             rows}))]
           (testing "Initial values"
             (is (= [[1 "African"]
                     [2 "American"]
@@ -437,14 +439,19 @@
                    (first-three-categories))))
           (testing "Should report the index of input rows with errors in the data warehouse"
             (let [error-message-regex (case driver/*driver*
-                                        :h2       #"(?s)^NULL not allowed for column \"NAME\".*"
-                                        :postgres #"(?s)^ERROR: null value in column \"name\" (?:of relation \"categories\" )?violates not-null constraint.*"
-                                        :mysql    #"(?s).*Column 'name' cannot be null.*")]
+                                        :h2       #"^NULL not allowed for column \"NAME\""
+                                        :postgres #"^ERROR: null value in column \"name\" (?:of relation \"categories\" )?violates not-null constraint"
+                                        :mysql    #"Column 'name' cannot be null")]
               (is-ex-data
-               {:errors   [{:index 0
-                            :error error-message-regex}
-                           {:index 2
-                            :error error-message-regex}]}
+               {:errors   [(s/one
+                            {:index (s/eq 0)
+                             :error error-message-regex}
+                            "first error")
+                           (s/one
+                            {:index (s/eq 2)
+                             :error error-message-regex}
+                            "second error")]
+                s/Keyword s/Any}
                (update-categories! [{id 1, name nil}
                                     {id 2, name "Millet Treat"}
                                     {id 3, name nil}]))))
@@ -460,11 +467,14 @@
                                   (update-categories! [{id 1, name "Seed Bowl"}
                                                        {name "Millet Treat"}]))))
           (testing "Should validate that the fields in the row maps are valid for the Table"
-            (is-ex-data {:errors [{:index 0
-                                   :error (case driver/*driver*
-                                            :h2       #"(?s)^Column \"FAKE\" not found.*"
-                                            :postgres #"(?s).*ERROR: column \"fake\" of relation \"categories\" does not exist.*"
-                                            :mysql    #"(?s).*Unknown column 'fake'.*")}]}
+            (is-ex-data {:errors [(s/one
+                                   {:index (s/eq 0)
+                                    :error (case driver/*driver*
+                                             :h2       #"^Column \"FAKE\" not found"
+                                             :postgres #"ERROR: column \"fake\" of relation \"categories\" does not exist"
+                                             :mysql    #"Unknown column 'fake'")}
+                                   "first error")]
+                         s/Keyword s/Any}
                         (update-categories! [{id 1, (format-field-name :fake) "FAKE"}])))
           (testing "Should throw error if row does not contain any non-PK columns"
             (is (thrown-with-msg? Exception (re-pattern (format "Invalid update row map: no non-PK columns. Got #\\{%s\\}, all of which are PKs."

@@ -1,11 +1,10 @@
 import { connect } from "react-redux";
-import type { State } from "metabase-types/store";
+import { State } from "metabase-types/store";
 import { getSetting } from "metabase/selectors/settings";
-import type {
+import EventForm, {
   EventFormOwnProps,
   EventFormStateProps,
 } from "../../components/EventForm";
-import EventForm from "../../components/EventForm";
 
 const mapStateToProps = (state: State) => ({
   formattingSettings: getSetting(state, "custom-formatting"),

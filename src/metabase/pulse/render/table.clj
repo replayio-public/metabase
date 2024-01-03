@@ -3,13 +3,13 @@
    [clojure.string :as str]
    [hiccup.core :refer [h]]
    [medley.core :as m]
-   [metabase.formatter]
    [metabase.pulse.render.color :as color]
+   [metabase.pulse.render.common]
    [metabase.pulse.render.style :as style])
   (:import
-   (metabase.formatter NumericWrapper)))
+   (metabase.pulse.render.common NumericWrapper)))
 
-(comment metabase.formatter/keep-me)
+(comment metabase.pulse.render.common/keep-me)
 
 (defn- bar-th-style []
   (merge

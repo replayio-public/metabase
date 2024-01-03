@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import cx from "classnames";
 
 import ExternalLink from "metabase/core/components/ExternalLink";
@@ -108,20 +108,17 @@ function TableCell({
   );
 
   const isLink = cellData && cellData.type === ExternalLink;
-  const isClickable = !isLink;
+  const isClickable = !isLink && checkIsVisualizationClickable(clicked);
 
-  const onClick = useCallback(
-    e => {
-      if (checkIsVisualizationClickable(clicked)) {
-        onVisualizationClick({
-          ...clicked,
-          element: e.currentTarget,
-          extraData,
-        });
-      }
-    },
-    [clicked, extraData, checkIsVisualizationClickable, onVisualizationClick],
-  );
+  const onClick = useMemo(() => {
+    return e => {
+      onVisualizationClick({
+        ...clicked,
+        element: e.currentTarget,
+        extraData,
+      });
+    };
+  }, [clicked, extraData, onVisualizationClick]);
 
   const backgroundColor = useMemo(
     () => getCellBackgroundColor?.(value, rowIndex, column.name),

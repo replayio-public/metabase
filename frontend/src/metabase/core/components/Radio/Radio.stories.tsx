@@ -3,7 +3,7 @@ import { useArgs } from "@storybook/client-api";
 import Radio from "./Radio";
 
 export default {
-  title: "Deprecated/Radio",
+  title: "Core/Radio",
   component: Radio,
 };
 

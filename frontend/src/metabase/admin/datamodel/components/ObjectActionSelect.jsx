@@ -8,7 +8,7 @@ import ModalWithTrigger from "metabase/components/ModalWithTrigger";
 import { capitalize } from "metabase/lib/formatting";
 import ObjectRetireModal from "./ObjectRetireModal";
 
-import { TriggerIconContainer, ActionLink } from "./ObjectActionSelect.styled";
+import { ActionLink } from "./ObjectActionSelect.styled";
 
 export default class ObjectActionsSelect extends Component {
   constructor(props) {
@@ -33,9 +33,9 @@ export default class ObjectActionsSelect extends Component {
       <div>
         <PopoverWithTrigger
           triggerElement={
-            <TriggerIconContainer>
+            <span className="text-light text-brand-hover">
               <Icon name="ellipsis" />
-            </TriggerIconContainer>
+            </span>
           }
         >
           <ul className="UserActionsSelect">

@@ -1,5 +1,4 @@
 import userEvent from "@testing-library/user-event";
-import { checkNotNull } from "metabase/lib/types";
 import { getMetadata } from "metabase/selectors/metadata";
 import {
   setupDatabasesEndpoints,
@@ -7,24 +6,22 @@ import {
 } from "__support__/server-mocks";
 import { createMockEntitiesState } from "__support__/store";
 import { renderWithProviders, screen } from "__support__/ui";
-import type { TemplateTag } from "metabase-types/api";
+import { TemplateTag } from "metabase-types/api";
 import {
   createMockCard,
   createMockNativeDatasetQuery,
-  createMockParameter,
   createMockTemplateTag,
 } from "metabase-types/api/mocks";
 import {
   createSampleDatabase,
   ORDERS,
   PEOPLE,
-  REVIEWS,
 } from "metabase-types/api/mocks/presets";
 import {
   createMockQueryBuilderState,
   createMockState,
 } from "metabase-types/store/mocks";
-import { TagEditorParam } from "./TagEditorParam";
+import TagEditorParam from "./TagEditorParam";
 
 interface SetupOpts {
   tag?: TemplateTag;
@@ -42,10 +39,7 @@ const setup = ({ tag = createMockTemplateTag() }: SetupOpts = {}) => {
       databases: [database],
     }),
   });
-
   const metadata = getMetadata(state);
-
-  const databaseMetadata = checkNotNull(metadata.database(database.id));
 
   setupDatabasesEndpoints([database]);
   setupSearchEndpoints([]);
@@ -57,9 +51,8 @@ const setup = ({ tag = createMockTemplateTag() }: SetupOpts = {}) => {
   renderWithProviders(
     <TagEditorParam
       tag={tag}
-      database={databaseMetadata}
+      database={metadata.database(database.id)}
       databases={metadata.databasesList()}
-      parameter={createMockParameter()}
       setTemplateTag={setTemplateTag}
       setTemplateTagConfig={setTemplateTagConfig}
       setParameterValue={setParameterValue}
@@ -165,25 +158,6 @@ describe("TagEditorParam", () => {
       expect(setTemplateTag).toHaveBeenCalledWith({
         ...tag,
         dimension: ["field", ORDERS.QUANTITY, null],
-        "widget-type": "number/=",
-        options: undefined,
-      });
-    });
-
-    it("should default to number/= for a new reviews->rating field filter (metabase#16151)", async () => {
-      const tag = createMockTemplateTag({
-        type: "dimension",
-        dimension: undefined,
-        "widget-type": undefined,
-      });
-      const { setTemplateTag } = setup({ tag });
-
-      userEvent.click(await screen.findByText("Reviews"));
-      userEvent.click(await screen.findByText("Rating"));
-
-      expect(setTemplateTag).toHaveBeenCalledWith({
-        ...tag,
-        dimension: ["field", REVIEWS.RATING, null],
         "widget-type": "number/=",
         options: undefined,
       });

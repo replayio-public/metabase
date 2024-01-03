@@ -1,8 +1,10 @@
 (ns metabase.api.session
   "/api/session endpoints"
   (:require
+   [buddy.core.codecs :as codecs]
+   [cheshire.core :as json]
    [compojure.core :refer [DELETE GET POST]]
-   [java-time.api :as t]
+   [java-time :as t]
    [metabase.analytics.snowplow :as snowplow]
    [metabase.api.common :as api]
    [metabase.api.ldap :as api.ldap]
@@ -13,19 +15,20 @@
    [metabase.integrations.ldap :as ldap]
    [metabase.models :refer [PulseChannel]]
    [metabase.models.login-history :refer [LoginHistory]]
-   [metabase.models.pulse :as pulse]
    [metabase.models.session :refer [Session]]
-   [metabase.models.setting :as setting :refer [defsetting]]
+   [metabase.models.setting :as setting]
    [metabase.models.user :as user :refer [User]]
    [metabase.public-settings :as public-settings]
    [metabase.server.middleware.session :as mw.session]
    [metabase.server.request.util :as request.u]
    [metabase.util :as u]
+   [metabase.util.encryption :as encryption]
    [metabase.util.i18n :refer [deferred-tru trs tru]]
    [metabase.util.log :as log]
-   [metabase.util.malli :as mu]
    [metabase.util.malli.schema :as ms]
    [metabase.util.password :as u.password]
+   [metabase.util.schema :as su]
+   [schema.core :as s]
    [throttle.core :as throttle]
    [toucan2.core :as t2])
   (:import
@@ -34,10 +37,8 @@
 
 (set! *warn-on-reflection* true)
 
-(mu/defn ^:private record-login-history!
-  [session-id  :- (ms/InstanceOfClass UUID)
-   user-id     :- ms/PositiveInt
-   device-info :- request.u/DeviceInfo]
+(s/defn ^:private record-login-history!
+  [session-id :- UUID user-id :- su/IntGreaterThanZero device-info :- request.u/DeviceInfo]
   (t2/insert! LoginHistory (merge {:user_id    user-id
                                    :session_id (str session-id)}
                                   device-info)))
@@ -50,37 +51,26 @@
     session-type))
 
 (def ^:private CreateSessionUserInfo
-  [:map
-   [:id          ms/PositiveInt]
-   [:last_login :any]])
+  {:id         su/IntGreaterThanZero
+   :last_login s/Any
+   s/Keyword   s/Any})
 
-(def ^:private SessionSchema
-  [:and
-   [:map-of :keyword :any]
-   [:map
-    [:id   (ms/InstanceOfClass UUID)]
-    [:type [:enum :normal :full-app-embed]]]])
-
-(mu/defmethod create-session! :sso :- SessionSchema
+(s/defmethod create-session! :sso :- {:id UUID, :type (s/enum :normal :full-app-embed) s/Keyword s/Any}
   [_ user :- CreateSessionUserInfo device-info :- request.u/DeviceInfo]
-  (let [session-uuid (random-uuid)
+  (let [session-uuid (UUID/randomUUID)
         session      (first (t2/insert-returning-instances! Session
                                                             :id      (str session-uuid)
                                                             :user_id (u/the-id user)))]
     (assert (map? session))
-    (let [event {:user-id (u/the-id user)}]
-      (events/publish-event! :event/user-login event)
-      (when (nil? (:last_login user))
-        (events/publish-event! :event/user-joined event)))
+    (events/publish-event! :user-login
+      {:user_id (u/the-id user), :session_id (str session-uuid), :first_login (nil? (:last_login user))})
     (record-login-history! session-uuid (u/the-id user) device-info)
     (when-not (:last_login user)
       (snowplow/track-event! ::snowplow/new-user-created (u/the-id user)))
     (assoc session :id session-uuid)))
 
-(mu/defmethod create-session! :password :- SessionSchema
-  [session-type
-   user         :- CreateSessionUserInfo
-   device-info  :- request.u/DeviceInfo]
+(s/defmethod create-session! :password :- {:id UUID, :type (s/enum :normal :full-app-embed), s/Keyword s/Any}
+  [session-type user :- CreateSessionUserInfo device-info :- request.u/DeviceInfo]
   ;; this is actually the same as `create-session!` for `:sso` but we check whether password login is enabled.
   (when-not (public-settings/enable-password-login)
     (throw (ex-info (str (tru "Password login is disabled for this instance.")) {:status-code 400})))
@@ -104,7 +94,7 @@
 (def ^:private fake-salt "ee169694-5eb6-4010-a145-3557252d7807")
 (def ^:private fake-hashed-password "$2a$10$owKjTym0ZGEEZOpxM0UyjekSvt66y1VvmOJddkAaMB37e0VAIVOX2")
 
-(mu/defn ^:private ldap-login :- [:maybe [:map [:id (ms/InstanceOfClass UUID)]]]
+(s/defn ^:private ldap-login :- (s/maybe {:id UUID, s/Keyword s/Any})
   "If LDAP is enabled and a matching user exists return a new Session for them, or `nil` if they couldn't be
   authenticated."
   [username password device-info :- request.u/DeviceInfo]
@@ -127,11 +117,9 @@
       (catch LDAPSDKException e
         (log/error e (trs "Problem connecting to LDAP server, will fall back to local authentication"))))))
 
-(mu/defn ^:private email-login :- [:maybe [:map [:id (ms/InstanceOfClass UUID)]]]
+(s/defn ^:private email-login :- (s/maybe {:id UUID, s/Keyword s/Any})
   "Find a matching `User` if one exists and return a new Session for them, or `nil` if they couldn't be authenticated."
-  [username    :- ms/NonBlankString
-   password    :- [:maybe ms/NonBlankString]
-   device-info :- request.u/DeviceInfo]
+  [username password device-info :- request.u/DeviceInfo]
   (if-let [user (t2/select-one [User :id :password_salt :password :last_login :is_active], :%lower.email (u/lower-case-en username))]
     (when (u.password/verify-password password (:password_salt user) (:password user))
       (if (:is_active user)
@@ -152,12 +140,10 @@
   (when-not throttling-disabled?
     (throttle/check throttler throttle-key)))
 
-(mu/defn ^:private login :- SessionSchema
+(s/defn ^:private login :- {:id UUID, :type (s/enum :normal :full-app-embed), s/Keyword s/Any}
   "Attempt to login with different avaialable methods with `username` and `password`, returning new Session ID or
   throwing an Exception if login could not be completed."
-  [username    :- ms/NonBlankString
-   password    :- ms/NonBlankString
-   device-info :- request.u/DeviceInfo]
+  [username :- su/NonBlankString password :- su/NonBlankString device-info :- request.u/DeviceInfo]
   ;; Primitive "strategy implementation", should be reworked for modular providers in #3210
   (or (ldap-login username password device-info)  ; First try LDAP if it's enabled
       (email-login username password device-info) ; Then try local authentication
@@ -180,11 +166,12 @@
   [& body]
   `(do-http-401-on-error (fn [] ~@body)))
 
-(api/defendpoint POST "/"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema POST "/"
   "Login."
   [:as {{:keys [username password]} :body, :as request}]
-  {username ms/NonBlankString
-   password ms/NonBlankString}
+  {username su/NonBlankString
+   password su/NonBlankString}
   (let [ip-address   (request.u/ip-address request)
         request-time (t/zoned-date-time (t/zone-id "GMT"))
         do-login     (fn []
@@ -198,7 +185,8 @@
                                   (login-throttlers :username)   username]
            (do-login))))))
 
-(api/defendpoint DELETE "/"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema DELETE "/"
   "Logout."
   [:as {:keys [metabase-session-id]}]
   (api/check-exists? Session metabase-session-id)
@@ -221,7 +209,7 @@
   (future
     (when-let [{user-id      :id
                 sso-source   :sso_source
-                is-active?   :is_active :as user}
+                is-active?   :is_active}
                (t2/select-one [User :id :sso_source :is_active]
                               :%lower.email
                               (u/lower-case-en email))]
@@ -231,14 +219,13 @@
         (let [reset-token        (user/set-password-reset-token! user-id)
               password-reset-url (str (public-settings/site-url) "/auth/reset_password/" reset-token)]
           (log/info password-reset-url)
-          (messages/send-password-reset-email! email nil password-reset-url is-active?)))
-      (events/publish-event! :event/password-reset-initiated
-                             {:object (assoc user :token (t2/select-one-fn :reset_token :model/User :id user-id))}))))
+          (messages/send-password-reset-email! email nil password-reset-url is-active?))))))
 
-(api/defendpoint POST "/forgot_password"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema POST "/forgot_password"
   "Send a reset email when user has forgotten their password."
   [:as {{:keys [email]} :body, :as request}]
-  {email ms/Email}
+  {email su/Email}
   ;; Don't leak whether the account doesn't exist, just pretend everything is ok
   (let [request-source (request.u/ip-address request)]
     (throttle-check (forgot-password-throttlers :ip-address) request-source))
@@ -246,17 +233,9 @@
   (forgot-password-impl email)
   api/generic-204-no-content)
 
-(defsetting reset-token-ttl-hours
-  (deferred-tru "Number of hours a password reset is considered valid.")
-  :visibility :internal
-  :type       :integer
-  :default    48
-  :audit      :getter)
-
-(defn reset-token-ttl-ms
-  "number of milliseconds a password reset is considered valid."
-  []
-  (* (reset-token-ttl-hours) 60 60 1000))
+(def ^:private ^:const reset-token-ttl-ms
+  "Number of milliseconds a password reset is considered valid."
+  (* 48 60 60 1000)) ; token considered valid for 48 hours
 
 (defn- valid-reset-token->user
   "Check if a password reset token is valid. If so, return the `User` ID it corresponds to."
@@ -271,46 +250,46 @@
                 (u.password/bcrypt-verify token reset_token))
           ;; check that the reset was triggered within the last 48 HOURS, after that the token is considered expired
           (let [token-age (- (System/currentTimeMillis) reset_triggered)]
-            (when (< token-age (reset-token-ttl-ms))
+            (when (< token-age reset-token-ttl-ms)
               user)))))))
 
-(api/defendpoint POST "/reset_password"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema POST "/reset_password"
   "Reset password with a reset token."
   [:as {{:keys [token password]} :body, :as request}]
-  {token    ms/NonBlankString
-   password ms/ValidPassword}
+  {token    su/NonBlankString
+   password su/ValidPassword}
   (or (when-let [{user-id :id, :as user} (valid-reset-token->user token)]
-        (let [reset-token (t2/select-one-fn :reset_token :model/User :id user-id)]
-          (user/set-password! user-id password)
-          ;; if this is the first time the user has logged in it means that they're just accepted their Metabase invite.
-          ;; Otherwise, send audit log event that a user reset their password.
-          (if (:last_login user)
-            (events/publish-event! :event/password-reset-successful {:object (assoc user :token reset-token)})
-            ;; Send all the active admins an email :D
-            (messages/send-user-joined-admin-notification-email! (t2/select-one User :id user-id)))
-          ;; after a successful password update go ahead and offer the client a new session that they can use
-          (let [{session-uuid :id, :as session} (create-session! :password user (request.u/device-info request))
-                response                        {:success    true
-                                                 :session_id (str session-uuid)}]
-            (mw.session/set-session-cookies request response session (t/zoned-date-time (t/zone-id "GMT"))))))
+        (user/set-password! user-id password)
+        ;; if this is the first time the user has logged in it means that they're just accepted their Metabase invite.
+        ;; Send all the active admins an email :D
+        (when-not (:last_login user)
+          (messages/send-user-joined-admin-notification-email! (t2/select-one User :id user-id)))
+        ;; after a successful password update go ahead and offer the client a new session that they can use
+        (let [{session-uuid :id, :as session} (create-session! :password user (request.u/device-info request))
+              response                        {:success    true
+                                               :session_id (str session-uuid)}]
+          (mw.session/set-session-cookies request response session (t/zoned-date-time (t/zone-id "GMT")))))
       (api/throw-invalid-param-exception :password (tru "Invalid reset token"))))
 
-(api/defendpoint GET "/password_reset_token_valid"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema GET "/password_reset_token_valid"
   "Check is a password reset token is valid and isn't expired."
   [token]
-  {token ms/NonBlankString}
+  {token s/Str}
   {:valid (boolean (valid-reset-token->user token))})
 
-(api/defendpoint GET "/properties"
-  "Get all properties and their values. These are the specific `Settings` that are readable by the current user, or are
-  public if no user is logged in."
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema GET "/properties"
+  "Get all global properties and their values. These are the specific `Settings` which are meant to be public."
   []
   (setting/user-readable-values-map (setting/current-user-readable-visibilities)))
 
-(api/defendpoint POST "/google_auth"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema POST "/google_auth"
   "Login with Google Auth."
   [:as {{:keys [token]} :body, :as request}]
-  {token ms/NonBlankString}
+  {token su/NonBlankString}
   (when-not (google/google-auth-client-id)
     (throw (ex-info "Google Auth is disabled." {:status-code 400})))
   ;; Verify the token is valid with Google
@@ -343,9 +322,18 @@
 
 (def ^:private unsubscribe-throttler (throttle/make-throttler :unsubscribe, :attempts-threshold 50))
 
+(defn generate-hash
+  "Generates hash to allow for non-users to unsubscribe from pulses/subscriptions."
+  [pulse-id email]
+  (codecs/bytes->hex
+   (encryption/validate-and-hash-secret-key
+    (json/generate-string {:salt public-settings/site-uuid-for-unsubscribing-url
+                           :email email
+                           :pulse-id pulse-id}))))
+
 (defn- check-hash [pulse-id email hash ip-address]
   (throttle-check unsubscribe-throttler ip-address)
-  (when (not= hash (messages/generate-pulse-unsubscribe-hash pulse-id email))
+  (when (not= hash (generate-hash pulse-id email))
     (throw (ex-info (tru "Invalid hash.")
                     {:type        type
                      :status-code 400}))))
@@ -364,8 +352,7 @@
         (throw (ex-info (tru "Email for pulse-id doesn't exist.")
                         {:type        type
                          :status-code 400}))))
-    (events/publish-event! :event/subscription-unsubscribe {:object {:email email}})
-    {:status :success :title (:name (pulse/retrieve-notification pulse-id :archived false))}))
+               {:status :success}))
 
 (api/defendpoint POST "/pulse/unsubscribe/undo"
   "Allow non-users to undo an unsubscribe from pulses/subscriptions, with the hash given through email."
@@ -381,8 +368,7 @@
         (throw (ex-info (tru "Email for pulse-id already exists.")
                         {:type        type
                          :status-code 400}))
-        (t2/update! PulseChannel (:id pulse-channel) (update-in pulse-channel [:details :emails] conj email))))
-    (events/publish-event! :event/subscription-unsubscribe-undo {:object {:email email}})
-    {:status :success :title (:name (pulse/retrieve-notification pulse-id :archived false))}))
+        (t2/update! PulseChannel (:id pulse-channel) (update-in pulse-channel [:details :emails] conj email)))))
+  {:status :success})
 
 (api/define-routes +log-all-request-failures)

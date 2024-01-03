@@ -1,9 +1,5 @@
 import { t } from "ttag";
 import { assocIn } from "icepick";
-import {
-  getDefaultSize,
-  getMinSize,
-} from "metabase/visualizations/shared/utils/sizes";
 import LineAreaBarChart from "../components/LineAreaBarChart.jsx";
 import { areaRenderer } from "../lib/LineAreaBarRenderer";
 
@@ -23,9 +19,6 @@ export default class AreaChart extends LineAreaBarChart {
   static identifier = "area";
   static iconName = "area";
   static noun = t`area chart`;
-
-  static minSize = getMinSize("area");
-  static defaultSize = getDefaultSize("area");
 
   static settings = {
     ...LINE_SETTINGS,

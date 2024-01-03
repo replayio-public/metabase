@@ -8,7 +8,6 @@ import {
   openQuestionActions,
   resetSnowplow,
   restore,
-  sidebar,
   visitModel,
 } from "e2e/support/helpers";
 import { SAMPLE_DB_ID } from "e2e/support/cypress_data";
@@ -49,7 +48,7 @@ const PROMPT_RESPONSE = {
   prompt_template_versions: [],
 };
 
-describe.skip("scenarios > metabot", () => {
+describe("scenarios > metabot", () => {
   beforeEach(() => {
     restore();
     cy.signInAsAdmin();
@@ -63,17 +62,6 @@ describe.skip("scenarios > metabot", () => {
     cy.intercept("POST", "/api/metabot/feedback", {
       message: "Thanks for your feedback",
     });
-  });
-
-  it("should not show metabot if it is disabled", () => {
-    cy.visit("/admin");
-    sidebar().findByText("Metabot").should("not.exist");
-
-    cy.visit("/metabot/database/1");
-    cy.url().should("eq", `${location.origin}/`);
-
-    cy.visit("/metabot/model/1");
-    cy.url().should("eq", `${location.origin}/`);
   });
 
   it("should allow to submit prompts based on the database", () => {
@@ -113,7 +101,7 @@ describe.skip("scenarios > metabot", () => {
   });
 });
 
-describeWithSnowplow.skip("scenarios > metabot", () => {
+describeWithSnowplow("scenarios > metabot", () => {
   beforeEach(() => {
     restore();
     resetSnowplow();

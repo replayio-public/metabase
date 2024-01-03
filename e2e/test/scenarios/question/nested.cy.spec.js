@@ -1,6 +1,7 @@
 import {
   restore,
   popover,
+  openOrdersTable,
   remapDisplayValueToFK,
   visitQuestion,
   visitQuestionAdhoc,
@@ -13,7 +14,6 @@ import {
 
 import { SAMPLE_DB_ID } from "e2e/support/cypress_data";
 import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
-import { createMetric } from "e2e/support/helpers/e2e-table-metadata-helpers";
 
 const { ORDERS, ORDERS_ID, PRODUCTS, PRODUCTS_ID, PEOPLE } = SAMPLE_DATABASE;
 
@@ -145,8 +145,35 @@ describe("scenarios > question > nested", () => {
 
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
     cy.findByText("10511");
-    cy.findAllByText("June 2022");
+    cy.findAllByText("June, 2016");
     cy.findAllByText("13");
+  });
+
+  it.skip("should display granularity for aggregated fields in nested questions (metabase#13764)", () => {
+    openOrdersTable({ mode: "notebook" });
+
+    // add initial aggregation ("Average of Total by Order ID")
+    summarize({ mode: "notebook" });
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Average of ...").click();
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Total").click();
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Pick a column to group by").click();
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("ID").click();
+
+    // add another aggregation ("Count by Average of Total")
+    summarize({ mode: "notebook" });
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Count of rows").click();
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Pick a column to group by").click();
+    cy.log("Reported failing on v0.34.3 - v0.37.0.2");
+    popover()
+      .contains("Average of Total")
+      .closest(".List-item")
+      .contains("Auto binned");
   });
 
   it("should apply metrics including filter to the nested question (metabase#12507)", () => {
@@ -162,31 +189,33 @@ describe("scenarios > question > nested", () => {
     };
 
     cy.log("Create a metric with a filter");
-    createMetric(metric).then(({ body: { id: metricId } }) => {
-      // "capture" the original query because we will need to re-use it later in a nested question as "source-query"
-      const baseQuestionDetails = {
-        name: "12507",
-        query: {
-          "source-table": ORDERS_ID,
-          aggregation: [["metric", metricId]],
-          breakout: [
-            ["field", ORDERS.TOTAL, { binning: { strategy: "default" } }],
-          ],
-        },
-      };
+    cy.request("POST", "/api/metric", metric).then(
+      ({ body: { id: metricId } }) => {
+        // "capture" the original query because we will need to re-use it later in a nested question as "source-query"
+        const baseQuestionDetails = {
+          name: "12507",
+          query: {
+            "source-table": ORDERS_ID,
+            aggregation: [["metric", metricId]],
+            breakout: [
+              ["field", ORDERS.TOTAL, { binning: { strategy: "default" } }],
+            ],
+          },
+        };
 
-      const nestedQuestionDetails = {
-        query: {
-          filter: [">", ["field", ORDERS.TOTAL, null], 50],
-        },
-      };
+        const nestedQuestionDetails = {
+          query: {
+            filter: [">", ["field", ORDERS.TOTAL, null], 50],
+          },
+        };
 
-      // Create new question which uses previously defined metric
-      createNestedQuestion({ baseQuestionDetails, nestedQuestionDetails });
+        // Create new question which uses previously defined metric
+        createNestedQuestion({ baseQuestionDetails, nestedQuestionDetails });
 
-      cy.log("Reported failing since v0.35.2");
-      cy.get(".cellData").contains(metric.name);
-    });
+        cy.log("Reported failing since v0.35.2");
+        cy.get(".cellData").contains(metric.name);
+      },
+    );
   });
 
   it("should handle remapped display values in a base QB question (metabase#10474)", () => {
@@ -330,8 +359,8 @@ describe("scenarios > question > nested", () => {
         filter: [
           "between",
           ["field-id", ORDERS.CREATED_AT],
-          "2026-02-01",
-          "2026-02-29",
+          "2020-02-01",
+          "2020-02-29",
         ],
         value: "543",
       });
@@ -342,8 +371,8 @@ describe("scenarios > question > nested", () => {
         name: "15352-2",
         filter: [
           "and",
-          [">", ["field-id", ORDERS.CREATED_AT], "2026-01-31"],
-          ["<", ["field-id", ORDERS.CREATED_AT], "2026-03-01"],
+          [">", ["field-id", ORDERS.CREATED_AT], "2020-01-31"],
+          ["<", ["field-id", ORDERS.CREATED_AT], "2020-03-01"],
         ],
         value: "543",
       });
@@ -352,7 +381,7 @@ describe("scenarios > question > nested", () => {
     it("should work with 'on' date filter (metabase#15352-3)", () => {
       assertOnFilter({
         name: "15352-3",
-        filter: ["=", ["field-id", ORDERS.CREATED_AT], "2026-02-01"],
+        filter: ["=", ["field-id", ORDERS.CREATED_AT], "2020-02-01"],
         value: "17",
       });
     });
@@ -528,11 +557,10 @@ describe("scenarios > question > nested", () => {
     cy.findByText("Filter").click();
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
     cy.findByText("Summaries").click();
-    filterField("Count", {
-      operator: "Equal to",
-      value: "5",
-    });
-    cy.button("Apply filters").click();
+    cy.findByTestId("operator-select").click();
+    popover().contains("Equal to").click();
+    cy.findByPlaceholderText("Enter a number").type("5");
+    cy.button("Apply Filters").click();
     cy.wait("@dataset");
 
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage

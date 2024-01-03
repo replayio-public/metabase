@@ -1,9 +1,8 @@
 import { t } from "ttag";
 import Link from "metabase/core/components/Link/Link";
 import Badge from "metabase/components/Badge";
-import type { IconName } from "metabase/core/components/Icon";
-import type Question from "metabase-lib/Question";
-import * as ML_Urls from "metabase-lib/urls";
+import { IconName } from "metabase/core/components/Icon";
+import Question from "metabase-lib/Question";
 
 export interface QuestionLineageProps {
   icon?: IconName;
@@ -23,7 +22,7 @@ const QuestionLineage = ({
   return (
     <Badge icon={icon} isSingleLine>
       {t`Started from`}{" "}
-      <Link className="link" to={ML_Urls.getUrl(originalQuestion)}>
+      <Link className="link" to={originalQuestion.getUrl()}>
         {originalQuestion.displayName()}
       </Link>
     </Badge>

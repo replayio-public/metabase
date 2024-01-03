@@ -189,15 +189,11 @@ Maximum number of async Jetty threads. If not set, then [MB_JETTY_MAXTHREADS](#m
 
 Only available on Metabase [Pro](https://www.metabase.com/product/pro) and [Enterprise](https://www.metabase.com/product/enterprise) plans.<br>
 Type: integer<br>
-Default: 720 (Metabase keeps all rows)<br>
+Default: 0 (Metabase keeps all rows)<br>
 
-Sets the maximum number of days Metabase preserves rows for the following application database tables:
+Sets the maximum number of days Metabase preserves rows in the `query_execution` table in the application database. 
 
-- `query_execution`
-- `audit_log`
-- `view_log`
-
-Twice a day, Metabase will delete rows older than this threshold.
+Twice a day, Metabase will delete rows older than this threshold. 
 
 The minimum value is `30` days (Metabase will treat entered values of `1` to `29` the same as `30`). If set to `0`, Metabase will keep all rows.
 
@@ -234,7 +230,7 @@ Color log lines. When set to `false` it will disable log line colors. This is di
 Type: string<br>
 Default: `config.yml`
 
-This feature requires the `config-text-file` feature flag on your token.
+This feature requires the `advanced-config` feature flag on your token.
 
 ### `MB_CUSTOM_FORMATTING`
 
@@ -428,7 +424,7 @@ Default: `null`
 
 URL of origin allowed to embed the full Metabase application.
 
-Related to [MB_SESSION_COOKIE_SAMESITE](#mb_session_cookie_samesite). Read more about [interactive Embedding](../embedding/interactive-embedding.md).
+Related to [MB_SESSION_COOKIE_SAMESITE](#mb_session_cookie_samesite). Read more about [FullApp Embedding](../embedding/full-app-embedding.md).
 
 ### `MB_EMBEDDING_SECRET_KEY`
 
@@ -440,7 +436,7 @@ Secret key used to sign JSON Web Tokens for requests to /api/embed endpoints.
 
 The secret should be kept safe (treated like a password) and recommended to be a 64 character string.
 
-This is for Static embedding, and has nothing to do with JWT SSO authentication, which is [MB_JWT_*](#mb_jwt_enabled).
+This is for Signed Embedding, and has nothing to do with JWT SSO authentication, which is [MB_JWT_*](#mb_jwt_enabled).
 
 ### `MB_EMOJI_IN_LOGS`
 
@@ -705,7 +701,7 @@ Default: `false`
 
 When set to `true`, will enable JWT authentication with the options configured in the `MB_JWT_*` variables.
 
-This is for JWT SSO authentication, and has nothing to do with Static embedding, which is [MB_EMBEDDING_SECRET_KEY](#mb_embedding_secret_key)
+This is for JWT SSO authentication, and has nothing to do with Signed Embedding, which is [MB_EMBEDDING_SECRET_KEY](#mb_embedding_secret_key)
 
 ### `MB_JWT_GROUP_MAPPINGS`
 
@@ -901,7 +897,7 @@ Type: string<br>
 Default: `null`<br>
 Since: v42.0
 
-The base URL where dashboard notitification links will point to instead of the Metabase base URL. Only applicable for users who utilize interactive embedding and subscriptions.
+The base URL where dashboard notitification links will point to instead of the Metabase base URL. Only applicable for users who utilize FullApp embedding and subscriptions.
 
 ### `MB_NOTIFICATION_RETRY_INITIAL_INTERVAL`
 
@@ -1194,9 +1190,11 @@ Only available on Metabase [Pro](https://www.metabase.com/product/pro) and [Ente
 Type: string (`"none"`, `"lax"`, `"strict"`)<br>
 Default: `"lax"`
 
-See [Embedding Metabase in a different domain](../embedding/interactive-embedding.md#embedding-metabase-in-a-different-domain).
+When using FullApp embedding, and the embedding website is hosted under a domain other than the one your Metabase instance is hosted under, you most likely need to set it to `"none"`.
 
-Related to [MB_EMBEDDING_APP_ORIGIN](#mb_embedding_app_origin). Read more about [interactive Embedding](../embedding/interactive-embedding.md).
+Setting the variable to `"none"` requires you to use HTTPS, otherwise browsers will reject the request.
+
+Related to [MB_EMBEDDING_APP_ORIGIN](#mb_embedding_app_origin). Read more about [FullApp Embedding](../embedding/full-app-embedding.md).
 
 Learn more about SameSite cookies: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite
 

@@ -1,60 +1,16 @@
 import { t } from "ttag";
-import { isNotNull } from "metabase/lib/types";
-import type {
-  Collection,
-  CollectionId,
-  CollectionItem,
-} from "metabase-types/api";
-import { PLUGIN_COLLECTIONS } from "metabase/plugins";
+import { isNotNull } from "metabase/core/utils/types";
+import { Collection, CollectionId, CollectionItem } from "metabase-types/api";
 
 export function nonPersonalOrArchivedCollection(
   collection: Collection,
 ): boolean {
   // @TODO - should this be an API thing?
-  return !isRootPersonalCollection(collection) && !collection.archived;
+  return !isPersonalCollection(collection) && !collection.archived;
 }
 
-export function isRootPersonalCollection(
-  collection: Partial<Collection> | CollectionItem,
-): boolean {
+export function isPersonalCollection(collection: Partial<Collection>): boolean {
   return typeof collection.personal_owner_id === "number";
-}
-
-export function isPersonalCollection(
-  collection: Pick<Collection, "is_personal">,
-) {
-  return collection.is_personal;
-}
-
-export function isPublicCollection(
-  collection: Pick<Collection, "is_personal">,
-) {
-  return !isPersonalCollection(collection);
-}
-
-export function isInstanceAnalyticsCollection(
-  collection: Partial<Collection>,
-): boolean {
-  return (
-    collection &&
-    PLUGIN_COLLECTIONS.getCollectionType(collection).type ===
-      "instance-analytics"
-  );
-}
-
-export function getInstanceAnalyticsCustomCollection(
-  collections: Collection[],
-): Collection | null {
-  return PLUGIN_COLLECTIONS.getInstanceAnalyticsCustomCollection(collections);
-}
-
-export function isInstanceAnalyticsCustomCollection(
-  collection: Collection,
-): boolean {
-  return (
-    PLUGIN_COLLECTIONS.CUSTOM_INSTANCE_ANALYTICS_COLLECTION_ENTITY_ID ===
-    collection.entity_id
-  );
 }
 
 // Replace the name for the current user's collection
@@ -83,7 +39,7 @@ function getNonRootParentId(collection: Collection) {
     return nonRootParent ? nonRootParent.id : undefined;
   }
   // location is a string like "/1/4" where numbers are parent collection IDs
-  const nonRootParentId = collection.location?.split("/")?.[1];
+  const nonRootParentId = collection.location?.split("/")?.[0];
   return canonicalCollectionId(nonRootParentId);
 }
 
@@ -97,16 +53,6 @@ export function isPersonalCollectionChild(
   }
   const parentCollection = collectionList.find(c => c.id === nonRootParentId);
   return Boolean(parentCollection && !!parentCollection.personal_owner_id);
-}
-
-export function isPersonalCollectionOrChild(
-  collection: Collection,
-  collectionList: Collection[],
-): boolean {
-  return (
-    isRootPersonalCollection(collection) ||
-    isPersonalCollectionChild(collection, collectionList)
-  );
 }
 
 export function isRootCollection(collection: Pick<Collection, "id">): boolean {
@@ -129,10 +75,6 @@ export function isItemCollection(item: CollectionItem) {
   return item.model === "collection";
 }
 
-export function isReadOnlyCollection(collection: CollectionItem) {
-  return isItemCollection(collection) && !collection.can_write;
-}
-
 export function canPinItem(item: CollectionItem, collection: Collection) {
   return collection.can_write && item.setPinned != null;
 }
@@ -144,17 +86,15 @@ export function canPreviewItem(item: CollectionItem, collection: Collection) {
 export function canMoveItem(item: CollectionItem, collection: Collection) {
   return (
     collection.can_write &&
-    !isReadOnlyCollection(item) &&
     item.setCollection != null &&
-    !(isItemCollection(item) && isRootPersonalCollection(item))
+    !(isItemCollection(item) && isPersonalCollection(item))
   );
 }
 
 export function canArchiveItem(item: CollectionItem, collection: Collection) {
   return (
     collection.can_write &&
-    !isReadOnlyCollection(item) &&
-    !(isItemCollection(item) && isRootPersonalCollection(item))
+    !(isItemCollection(item) && isPersonalCollection(item))
   );
 }
 
@@ -209,7 +149,7 @@ function isPersonalOrPersonalChild(
     return false;
   }
   return (
-    isRootPersonalCollection(collection) ||
+    isPersonalCollection(collection) ||
     isPersonalCollectionChild(collection, collections)
   );
 }
@@ -218,7 +158,7 @@ export function canManageCollectionAuthorityLevel(
   collection: Partial<Collection>,
   collectionMap: Partial<Record<CollectionId, Collection>>,
 ) {
-  if (isRootPersonalCollection(collection)) {
+  if (isPersonalCollection(collection)) {
     return false;
   }
   const parentId = coerceCollectionId(collection.parent_id);

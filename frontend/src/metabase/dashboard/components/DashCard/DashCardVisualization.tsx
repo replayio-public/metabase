@@ -1,13 +1,13 @@
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import cx from "classnames";
 import { t } from "ttag";
 import { connect } from "react-redux";
 import type { LocationDescriptor } from "history";
 
-import type { IconName, IconProps } from "metabase/core/components/Icon";
+import { IconName, IconProps } from "metabase/core/components/Icon";
 
 import Visualization from "metabase/visualizations/components/Visualization";
-import { WithVizSettingsData } from "metabase/dashboard/hoc/WithVizSettingsData";
+import WithVizSettingsData from "metabase/dashboard/hoc/WithVizSettingsData";
 import { getVisualizationRaw } from "metabase/visualizations";
 
 import {
@@ -17,7 +17,7 @@ import {
 
 import type {
   Dashboard,
-  DashboardCard,
+  DashboardOrderedCard,
   DashCardId,
   Dataset,
   Series,
@@ -28,26 +28,22 @@ import type {
 } from "metabase-types/api";
 import type { Dispatch } from "metabase-types/store";
 
-import type { Mode } from "metabase/visualizations/click-actions/Mode";
 import Question from "metabase-lib/Question";
+import type Mode from "metabase-lib/Mode";
 import type Metadata from "metabase-lib/metadata/Metadata";
 
-import type {
-  CardSlownessStatus,
-  DashCardOnChangeCardAndRunHandler,
-} from "./types";
-import { ClickBehaviorSidebarOverlay } from "./ClickBehaviorSidebarOverlay/ClickBehaviorSidebarOverlay";
-import { DashCardMenuConnected } from "./DashCardMenu/DashCardMenu";
-import { DashCardParameterMapper } from "./DashCardParameterMapper/DashCardParameterMapper";
+import { CardSlownessStatus, DashCardOnChangeCardAndRunHandler } from "./types";
+import ClickBehaviorSidebarOverlay from "./ClickBehaviorSidebarOverlay";
+import DashCardMenu from "./DashCardMenu";
+import DashCardParameterMapper from "./DashCardParameterMapper";
 import {
   VirtualDashCardOverlayRoot,
   VirtualDashCardOverlayText,
 } from "./DashCard.styled";
-import { shouldShowParameterMapper } from "./utils";
 
 interface DashCardVisualizationProps {
   dashboard: Dashboard;
-  dashcard: DashboardCard;
+  dashcard: DashboardOrderedCard;
   series: Series;
   parameterValues: Record<ParameterId, ParameterValueOrArray>;
   parameterValuesBySlug: Record<string, ParameterValueOrArray>;
@@ -63,6 +59,7 @@ interface DashCardVisualizationProps {
 
   expectedDuration: number;
   isSlow: CardSlownessStatus;
+  isAction: boolean;
 
   isPreviewing: boolean;
   isEmbed: boolean;
@@ -75,7 +72,6 @@ interface DashCardVisualizationProps {
   isMobile?: boolean;
   isNightMode?: boolean;
   isPublic?: boolean;
-  isXray?: boolean;
 
   error?: { message?: string; icon?: IconName };
   headerIcon?: IconProps;
@@ -96,7 +92,7 @@ const WrappedVisualization = WithVizSettingsData(
   connect(null, mapDispatchToProps)(Visualization),
 );
 
-export function DashCardVisualization({
+function DashCardVisualization({
   dashcard,
   dashboard,
   series,
@@ -109,12 +105,12 @@ export function DashCardVisualization({
   totalNumGridCols,
   expectedDuration,
   error,
+  isAction,
   headerIcon,
   isSlow,
   isPreviewing,
   isEmbed,
   isPublic,
-  isXray,
   isEditingDashboardLayout,
   isClickBehaviorSidebarOpen,
   isEditingDashCardClickBehavior,
@@ -128,14 +124,10 @@ export function DashCardVisualization({
   onChangeLocation,
   onUpdateVisualizationSettings,
 }: DashCardVisualizationProps) {
-  const question = useMemo(() => {
-    return new Question(dashcard.card, metadata);
-  }, [dashcard.card, metadata]);
-
   const renderVisualizationOverlay = useCallback(() => {
     if (isClickBehaviorSidebarOpen) {
-      const disableClickBehavior =
-        getVisualizationRaw(series)?.disableClickBehavior;
+      const { disableClickBehavior } =
+        getVisualizationRaw(series).visualization;
       if (isVirtualDashCard(dashcard) || disableClickBehavior) {
         const virtualDashcardType = getVirtualCardType(
           dashcard,
@@ -145,7 +137,6 @@ export function DashCardVisualization({
             link: t`Link`,
             action: t`Action Button`,
             text: t`Text Card`,
-            heading: t`Heading Card`,
           }[virtualDashcardType] ??
           t`This card does not support click mappings`;
 
@@ -167,7 +158,7 @@ export function DashCardVisualization({
       );
     }
 
-    if (shouldShowParameterMapper({ dashcard, isEditingParameter })) {
+    if (isEditingParameter) {
       return (
         <DashCardParameterMapper dashcard={dashcard} isMobile={isMobile} />
       );
@@ -186,23 +177,21 @@ export function DashCardVisualization({
   ]);
 
   const renderActionButtons = useCallback(() => {
+    const question = new Question(dashcard.card, metadata);
     const mainSeries = series[0] as unknown as Dataset;
 
-    const shouldShowDashCardMenu = DashCardMenuConnected.shouldRender({
-      question,
-      result: mainSeries,
-      isXray,
-      isEmbed,
-      isPublic,
-      isEditing,
-    });
+    const shouldShowDownloadWidget =
+      isEmbed ||
+      (!isPublic &&
+        !isEditing &&
+        DashCardMenu.shouldRender({ question, result: mainSeries }));
 
-    if (!shouldShowDashCardMenu) {
+    if (!shouldShowDownloadWidget) {
       return null;
     }
 
     return (
-      <DashCardMenuConnected
+      <DashCardMenu
         question={question}
         result={mainSeries}
         dashcardId={dashcard.id}
@@ -212,16 +201,14 @@ export function DashCardVisualization({
       />
     );
   }, [
-    question,
-    dashcard.id,
-    dashcard.dashboard_id,
     series,
+    metadata,
     isEmbed,
     isPublic,
     isEditing,
-    isXray,
-    dashboard.id,
+    dashcard,
     parameterValuesBySlug,
+    dashboard,
   ]);
 
   return (
@@ -250,6 +237,7 @@ export function DashCardVisualization({
       errorIcon={error?.icon}
       showTitle
       isDashboard
+      isAction={isAction}
       isSlow={isSlow}
       isFullscreen={isFullscreen}
       isNightMode={isNightMode}
@@ -265,3 +253,6 @@ export function DashCardVisualization({
     />
   );
 }
+
+// eslint-disable-next-line import/no-default-export -- deprecated usage
+export default DashCardVisualization;

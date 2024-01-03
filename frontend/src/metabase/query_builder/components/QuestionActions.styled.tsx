@@ -7,10 +7,6 @@ export const QuestionActionsDivider = styled.div`
   margin-left: 0.5rem;
   margin-right: 0.5rem;
   height: 1.25rem;
-
-  &:first-child {
-    display: none;
-  }
 `;
 
 export const StrengthIndicator = styled(DatasetMetadataStrengthIndicator)`

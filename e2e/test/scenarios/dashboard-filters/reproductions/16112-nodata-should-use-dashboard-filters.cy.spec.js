@@ -46,14 +46,14 @@ describe("issues 15119 and 16112", () => {
     cy.createQuestionAndDashboard({ questionDetails, dashboardDetails }).then(
       ({ body: { id, card_id, dashboard_id } }) => {
         // Connect filters to the card
-        cy.request("PUT", `/api/dashboard/${dashboard_id}`, {
-          dashcards: [
+        cy.request("PUT", `/api/dashboard/${dashboard_id}/cards`, {
+          cards: [
             {
               id,
               card_id,
               row: 0,
               col: 0,
-              size_x: 16,
+              size_x: 12,
               size_y: 9,
               visualization_settings: {},
               parameter_mappings: [
@@ -97,7 +97,7 @@ describe("issues 15119 and 16112", () => {
     cy.button("Add filter").click();
 
     cy.get(".DashCard").should("contain", "adam");
-    cy.location("search").should("eq", "?reviewer=adam&rating=");
+    cy.location("search").should("eq", "?reviewer=adam");
 
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
     cy.findByText(ratingFilter.name).click();

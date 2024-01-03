@@ -1,4 +1,4 @@
-import type { ModelCacheRefreshStatus } from "metabase-types/api";
+import { ModelCacheRefreshStatus } from "metabase-types/api";
 
 export const getMockModelCacheInfo = (
   opts?: Partial<ModelCacheRefreshStatus>,

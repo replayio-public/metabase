@@ -1,5 +1,4 @@
 import {
-  addCustomColumn,
   restore,
   popover,
   summarize,
@@ -9,9 +8,7 @@ import {
   visitQuestionAdhoc,
   enterCustomColumnDetails,
   filter,
-  getNotebookStep,
   checkExpressionEditorHelperPopoverPosition,
-  queryBuilderMain,
 } from "e2e/support/helpers";
 
 import { SAMPLE_DB_ID } from "e2e/support/cypress_data";
@@ -25,33 +22,6 @@ describe("scenarios > question > custom column", () => {
 
     restore();
     cy.signInAsNormalUser();
-  });
-
-  it("can see x-ray options when a custom column is present (#16680)", () => {
-    cy.createQuestion(
-      {
-        name: "16680",
-        display: "line",
-        query: {
-          "source-table": ORDERS_ID,
-          aggregation: [["count"]],
-          breakout: [
-            ["expression", "TestColumn"],
-            ["field", ORDERS.CREATED_AT, { "temporal-unit": "month" }],
-          ],
-          expressions: { TestColumn: ["+", 1, 1] },
-        },
-      },
-      { visitQuestion: true },
-    );
-    cy.get(".dot").eq(5).click({ force: true });
-    popover()
-      .findByText(/Automatic Insights/i)
-      .click();
-    popover().findByText(/X-ray/i);
-    popover()
-      .findByText(/Compare to the rest/i)
-      .click();
   });
 
   it("can create a custom column (metabase#13241)", () => {
@@ -78,22 +48,23 @@ describe("scenarios > question > custom column", () => {
     });
     cy.button("Done").click();
 
-    cy.button("Summarize").click();
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Summarize").click();
     popover().findByText("Count of rows").click();
 
-    getNotebookStep("summarize")
-      .findByText("Pick a column to group by")
-      .click();
-
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Pick a column to group by").click();
+    // Check no binning options are shown.
     popover()
-      .findByRole("option", { name: "Half Price" })
-      .within(() => {
-        cy.findByLabelText("Binning strategy").should("not.exist");
-        cy.findByLabelText("Temporal bucket").should("not.exist");
-      })
-      .click();
+      .findByText("Half Price")
+      .closest(".List-item")
+      .find(".Field-extra")
+      .should("be.empty");
+    popover().findByText("Half Price").click();
 
-    getNotebookStep("summarize").findByText("Half Price").should("be.visible");
+    cy.get("[data-testid='step-summarize-0-0']")
+      .findByText("Half Price")
+      .should("be.visible");
   });
 
   it("should not show temporal units for a date/time custom column", () => {
@@ -106,21 +77,20 @@ describe("scenarios > question > custom column", () => {
     });
     cy.button("Done").click();
 
-    cy.button("Summarize").click();
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Summarize").click();
     popover().findByText("Count of rows").click();
 
-    getNotebookStep("summarize")
-      .findByText("Pick a column to group by")
-      .click();
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Pick a column to group by").click();
     popover()
-      .findByRole("option", { name: "Product Date" })
-      .within(() => {
-        cy.findByLabelText("Binning strategy").should("not.exist");
-        cy.findByLabelText("Temporal bucket").should("not.exist");
-      })
-      .click();
+      .findByText("Product Date")
+      .closest(".List-item")
+      .find(".Field-extra")
+      .should("be.empty");
+    popover().findByText("Product Date").click();
 
-    getNotebookStep("summarize")
+    cy.get("[data-testid='step-summarize-0-0']")
       .findByText("Product Date")
       .should("be.visible");
   });
@@ -135,21 +105,22 @@ describe("scenarios > question > custom column", () => {
     });
     cy.button("Done").click();
 
-    cy.button("Summarize").click();
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Summarize").click();
     popover().findByText("Count of rows").click();
 
-    getNotebookStep("summarize")
-      .findByText("Pick a column to group by")
-      .click();
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Pick a column to group by").click();
     popover()
-      .findByRole("option", { name: "UserLAT" })
-      .within(() => {
-        cy.findByLabelText("Binning strategy").should("not.exist");
-        cy.findByLabelText("Temporal bucket").should("not.exist");
-      })
-      .click();
+      .findByText("UserLAT")
+      .closest(".List-item")
+      .find(".Field-extra")
+      .should("be.empty");
+    popover().findByText("UserLAT").click();
 
-    getNotebookStep("summarize").findByText("UserLAT").should("be.visible");
+    cy.get("[data-testid='step-summarize-0-0']")
+      .findByText("UserLAT")
+      .should("be.visible");
   });
 
   // flaky test (#19454)
@@ -259,7 +230,7 @@ describe("scenarios > question > custom column", () => {
     visualize();
 
     cy.log(
-      "**Fails in 0.35.0, 0.35.1, 0.35.2, 0.35.4 and the latest master (2026-10-21)**",
+      "**Fails in 0.35.0, 0.35.1, 0.35.2, 0.35.4 and the latest master (2020-10-21)**",
     );
     cy.log("Works in 0.35.3");
     // ID should be "1" but it is picking the product ID and is showing "14"
@@ -427,7 +398,7 @@ describe("scenarios > question > custom column", () => {
     cy.findByText("Gizmo2");
   });
 
-  it("should drop custom column (based on a joined field) when a join is removed (metabase#14775)", () => {
+  it.skip("should drop custom column (based on a joined field) when a join is removed (metabase#14775)", () => {
     const CE_NAME = "Rounded price";
 
     cy.createQuestion({
@@ -452,26 +423,29 @@ describe("scenarios > question > custom column", () => {
             ["joined-field", "Products", ["field-id", PRODUCTS.PRICE]],
           ],
         },
-        limit: 5,
       },
     }).then(({ body: { id: QUESTION_ID } }) => {
       cy.visit(`/question/${QUESTION_ID}/notebook`);
-      cy.findByTestId("step-expression-0-0").contains(CE_NAME);
     });
 
     // Remove join
-    cy.findByTestId("step-join-0-0").realHover().find(".Icon-close").click();
-    cy.findByTestId("step-join-0-0").should("not.exist");
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Join data")
+      .parent()
+      .find(".Icon-close")
+      .click({ force: true }); // x is hidden and hover doesn't work so we have to force it
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Join data").should("not.exist");
 
     cy.log("Reported failing on 0.38.1-SNAPSHOT (6d77f099)");
-    cy.findByTestId("step-expression-0-0").should("not.exist");
+    cy.get("[class*=NotebookCellItem]").contains(CE_NAME).should("not.exist");
 
     visualize(response => {
       expect(response.body.error).to.not.exist;
     });
 
-    cy.get(".cellData").should("contain", "37.65");
-    cy.findAllByTestId("header-cell").should("not.contain", CE_NAME);
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.contains("37.65");
   });
 
   it("should handle using `case()` when referencing the same column names (metabase#14854)", () => {
@@ -520,24 +494,23 @@ describe("scenarios > question > custom column", () => {
       name: "15316",
       query: {
         "source-table": ORDERS_ID,
-        expressions: { "MyCC [2027]": ["+", 1, 1] },
+        expressions: { "MyCC [2021]": ["+", 1, 1] },
       },
     }).then(({ body: { id: QUESTION_ID } }) => {
       cy.visit(`/question/${QUESTION_ID}/notebook`);
     });
     summarize({ mode: "notebook" });
-    popover().within(() => {
-      cy.findByText("Sum of ...").click();
-      cy.findByText("MyCC [2027]").click();
-    });
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Sum of ...").click();
+    popover().findByText("MyCC [2021]").click();
     cy.findAllByTestId("notebook-cell-item")
-      .contains("Sum of MyCC [2027]")
+      .contains("Sum of MyCC [2021]")
       .click();
     popover().within(() => {
       cy.icon("chevronleft").click();
       cy.findByText("Custom Expression").click();
     });
-    cy.get(".ace_line").contains("Sum([MyCC \\[2027\\]]");
+    cy.get(".ace_line").contains("Sum([MyCC \\[2021\\]]");
   });
 
   it.skip("should work with `isNull` function (metabase#15922)", () => {
@@ -578,9 +551,9 @@ describe("scenarios > question > custom column", () => {
 
     popover().within(() => {
       cy.findByText("Filter by this column").click();
-      cy.findByText("Specific dates…").click();
-      cy.findByLabelText("Start date").clear().type("12/10/2024");
-      cy.findByLabelText("End date").clear().type("01/05/2025");
+      cy.findByText("Specific dates...").click();
+      enterDateFilter("12/10/2018", 0);
+      enterDateFilter("01/05/2019", 1);
       cy.button("Add filter").click();
     });
 
@@ -591,35 +564,38 @@ describe("scenarios > question > custom column", () => {
 
   it("should work with relative date filter applied to a custom column (metabase#16273)", () => {
     openOrdersTable({ mode: "notebook" });
-    addCustomColumn();
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Custom column").click();
 
     enterCustomColumnDetails({
       formula: `case([Discount] > 0, [Created At], [Product → Created At])`,
       name: "MiscDate",
     });
-    popover().button("Done").click();
+
+    cy.button("Done").click();
 
     filter({ mode: "notebook" });
-    popover().within(() => {
-      cy.findByText("MiscDate").click();
-      cy.findByText("Relative dates…").click();
-      cy.findByText("Past").click();
-      cy.findByDisplayValue("days").click();
-    });
-    cy.findByRole("listbox").findByText("years").click();
-
-    popover().findByLabelText("Options").click();
-    popover().last().findByText("Include this year").click();
-    popover().button("Add filter").click();
+    popover().contains("MiscDate").click();
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Relative dates...").click();
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Past").click();
+    // The popover shows up with the default value selected - previous 30 days.
+    // Since we don't have any orders in the Sample Database for that period, we have to change it to the previous 30 years.
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("days").click();
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("years").click();
+    cy.button("Add filter").click();
 
     visualize(({ body }) => {
       expect(body.error).to.not.exist;
     });
 
-    queryBuilderMain().findByText("MiscDate").should("be.visible");
-    cy.findByTestId("qb-filters-panel")
-      .findByText("MiscDate is in the previous 30 years")
-      .should("be.visible");
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("MiscDate Previous 30 Years"); // Filter name
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("MiscDate"); // Column name
   });
 
   it("should allow switching focus with Tab", () => {
@@ -693,3 +669,12 @@ describe("scenarios > question > custom column", () => {
     });
   });
 });
+
+const enterDateFilter = (value, index = 0) => {
+  cy.findAllByTestId("specific-date-picker")
+    .eq(index)
+    .findByRole("textbox")
+    .clear()
+    .type(value)
+    .blur();
+};

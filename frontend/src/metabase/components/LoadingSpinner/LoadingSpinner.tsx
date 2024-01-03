@@ -7,19 +7,10 @@ interface Props {
   className?: string;
   size?: number;
   borderWidth?: number;
-  "data-testid"?: string;
 }
 
-const BaseLoadingSpinner = ({
-  className,
-  size = 32,
-  borderWidth = 4,
-  "data-testid": dataTestId,
-}: Props) => (
-  <SpinnerRoot
-    className={className}
-    data-testid={dataTestId ?? "loading-spinner"}
-  >
+const LoadingSpinner = ({ className, size = 32, borderWidth = 4 }: Props) => (
+  <SpinnerRoot className={className} data-testid="loading-spinner">
     {isReducedMotionPreferred() ? (
       <Icon name="hourglass" size="24" />
     ) : (
@@ -28,12 +19,7 @@ const BaseLoadingSpinner = ({
   </SpinnerRoot>
 );
 
-/**
- * @deprecated: use Loader from "metabase/ui"
- */
-const LoadingSpinner = Object.assign(BaseLoadingSpinner, {
+// eslint-disable-next-line import/no-default-export -- deprecated usage
+export default Object.assign(LoadingSpinner, {
   Root: SpinnerRoot,
 });
-
-// eslint-disable-next-line import/no-default-export -- deprecated usage
-export default LoadingSpinner;

@@ -1,22 +1,25 @@
 import userEvent from "@testing-library/user-event";
 import fetchMock from "fetch-mock";
 
-import { renderWithProviders, screen, waitFor } from "__support__/ui";
+import {
+  renderWithProviders,
+  screen,
+  waitFor,
+  waitForElementToBeRemoved,
+} from "__support__/ui";
 import {
   setupCardsEndpoints,
-  setupCollectionsEndpoints,
   setupDatabasesEndpoints,
 } from "__support__/server-mocks";
 
-import type { GroupTableAccessPolicy } from "metabase-types/api";
-import { createMockCard, createMockCollection } from "metabase-types/api/mocks";
+import { GroupTableAccessPolicy } from "metabase-types/api";
+import { createMockCard } from "metabase-types/api/mocks";
 import {
   createSampleDatabase,
   PEOPLE,
   PEOPLE_ID,
   SAMPLE_DB_ID,
 } from "metabase-types/api/mocks/presets";
-import { ROOT_COLLECTION } from "metabase/entities/collections";
 import EditSandboxingModal from "./EditSandboxingModal";
 
 const attributes = ["foo", "bar"];
@@ -24,11 +27,6 @@ const params = {
   groupId: "1",
   tableId: String(PEOPLE_ID),
 };
-
-const EDITABLE_ROOT_COLLECTION = createMockCollection({
-  ...ROOT_COLLECTION,
-  can_write: true,
-});
 
 const TEST_CARD = createMockCard({
   id: 1,
@@ -52,14 +50,17 @@ const setup = ({
   const database = createSampleDatabase();
 
   setupDatabasesEndpoints([database]);
-  setupCollectionsEndpoints({
-    collections: [EDITABLE_ROOT_COLLECTION],
-    rootCollection: EDITABLE_ROOT_COLLECTION,
-  });
   fetchMock.post("path:/api/mt/gtap/validate", 204);
   fetchMock.get("path:/api/permissions/group/1", {});
 
   if (shouldMockQuestions) {
+    fetchMock.get("path:/api/collection", [
+      {
+        id: "root",
+        name: "Our analytics",
+        can_write: true,
+      },
+    ]);
     fetchMock.get("path:/api/collection/root/items", {
       data: [{ id: TEST_CARD.id, name: TEST_CARD.name, model: "card" }],
     });
@@ -136,9 +137,7 @@ describe("EditSandboxingModal", () => {
 
         userEvent.click(screen.getByText("Save"));
 
-        await waitFor(() => {
-          expect(screen.queryByText("Saving...")).not.toBeInTheDocument();
-        });
+        await waitForElementToBeRemoved(() => screen.queryByText("Saving..."));
 
         expect(onSave).toHaveBeenCalledWith({
           attribute_remappings: {},
@@ -182,9 +181,7 @@ describe("EditSandboxingModal", () => {
 
       userEvent.click(screen.getByText("Save"));
 
-      await waitFor(() => {
-        expect(screen.queryByText("Saving...")).not.toBeInTheDocument();
-      });
+      await waitForElementToBeRemoved(() => screen.queryByText("Saving..."));
 
       expect(onSave).toHaveBeenCalledWith({
         id: 1,

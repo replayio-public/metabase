@@ -1,30 +1,21 @@
 import fetchMock from "fetch-mock";
 import _ from "underscore";
-import type {
+import { ROOT_COLLECTION } from "metabase/entities/collections";
+import {
   Card,
   Collection,
   CollectionItem,
   Dashboard,
 } from "metabase-types/api";
-import { createMockCollection } from "metabase-types/api/mocks";
-import { ROOT_COLLECTION } from "metabase/entities/collections";
 import {
-  SAVED_QUESTIONS_VIRTUAL_DB_ID,
   convertSavedQuestionToVirtualTable,
   getCollectionVirtualSchemaName,
+  SAVED_QUESTIONS_VIRTUAL_DB_ID,
 } from "metabase-lib/metadata/utils/saved-questions";
 import { PERMISSION_ERROR } from "./constants";
 
-export interface CollectionEndpoints {
-  collections: Collection[];
-  rootCollection?: Collection;
-}
-
-export function setupCollectionsEndpoints({
-  collections,
-  rootCollection = createMockCollection(ROOT_COLLECTION),
-}: CollectionEndpoints) {
-  fetchMock.get("path:/api/collection/root", rootCollection);
+export function setupCollectionsEndpoints(collections: Collection[]) {
+  fetchMock.get("path:/api/collection/root", ROOT_COLLECTION);
   fetchMock.get(
     {
       url: "path:/api/collection/tree",
@@ -74,18 +65,13 @@ export function setupCollectionVirtualSchemaEndpoints(
   fetchMock.get(urls.models, modelVirtualTables);
 }
 
-export function setupCollectionItemsEndpoint({
-  collection,
-  collectionItems = [],
-  models: modelsParam,
-}: {
-  collection: Collection;
-  collectionItems: CollectionItem[];
-  models?: string[];
-}) {
+export function setupCollectionItemsEndpoint(
+  collection: Collection,
+  collectionItems: CollectionItem[] = [],
+) {
   fetchMock.get(`path:/api/collection/${collection.id}/items`, uri => {
     const url = new URL(uri);
-    const models = modelsParam ?? url.searchParams.getAll("models");
+    const models = url.searchParams.getAll("models");
     const matchedItems = collectionItems.filter(({ model }) =>
       models.includes(model),
     );
@@ -103,16 +89,10 @@ export function setupCollectionItemsEndpoint({
   });
 }
 
-export function setupCollectionsWithError({
-  error,
-  status = 500,
-}: {
-  error: string;
-  status?: number;
-}) {
-  fetchMock.get("path:/api/collection", {
-    body: error,
-    status,
+export function setupUnauthorizedCollectionEndpoints(collection: Collection) {
+  fetchMock.get(`path:/api/collection/${collection.id}`, {
+    status: 403,
+    body: PERMISSION_ERROR,
   });
 }
 
@@ -120,13 +100,6 @@ export function setupUnauthorizedCollectionsEndpoints(
   collections: Collection[],
 ) {
   collections.forEach(setupUnauthorizedCollectionEndpoints);
-}
-
-export function setupUnauthorizedCollectionEndpoints(collection: Collection) {
-  fetchMock.get(`path:/api/collection/${collection.id}`, {
-    status: 403,
-    body: PERMISSION_ERROR,
-  });
 }
 
 export function setupCollectionByIdEndpoint({

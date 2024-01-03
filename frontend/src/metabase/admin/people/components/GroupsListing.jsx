@@ -126,7 +126,9 @@ function EditingGroupRow({
         <span
           className="link no-decoration cursor-pointer"
           onClick={onCancelClicked}
-        >{t`Cancel`}</span>
+        >
+          Cancel
+        </span>
         <button
           className={cx("Button ml2", {
             "Button--primary": textIsValid && textHasChanged,

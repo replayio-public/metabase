@@ -1,11 +1,11 @@
 import Metrics from "metabase/entities/metrics";
-import type {
+import {
+  useEntityQuery,
   UseEntityQueryProps,
   UseEntityQueryResult,
 } from "metabase/common/hooks/use-entity-query";
-import { useEntityQuery } from "metabase/common/hooks/use-entity-query";
-import type { MetricId } from "metabase-types/api";
-import type Metric from "metabase-lib/metadata/Metric";
+import { MetricId } from "metabase-types/api";
+import Metric from "metabase-lib/metadata/Metric";
 
 export const useMetricQuery = (
   props: UseEntityQueryProps<MetricId>,

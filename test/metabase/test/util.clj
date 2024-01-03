@@ -10,30 +10,41 @@
    [clojurewerkz.quartzite.scheduler :as qs]
    [colorize.core :as colorize]
    [environ.core :as env]
-   [java-time.api :as t]
+   [java-time :as t]
    [mb.hawk.parallel]
-   [metabase.config :as config]
    [metabase.db.query :as mdb.query]
    [metabase.db.util :as mdb.u]
    [metabase.models
     :refer [Card
+            Collection
             Dimension
             Field
             FieldValues
+            LoginHistory
+            Metric
+            NativeQuerySnippet
             Permissions
             PermissionsGroup
             PermissionsGroupMembership
+            PersistedInfo
+            Pulse
+            PulseCard
+            PulseChannel
+            Revision
+            Segment
             Setting
             Table
+            TaskHistory
+            Timeline
+            TimelineEvent
             User]]
    [metabase.models.collection :as collection]
    [metabase.models.interface :as mi]
-   [metabase.models.moderation-review :as moderation-review]
    [metabase.models.permissions :as perms]
    [metabase.models.permissions-group :as perms-group]
    [metabase.models.setting :as setting]
    [metabase.models.setting.cache :as setting.cache]
-   [metabase.models.timeline-event :as timeline-event]
+   [metabase.models.timeline :as timeline]
    [metabase.plugins.classloader :as classloader]
    [metabase.task :as task]
    [metabase.test-runner.assert-exprs :as test-runner.assert-exprs]
@@ -47,7 +58,6 @@
    [methodical.core :as methodical]
    [toucan2.core :as t2]
    [toucan2.model :as t2.model]
-   [toucan2.tools.before-update :as t2.before-update]
    [toucan2.tools.with-temp :as t2.with-temp])
   (:import
    (java.io File FileInputStream)
@@ -95,100 +105,78 @@
 
 (defn- rasta-id [] (user-id :rasta))
 
-(defn- default-updated-at-timestamped
-  [x]
-  (assoc x :updated_at (t/zoned-date-time)))
-
-(defn- default-created-at-timestamped
-  [x]
-  (assoc x :created_at (t/zoned-date-time)))
-
-(def ^:private default-timestamped
-  (comp default-updated-at-timestamped default-created-at-timestamped))
-
 (def ^:private with-temp-defaults-fns
-  {:model/Card
-   (fn [_] (default-timestamped
-             {:creator_id             (rasta-id)
-              :database_id            (data/id)
-              :dataset_query          {}
-              :display                :table
-              :name                   (tu.random/random-name)
-              :visualization_settings {}}))
+  {Card
+   (fn [_] {:creator_id             (rasta-id)
+            :database_id            (data/id)
+            :dataset_query          {}
+            :display                :table
+            :name                   (tu.random/random-name)
+            :visualization_settings {}})
 
-   :model/Collection
-   (fn [_] (default-created-at-timestamped {:name (tu.random/random-name)}))
-
-   :model/Action
-   (fn [_] {:creator_id (rasta-id)})
+   Collection
+   (fn [_] {:name  (tu.random/random-name)
+            :color "#ABCDEF"})
 
    :model/Dashboard
-   (fn [_] (default-timestamped
-             {:creator_id (rasta-id)
-              :name       (tu.random/random-name)}))
+   (fn [_] {:creator_id (rasta-id)
+            :name       (tu.random/random-name)})
 
    :model/DashboardCard
-   (fn [_] (default-timestamped
-             {:row    0
-               :col    0
-               :size_x 4
-               :size_y 4}))
+   (fn [_] {:row    0
+            :col    0
+            :size_x 4
+            :size_y 4})
 
    :model/DashboardCardSeries
    (constantly {:position 0})
 
    :model/DashboardTab
    (fn [_]
-     (default-timestamped
-       {:name     (tu.random/random-name)
-        :position 0}))
+     {:name     (tu.random/random-name)
+      :position 0})
 
    :model/Database
-   (fn [_] (default-timestamped
-             {:details   {}
-              :engine    :h2
-              :is_sample false
-              :name      (tu.random/random-name)}))
+   (fn [_] {:details   {}
+            :engine    :h2
+            :is_sample false
+            :name      (tu.random/random-name)})
 
    :model/Dimension
-   (fn [_] (default-timestamped
-             {:name (tu.random/random-name)
-              :type "internal"}))
+   (fn [_] {:name (tu.random/random-name)
+            :type "internal"})
 
    :model/Field
-   (fn [_] (default-timestamped
-             {:database_type "VARCHAR"
-              :base_type     :type/Text
-              :name          (tu.random/random-name)
-              :position      1
-              :table_id      (data/id :checkins)}))
+   (fn [_] {:database_type "VARCHAR"
+            :base_type     :type/Text
+            :name          (tu.random/random-name)
+            :position      1
+            :table_id      (data/id :checkins)})
 
-   :model/LoginHistory
+   LoginHistory
    (fn [_] {:device_id          "129d39d1-6758-4d2c-a751-35b860007002"
             :device_description "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML like Gecko) Chrome/89.0.4389.86 Safari/537.36"
-            :ip_address         "0:0:0:0:0:0:0:1"
-            :timestamp          (t/zoned-date-time)})
+            :ip_address         "0:0:0:0:0:0:0:1"})
 
-   :model/Metric
-   (fn [_] (default-timestamped
-             {:creator_id  (rasta-id)
-              :definition  {}
-              :description "Lookin' for a blueberry"
-              :name        "Toucans in the rainforest"}))
+   Metric
+   (fn [_] {:creator_id  (rasta-id)
+            :definition  {}
+            :description "Lookin' for a blueberry"
+            :name        "Toucans in the rainforest"
+            :table_id    (data/id :checkins)})
 
-   :model/NativeQuerySnippet
-   (fn [_] (default-timestamped
-             {:creator_id (user-id :crowberto)
-              :name       (tu.random/random-name)
-              :content    "1 = 1"}))
+   NativeQuerySnippet
+   (fn [_] {:creator_id (user-id :crowberto)
+            :name       (tu.random/random-name)
+            :content    "1 = 1"})
 
-   :model/PersistedInfo
+   PersistedInfo
    (fn [_] {:question_slug (tu.random/random-name)
             :query_hash    (tu.random/random-hash)
-            :definition    {:table-name        (tu.random/random-name)
+            :definition    {:table-name (tu.random/random-name)
                             :field-definitions (repeatedly
-                                                 4
-                                                 #(do {:field-name (tu.random/random-name) :base-type "type/Text"}))}
+                                                4
+                                                #(do {:field-name (tu.random/random-name) :base-type "type/Text"}))}
             :table_name    (tu.random/random-name)
             :active        true
             :state         "persisted"
@@ -196,49 +184,44 @@
             :created_at    (t/zoned-date-time)
             :creator_id    (rasta-id)})
 
-   :model/PermissionsGroup
+   PermissionsGroup
    (fn [_] {:name (tu.random/random-name)})
 
-   :model/Pulse
-   (fn [_] (default-timestamped
-             {:creator_id (rasta-id)
-              :name       (tu.random/random-name)}))
+   Pulse
+   (fn [_] {:creator_id (rasta-id)
+            :name       (tu.random/random-name)})
 
-   :model/PulseCard
+   PulseCard
    (fn [_] {:position    0
             :include_csv false
             :include_xls false})
 
-   :model/PulseChannel
-   (fn [_] (default-timestamped
-             {:channel_type  :email
-              :details       {}
-              :schedule_type :daily
-              :schedule_hour 15}))
+   PulseChannel
+   (constantly {:channel_type  :email
+                :details       {}
+                :schedule_type :daily
+                :schedule_hour 15})
 
-   :model/Revision
+   Revision
    (fn [_] {:user_id      (rasta-id)
             :is_creation  false
-            :is_reversion false
-            :timestamp    (t/zoned-date-time)})
+            :is_reversion false})
 
-   :model/Segment
-   (fn [_] (default-timestamped
-             {:creator_id  (rasta-id)
-              :definition  {}
-              :description "Lookin' for a blueberry"
-              :name        "Toucans in the rainforest"
-              :table_id    (data/id :checkins)}))
+   Segment
+   (fn [_] {:creator_id  (rasta-id)
+            :definition  {}
+            :description "Lookin' for a blueberry"
+            :name        "Toucans in the rainforest"
+            :table_id    (data/id :checkins)})
 
    ;; TODO - `with-temp` doesn't return `Sessions`, probably because their ID is a string?
 
    :model/Table
-   (fn [_] (default-timestamped
-             {:db_id  (data/id)
-              :active true
-              :name   (tu.random/random-name)}))
+   (fn [_] {:db_id  (data/id)
+            :active true
+            :name   (tu.random/random-name)})
 
-   :model/TaskHistory
+   TaskHistory
    (fn [_]
      (let [started (t/zoned-date-time)
            ended   (t/plus started (t/millis 10))]
@@ -248,31 +231,27 @@
         :ended_at   ended
         :duration   (.toMillis (t/duration started ended))}))
 
-   :model/Timeline
+   Timeline
    (fn [_]
-     (default-timestamped
-       {:name       "Timeline of bird squawks"
-        :default    false
-        :icon       timeline-event/default-icon
-        :creator_id (rasta-id)}))
+     {:name       "Timeline of bird squawks"
+      :default    false
+      :icon       timeline/DefaultIcon
+      :creator_id (rasta-id)})
 
-   :model/TimelineEvent
+   TimelineEvent
    (fn [_]
-     (default-timestamped
-       {:name         "default timeline event"
-        :icon         timeline-event/default-icon
-        :timestamp    (t/zoned-date-time)
-        :timezone     "US/Pacific"
-        :time_matters true
-        :creator_id   (rasta-id)}))
+     {:name         "default timeline event"
+      :icon         timeline/DefaultIcon
+      :timestamp    (t/zoned-date-time)
+      :timezone     "US/Pacific"
+      :time_matters true
+      :creator_id   (rasta-id)})
 
-   :model/User
-   (fn [_] {:first_name  (tu.random/random-name)
-            :last_name   (tu.random/random-name)
-            :email       (tu.random/random-email)
-            :password    (tu.random/random-name)
-            :date_joined (t/zoned-date-time)
-            :updated_at  (t/zoned-date-time)})})
+   User
+   (fn [_] {:first_name (tu.random/random-name)
+            :last_name  (tu.random/random-name)
+            :email      (tu.random/random-email)
+            :password   (tu.random/random-name)})})
 
 (defn- set-with-temp-defaults! []
   (doseq [[model defaults-fn] with-temp-defaults-fns]
@@ -401,47 +380,41 @@
   Prefer the macro [[with-temporary-setting-values]] or [[with-temporary-raw-setting-values]] over using this function directly."
   [setting-k value thunk & {:keys [raw-setting?]}]
   ;; plugins have to be initialized because changing `report-timezone` will call driver methods
-  (mb.hawk.parallel/assert-test-is-not-parallel "do-with-temporary-setting-value")
   (initialize/initialize-if-needed! :db :plugins)
   (let [setting-k     (name setting-k)
         setting       (try
-                        (#'setting/resolve-setting setting-k)
-                        (catch Exception e
-                          (when-not raw-setting?
-                            (throw e))))]
+                       (#'setting/resolve-setting setting-k)
+                       (catch Exception e
+                         (when-not raw-setting?
+                           (throw e))))]
     (if (and (not raw-setting?) (#'setting/env-var-value setting-k))
       (do-with-temp-env-var-value (setting/setting-env-map-name setting-k) value thunk)
       (let [original-value (if raw-setting?
                              (t2/select-one-fn :value Setting :key setting-k)
                              (#'setting/get setting-k))]
         (try
+         (if raw-setting?
+           (upsert-raw-setting! original-value setting-k value)
+           (setting/set! setting-k value))
+         (testing (colorize/blue (format "\nSetting %s = %s\n" (keyword setting-k) (pr-str value)))
+           (thunk))
+         (catch Throwable e
+           (throw (ex-info (str "Error in with-temporary-setting-values: " (ex-message e))
+                           {:setting  setting-k
+                            :location (symbol (name (:namespace setting)) (name setting-k))
+                            :value    value}
+                           e)))
+         (finally
           (try
-            (if raw-setting?
-              (upsert-raw-setting! original-value setting-k value)
-              ;; bypass the feature check when setting up mock data
-              (with-redefs [setting/has-feature? (constantly true)]
-                (setting/set! setting-k value)))
-            (catch Throwable e
-              (throw (ex-info (str "Error in with-temporary-setting-values: " (ex-message e))
-                              {:setting  setting-k
-                               :location (symbol (name (:namespace setting)) (name setting-k))
-                               :value    value}
-                              e))))
-          (testing (colorize/blue (format "\nSetting %s = %s\n" (keyword setting-k) (pr-str value)))
-            (thunk))
-          (finally
-            (try
-              (if raw-setting?
-                (restore-raw-setting! original-value setting-k)
-                ;; bypass the feature check when reset settings to the original value
-                (with-redefs [setting/has-feature? (constantly true)]
-                  (setting/set! setting-k original-value)))
-              (catch Throwable e
-                (throw (ex-info (str "Error restoring original Setting value: " (ex-message e))
-                                {:setting        setting-k
-                                 :location       (symbol (name (:namespace setting)) setting-k)
-                                 :original-value original-value}
-                                e))))))))))
+           (if raw-setting?
+             (restore-raw-setting! original-value setting-k)
+             (setting/set! setting-k original-value))
+           (catch Throwable e
+             (throw (ex-info (str "Error restoring original Setting value: " (ex-message e))
+                             {:setting        setting-k
+                              :location       (symbol (name (:namespace setting)) setting-k)
+                              :original-value original-value}
+                             e))))))))))
 
 (defmacro with-temporary-setting-values
   "Temporarily bind the site-wide values of one or more `Settings`, execute body, and re-establish the original values.
@@ -454,6 +427,7 @@
   To temporarily override the value of *read-only* env vars, use [[with-temp-env-var-value]]."
   [[setting-k value & more :as bindings] & body]
   (assert (even? (count bindings)) "mismatched setting/value pairs: is each setting name followed by a value?")
+  (mb.hawk.parallel/assert-test-is-not-parallel "with-temporary-setting-vales")
   (if (empty? bindings)
     `(do ~@body)
     `(do-with-temporary-setting-value ~(keyword setting-k) ~value
@@ -466,6 +440,7 @@
   using [[metabase.models.setting/defsetting]]."
   [[setting-k value & more :as bindings] & body]
   (assert (even? (count bindings)) "mismatched setting/value pairs: is each setting name followed by a value?")
+  (mb.hawk.parallel/assert-test-is-not-parallel "with-temporary-raw-setting-values")
   (if (empty? bindings)
     `(do ~@body)
     `(do-with-temporary-setting-value ~(keyword setting-k) ~value
@@ -548,17 +523,6 @@
   (postwalk-pred (some-fn double? decimal?)
                  #(u/round-to-decimals decimal-place %)
                  data))
-
-(defmacro let-url
-  "Like normal `let`, but adds `testing` context with the `url` you've bound."
-  {:style/indent 1}
-  [[url-binding url] & body]
-  `(let [url# ~url
-         ~url-binding url#]
-     (testing (str "\nGET /api/" url# "\n")
-       ~@body)))
-
-
 
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
@@ -644,7 +608,7 @@
   [_]
   nil)
 
-(defmethod with-model-cleanup-additional-conditions :model/Collection
+(defmethod with-model-cleanup-additional-conditions Collection
   [_]
   ;; NEVER delete personal collections for the test users.
   [:or
@@ -652,42 +616,13 @@
    [:not-in :personal_owner_id (set (map (requiring-resolve 'metabase.test.data.users/user->id)
                                          @(requiring-resolve 'metabase.test.data.users/usernames)))]])
 
-(defmethod with-model-cleanup-additional-conditions :model/User
-  [_]
-  ;; Don't delete the internal user
-  [:not= :id config/internal-mb-user-id])
-
-(defmethod with-model-cleanup-additional-conditions :model/Database
-  [_]
-  ;; Don't delete the audit database
-  [:not= :id perms/audit-db-id])
-
-(defmulti with-max-model-id-additional-conditions
-  "Additional conditions applied to the query to find the max ID for a model prior to a test run. This can be used to
-  exclude rows which intentionally use non-sequential IDs, like the internal user."
-  {:arglists '([model])}
-  mi/model)
-
-(defmethod with-max-model-id-additional-conditions :default
-  [_]
-  [:not= :id config/internal-mb-user-id])
-
-(defmethod with-max-model-id-additional-conditions :model/User
-  [_]
-  [:not= :id config/internal-mb-user-id])
-
-(defmethod with-max-model-id-additional-conditions :model/Database
- [_]
- [:not= :id perms/audit-db-id])
-
 (defn do-with-model-cleanup [models f]
   {:pre [(sequential? models) (every? mdb.u/toucan-model? models)]}
   (mb.hawk.parallel/assert-test-is-not-parallel "with-model-cleanup")
   (initialize/initialize-if-needed! :db)
   (let [model->old-max-id (into {} (for [model models]
-                                     [model (:max-id (t2/select-one [model [(keyword (str "%max." (name (first (t2/primary-keys model)))))
-                                                                            :max-id]]
-                                                                    {:where (with-max-model-id-additional-conditions model)}))]))]
+                                     [model (:max-id (t2/select-one [model [(keyword (str "%max." (name (mdb.u/primary-key model))))
+                                                                            :max-id]]))]))]
     (try
       (testing (str "\n" (pr-str (cons 'with-model-cleanup (map name models))) "\n")
         (f))
@@ -696,7 +631,7 @@
                 ;; might not have an old max ID if this is the first time the macro is used in this test run.
                 :let  [old-max-id            (or (get model->old-max-id model)
                                                  0)
-                       max-id-condition      [:> (first (t2/primary-keys model)) old-max-id]
+                       max-id-condition      [:> (mdb.u/primary-key model) old-max-id]
                        additional-conditions (with-model-cleanup-additional-conditions model)]]
           (t2/query-one
            {:delete-from (t2/table-name model)
@@ -738,49 +673,6 @@
           (testing "Shouldn't delete other Cards"
             (is (pos? (t2/count Card)))))))))
 
-(defn do-with-verified-cards
-  "Impl for [[with-verified-cards]]."
-  [card-or-ids thunk]
-  (with-model-cleanup [:model/ModerationReview]
-    (doseq [card-or-id card-or-ids]
-      (doseq [status ["verified" nil "verified"]]
-        ;; create multiple moderation review for a card, but the end result is it's still verified
-        (moderation-review/create-review!
-         {:moderated_item_id   (u/the-id card-or-id)
-          :moderated_item_type "card"
-          :moderator_id        ((requiring-resolve 'metabase.test.data.users/user->id) :rasta)
-          :status              status})))
-    (thunk)))
-
-(defmacro with-verified-cards
-  "Execute the body with all `card-or-ids` verified."
-  [card-or-ids & body]
-  `(do-with-verified-cards ~card-or-ids (fn [] ~@body)))
-
-(deftest with-verified-cards-test
-  (t2.with-temp/with-temp
-    [:model/Card {card-id :id} {}]
-    (with-verified-cards [card-id]
-      (is (=? #{{:moderated_item_id   card-id
-                 :moderated_item_type :card
-                 :most_recent         true
-                 :status              "verified"}
-                {:moderated_item_id   card-id
-                 :moderated_item_type :card
-                 :most_recent         false
-                 :status              nil}
-                {:moderated_item_id   card-id
-                 :moderated_item_type :card
-                 :most_recent         false
-                 :status              "verified"}}
-              (t2/select-fn-set #(select-keys % [:moderated_item_id :moderated_item_type :most_recent :status])
-                                :model/ModerationReview
-                                :moderated_item_id card-id
-                                :moderated_item_type "card"))))
-    (testing "everything is cleaned up after the macro"
-      (is (= 0 (t2/count :model/ModerationReview
-                         :moderated_item_id card-id
-                         :moderated_item_type "card"))))))
 
 ;; TODO - not 100% sure I understand
 (defn call-with-paused-query
@@ -852,73 +744,6 @@
   "Execute `body`; then, in a `finally` block, restore permissions to `collection-or-id` to what they were originally."
   [collection-or-id & body]
   `(do-with-discarded-collections-perms-changes ~collection-or-id (fn [] ~@body)))
-
-(declare with-discard-model-updates)
-
-(defn do-with-discard-model-updates
-  "Impl for `with-discard-model-changes`."
-  [models thunk]
-  (mb.hawk.parallel/assert-test-is-not-parallel "with-discard-model-changes")
-  (if (= (count models) 1)
-   (let [model             (first models)
-         pk->original      (atom {})
-         method-unique-key (str (random-uuid))
-         before-method-fn  (fn [_model row]
-                             (swap! pk->original merge {(u/the-id row) (t2/original row)})
-                             row)]
-     (methodical/add-aux-method-with-unique-key! #'t2.before-update/before-update :before model before-method-fn method-unique-key)
-     (try
-      (thunk)
-      (finally
-       (methodical/remove-aux-method-with-unique-key! #'t2.before-update/before-update :before model method-unique-key)
-       (doseq [[id orignal-val] @pk->original]
-         (t2/update! model id orignal-val)))))
-   (with-discard-model-updates (rest models)
-     (thunk))))
-
-(defmacro with-discard-model-updates
-  "Exceute `body` and makes sure that every updates operation on `models` will be reverted."
-  [models & body]
-  (if (> (count models) 1)
-    (let [[model & more] models]
-      `(with-discard-model-updates [~model]
-         (with-discard-model-updates [~@more]
-           ~@body)))
-    `(do-with-discard-model-updates ~models (fn [] ~@body))))
-
-(deftest with-discard-model-changes-test
-  (t2.with-temp/with-temp
-    [:model/Card      {card-id :id :as card} {:name "A Card"}
-     :model/Dashboard {dash-id :id :as dash} {:name "A Dashboard"}]
-    (let [count-aux-method-before (set (methodical/aux-methods t2.before-update/before-update :model/Card :before))]
-
-      (testing "with single model"
-        (with-discard-model-updates [:model/Card]
-          (t2/update! :model/Card card-id {:name "New Card name"})
-          (testing "the changes takes affect inside the macro"
-            (is (= "New Card name" (t2/select-one-fn :name :model/Card card-id)))))
-
-        (testing "outside macro, the changes should be reverted"
-          (is (= card (t2/select-one :model/Card card-id)))))
-
-      (testing "with multiple models"
-        (with-discard-model-updates [:model/Card :model/Dashboard]
-          (testing "the changes takes affect inside the macro"
-            (t2/update! :model/Card card-id {:name "New Card name"})
-            (is (= "New Card name" (t2/select-one-fn :name :model/Card card-id)))
-
-            (t2/update! :model/Dashboard dash-id {:name "New Dashboard name"})
-            (is (= "New Dashboard name" (t2/select-one-fn :name :model/Dashboard dash-id)))))
-
-        (testing "outside macro, the changes should be reverted"
-          (is (= (dissoc card :updated_at)
-                 (dissoc (t2/select-one :model/Card card-id) :updated_at)))
-          (is (= (dissoc dash :updated_at)
-                 (dissoc (t2/select-one :model/Dashboard dash-id) :updated_at)))))
-
-      (testing "make sure that we cleaned up the aux methods after"
-        (is (= count-aux-method-before
-               (set (methodical/aux-methods t2.before-update/before-update :model/Card :before))))))))
 
 (defn do-with-non-admin-groups-no-collection-perms [collection f]
   (mb.hawk.parallel/assert-test-is-not-parallel "with-non-admin-groups-no-collection-perms")
@@ -1161,7 +986,7 @@
   "Execute `body` with a path for temporary file(s) in the system temporary directory. You may optionally specify the
   `filename` (without directory components) to be created in the temp directory; if `filename` is nil, a random
   filename will be used. The file will be deleted if it already exists, but will not be touched; use `spit` to load
-  something in to it. The file, if created, will be deleted in a `finally` block after `body` concludes.
+  something in to it.
 
   DOES NOT CREATE A FILE!
 
@@ -1342,13 +1167,3 @@
       (if (neg? @a)
         (apply f args)
         (throw (ex-info "Not yet" {:remaining @a}))))))
-
-(defn latest-audit-log-entry
-  "Returns the latest audit log entry, optionally filters on `topic`."
-  ([] (latest-audit-log-entry nil nil))
-  ([topic] (latest-audit-log-entry topic nil))
-  ([topic model-id]
-   (t2/select-one [:model/AuditLog :topic :user_id :model :model_id :details]
-                  {:order-by [[:id :desc]]
-                   :where [:and (when topic [:= :topic (name topic)])
-                                (when model-id [:= :model_id model-id])]})))

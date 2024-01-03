@@ -4,7 +4,7 @@ import { t } from "ttag";
 
 import { isPivotGroupColumn } from "metabase/lib/data_grid";
 import { measureText } from "metabase/lib/measure-text";
-import { sumArray } from "metabase/lib/arrays";
+import { sumArray } from "metabase/core/utils/arrays";
 
 import type {
   Card,
@@ -116,7 +116,7 @@ export function getLeftHeaderWidths({
         weight: "bold",
         family: fontFamily,
         size: PIVOT_TABLE_FONT_SIZE,
-      }).width + ROW_TOGGLE_ICON_WIDTH,
+      }) + ROW_TOGGLE_ICON_WIDTH,
     );
 
     const computedCellWidth = Math.ceil(
@@ -128,7 +128,7 @@ export function getLeftHeaderWidths({
               weight: "normal",
               family: fontFamily,
               size: PIVOT_TABLE_FONT_SIZE,
-            }).width +
+            }) +
             (cellValues[rowIndex]?.hasSubtotal ? ROW_TOGGLE_ICON_WIDTH : 0),
         ) ?? [0]),
       ),

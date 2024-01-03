@@ -8,16 +8,18 @@ import {
   PLUGIN_ADVANCED_PERMISSIONS,
   PLUGIN_FEATURE_LEVEL_PERMISSIONS,
 } from "metabase/plugins";
-import type { Group, GroupsPermissions } from "metabase-types/api";
-import { getNativePermissionDisabledTooltip } from "metabase/admin/permissions/selectors/data-permissions/shared";
+import { Group, GroupsPermissions } from "metabase-types/api";
 import { DATA_PERMISSION_OPTIONS } from "../../constants/data-permissions";
-import { UNABLE_TO_CHANGE_ADMIN_PERMISSIONS } from "../../constants/messages";
 import {
-  getControlledDatabaseWarningModal,
+  NATIVE_PERMISSION_REQUIRES_DATA_ACCESS,
+  UNABLE_TO_CHANGE_ADMIN_PERMISSIONS,
+} from "../../constants/messages";
+import {
   getPermissionWarning,
   getPermissionWarningModal,
+  getControlledDatabaseWarningModal,
 } from "../confirmations";
-import type { PermissionSectionConfig, SchemaEntityId } from "../../types";
+import { SchemaEntityId, PermissionSectionConfig } from "../../types";
 import { getGroupFocusPermissionsUrl } from "../../utils/urls";
 
 const buildAccessPermission = (
@@ -57,9 +59,7 @@ const buildAccessPermission = (
   return {
     permission: "data",
     type: "access",
-    isDisabled:
-      isAdmin ||
-      PLUGIN_ADVANCED_PERMISSIONS.isAccessPermissionDisabled(value, "tables"),
+    isDisabled: isAdmin || PLUGIN_ADVANCED_PERMISSIONS.isBlockPermission(value),
     isHighlighted: isAdmin,
     disabledTooltip: isAdmin ? UNABLE_TO_CHANGE_ADMIN_PERMISSIONS : null,
     value,
@@ -84,16 +84,14 @@ const buildNativePermission = (
   groupId: number,
   isAdmin: boolean,
   permissions: GroupsPermissions,
-  accessPermissionValue: string,
 ) => {
   return {
     permission: "data",
     type: "native",
     isDisabled: true,
-    disabledTooltip: getNativePermissionDisabledTooltip(
-      isAdmin,
-      accessPermissionValue,
-    ),
+    disabledTooltip: isAdmin
+      ? UNABLE_TO_CHANGE_ADMIN_PERMISSIONS
+      : NATIVE_PERMISSION_REQUIRES_DATA_ACCESS,
     isHighlighted: isAdmin,
     value: getNativePermission(permissions, groupId, entityId),
     options: [DATA_PERMISSION_OPTIONS.write, DATA_PERMISSION_OPTIONS.none],
@@ -120,7 +118,6 @@ export const buildTablesPermissions = (
     groupId,
     isAdmin,
     permissions,
-    accessPermission.value,
   );
 
   return [

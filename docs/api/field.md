@@ -14,7 +14,7 @@ Remove the dimension associated to field at ID.
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`**
 
 ## `GET /api/field/:id`
 
@@ -22,9 +22,9 @@ Get `Field` with ID.
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`** 
 
-*  **`include_editable_data_model`** value must be a valid boolean string ('true' or 'false').
+*  **`include_editable_data_model`**
 
 ## `GET /api/field/:id/related`
 
@@ -32,7 +32,7 @@ Return related entities.
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`**
 
 ## `GET /api/field/:id/remapping/:remapped-id`
 
@@ -40,11 +40,11 @@ Fetch remapped Field values.
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`** 
 
-*  **`remapped-id`** value must be an integer greater than zero.
+*  **`remapped-id`** 
 
-*  **`value`** value must be a non-blank string.
+*  **`value`**
 
 ## `GET /api/field/:id/search/:search-id`
 
@@ -53,9 +53,9 @@ Search for values of a Field with `search-id` that start with `value`. See docst
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`** 
 
-*  **`search-id`** value must be an integer greater than zero.
+*  **`search-id`** 
 
 *  **`value`** value must be a non-blank string.
 
@@ -65,11 +65,11 @@ Get the count and distinct count of `Field` with ID.
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`**
 
 ## `GET /api/field/:id/values`
 
-If a Field's value of `has_field_values` is `:list`, return a list of all the distinct values of the Field (or remapped Field), and (if
+If a Field's value of `has_field_values` is `:list`, return a list of all the distinct values of the Field, and (if
   defined by a User) a map of human-readable remapped values.
 
 ### PARAMS:
@@ -91,13 +91,13 @@ Sets the dimension for the given field at ID.
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`** 
 
-*  **`dimension-type`** enum of internal, external
+*  **`type`** value must be one of: `external`, `internal`.
 
-*  **`dimension-name`** value must be a non-blank string.
+*  **`name`** value must be a non-blank string.
 
-*  **`human_readable_field_id`** nullable value must be an integer greater than zero.
+*  **`human_readable_field_id`** value may be nil, or if non-nil, value must be an integer greater than zero.
 
 ## `POST /api/field/:id/discard_values`
 
@@ -106,7 +106,7 @@ Discard the FieldValues belonging to this Field. Only applies to fields that hav
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`**
 
 ## `POST /api/field/:id/rescan_values`
 
@@ -115,7 +115,7 @@ Manually trigger an update for the FieldValues for this Field. Only applies to F
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`**
 
 ## `POST /api/field/:id/values`
 
@@ -124,9 +124,9 @@ Update the fields values and human-readable values for a `Field` whose semantic 
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`** 
 
-*  **`value-pairs`** sequence of vector with exactly 1 items of type: anything, or vector with exactly 2 items of type: anything, value must be a non-blank string.
+*  **`value-pairs`** value must be an array. Each value must be an array.
 
 ## `PUT /api/field/:id`
 
@@ -134,31 +134,31 @@ Update `Field` with ID.
 
 ### PARAMS:
 
-*  **`visibility_type`** nullable enum of retired, sensitive, normal, hidden, details-only
+*  **`visibility_type`** value may be nil, or if non-nil, value must be one of: `details-only`, `hidden`, `normal`, `retired`, `sensitive`.
 
-*  **`display_name`** nullable value must be a non-blank string.
+*  **`display_name`** value may be nil, or if non-nil, value must be a non-blank string.
 
-*  **`points_of_interest`** nullable value must be a non-blank string.
+*  **`points_of_interest`** value may be nil, or if non-nil, value must be a non-blank string.
 
-*  **`description`** nullable value must be a non-blank string.
+*  **`description`** value may be nil, or if non-nil, value must be a non-blank string.
 
-*  **`semantic_type`** nullable value must be a valid field semantic or relation type (keyword or string).
+*  **`semantic_type`** value may be nil, or if non-nil, value must be a valid field semantic or relation type (keyword or string).
 
-*  **`coercion_strategy`** nullable value must be a valid coercion strategy (keyword or string).
+*  **`coercion_strategy`** value may be nil, or if non-nil, value must be a valid coercion strategy (keyword or string).
 
-*  **`has_field_values`** nullable enum of auto-list, search, list, none
+*  **`has_field_values`** value may be nil, or if non-nil, value must be one of: `auto-list`, `list`, `none`, `search`.
 
-*  **`settings`** nullable Value must be a map.
+*  **`settings`** value may be nil, or if non-nil, value must be a map.
 
-*  **`caveats`** nullable value must be a non-blank string.
+*  **`caveats`** value may be nil, or if non-nil, value must be a non-blank string.
 
-*  **`fk_target_field_id`** nullable value must be an integer greater than zero.
+*  **`fk_target_field_id`** value may be nil, or if non-nil, value must be an integer greater than zero.
 
-*  **`nfc_path`** nullable sequence of value must be a non-blank string.
+*  **`nfc_path`** value may be nil, or if non-nil, value must be an array. Each value must be a non-blank string.
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`** 
 
-*  **`json_unfolding`** nullable boolean
+*  **`json_unfolding`** value may be nil, or if non-nil, value must be a boolean.
 
 ---
 

@@ -3,7 +3,7 @@ import { t } from "ttag";
 
 import { getClickBehaviorDescription } from "metabase/lib/click-behavior";
 
-import type { DashboardCard } from "metabase-types/api";
+import { DashboardOrderedCard } from "metabase-types/api";
 
 import {
   Root,
@@ -14,15 +14,17 @@ import {
 } from "./ClickBehaviorSidebarOverlay.styled";
 
 interface Props {
-  dashcard: DashboardCard;
+  dashcard: DashboardOrderedCard;
   dashcardWidth: number;
-  showClickBehaviorSidebar: (dashCardId: DashboardCard["id"] | null) => void;
+  showClickBehaviorSidebar: (
+    dashCardId: DashboardOrderedCard["id"] | null,
+  ) => void;
   isShowingThisClickBehaviorSidebar: boolean;
 }
 
 const MIN_WIDTH_FOR_ON_CLICK_LABEL = 330;
 
-export function ClickBehaviorSidebarOverlay({
+function ClickBehaviorSidebarOverlay({
   dashcard,
   dashcardWidth,
   showClickBehaviorSidebar,
@@ -52,3 +54,6 @@ export function ClickBehaviorSidebarOverlay({
     </Root>
   );
 }
+
+// eslint-disable-next-line import/no-default-export -- deprecated usage
+export default ClickBehaviorSidebarOverlay;

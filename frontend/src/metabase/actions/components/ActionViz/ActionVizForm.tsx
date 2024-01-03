@@ -1,7 +1,6 @@
-import type { FormikHelpers } from "formik";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 
-import { getFormTitle, isImplicitUpdateAction } from "metabase/actions/utils";
+import { getFormTitle } from "metabase/actions/utils";
 
 import type {
   ActionDashboardCard,
@@ -13,20 +12,15 @@ import type {
   WritebackParameter,
 } from "metabase-types/api";
 
-import ActionCreator from "metabase/actions/containers/ActionCreator/ActionCreator";
-import Modal from "metabase/components/Modal";
 import ActionParametersInputForm, {
   ActionParametersInputModal,
-} from "metabase/actions/containers/ActionParametersInputForm";
-import { getDashboardType } from "metabase/dashboard/utils";
-import { ActionsApi, PublicApi } from "metabase/services";
-
-import { useActionInitialValues } from "metabase/actions/hooks/use-action-initial-values";
+} from "../../containers/ActionParametersInputForm";
 import ActionButtonView from "./ActionButtonView";
-import { FormTitle, FormWrapper } from "./ActionForm.styled";
 import { shouldShowConfirmation } from "./utils";
 
-export interface ActionFormProps {
+import { FormWrapper, FormTitle } from "./ActionForm.styled";
+
+interface ActionFormProps {
   action: WritebackAction;
   dashcard: ActionDashboardCard;
   dashboard: Dashboard;
@@ -37,10 +31,7 @@ export interface ActionFormProps {
   isSettings: boolean;
   shouldDisplayButton: boolean;
   isEditingDashcard: boolean;
-  canEditAction: boolean | undefined;
   onSubmit: OnSubmitActionForm;
-
-  onActionEdit?: (newAction: WritebackAction) => void;
 }
 
 function ActionVizForm({
@@ -54,13 +45,9 @@ function ActionVizForm({
   isSettings,
   shouldDisplayButton,
   isEditingDashcard,
-  canEditAction,
   onSubmit,
-
-  onActionEdit,
 }: ActionFormProps) {
-  const [showFormModal, setShowFormModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const title = getFormTitle(action);
 
   // only show confirmation if there are no missing parameters
@@ -68,63 +55,16 @@ function ActionVizForm({
     shouldShowConfirmation(action) && missingParameters.length === 0;
 
   const onClick = () => {
-    setShowFormModal(true);
+    setShowModal(true);
   };
 
   const onModalSubmit = async (params: ParametersForActionExecution) => {
     const result = await onSubmit(params);
     if (result.success) {
-      setShowFormModal(false);
+      setShowModal(false);
     }
     return result;
   };
-
-  const handleActionEdit = () => {
-    setShowEditModal(true);
-  };
-
-  const closeEditModal = () => {
-    setShowEditModal(false);
-  };
-
-  const fetchInitialValues = useCallback(async () => {
-    const prefetchDashcardValues =
-      getDashboardType(dashboard.id) === "public"
-        ? PublicApi.prefetchDashcardValues
-        : ActionsApi.prefetchDashcardValues;
-
-    const canPrefetch = Object.keys(dashcardParamValues).length > 0;
-
-    if (!canPrefetch) {
-      return {};
-    }
-
-    return prefetchDashcardValues({
-      dashboardId: dashboard.id,
-      dashcardId: dashcard.id,
-      parameters: JSON.stringify(dashcardParamValues),
-    });
-  }, [dashboard.id, dashcard.id, dashcardParamValues]);
-
-  const shouldPrefetch = isImplicitUpdateAction(action);
-
-  const { hasPrefetchedValues, initialValues, prefetchValues } =
-    useActionInitialValues({
-      fetchInitialValues,
-      initialValues: dashcardParamValues,
-      shouldPrefetch,
-    });
-
-  const handleSubmitSuccess = useCallback(
-    (actions: FormikHelpers<ParametersForActionExecution>) => {
-      if (shouldPrefetch) {
-        prefetchValues();
-      } else {
-        actions.resetForm();
-      }
-    },
-    [shouldPrefetch, prefetchValues],
-  );
 
   if (shouldDisplayButton) {
     return (
@@ -135,39 +75,20 @@ function ActionVizForm({
           focus={isEditingDashcard}
           onClick={onClick}
         />
-        {showFormModal && (
+        {showModal && (
           <ActionParametersInputModal
             action={action}
+            dashboard={dashboard}
+            dashcard={dashcard}
             mappedParameters={mappedParameters}
-            initialValues={initialValues}
-            prefetchesInitialValues={shouldPrefetch}
+            dashcardParamValues={dashcardParamValues}
             title={title}
-            showEmptyState={shouldPrefetch && !hasPrefetchedValues}
             showConfirmMessage={showConfirmMessage}
             confirmMessage={action.visualization_settings?.confirmMessage}
-            onEdit={canEditAction ? handleActionEdit : undefined}
             onSubmit={onModalSubmit}
-            onSubmitSuccess={handleSubmitSuccess}
-            onClose={() => setShowFormModal(false)}
-            onCancel={() => setShowFormModal(false)}
+            onClose={() => setShowModal(false)}
+            onCancel={() => setShowModal(false)}
           />
-        )}
-        {showEditModal && (
-          <Modal
-            wide
-            data-testid="action-editor-modal"
-            onClose={closeEditModal}
-          >
-            <ActionCreator
-              initialAction={action}
-              action={action}
-              modelId={action.model_id}
-              databaseId={action.database_id}
-              actionId={action.id}
-              onSubmit={onActionEdit}
-              onClose={closeEditModal}
-            />
-          </Modal>
         )}
       </>
     );
@@ -178,11 +99,11 @@ function ActionVizForm({
       <FormTitle>{title}</FormTitle>
       <ActionParametersInputForm
         action={action}
+        dashboard={dashboard}
+        dashcard={dashcard}
         mappedParameters={mappedParameters}
-        initialValues={initialValues}
-        prefetchesInitialValues={shouldPrefetch}
+        dashcardParamValues={dashcardParamValues}
         onSubmit={onSubmit}
-        onSubmitSuccess={handleSubmitSuccess}
       />
     </FormWrapper>
   );

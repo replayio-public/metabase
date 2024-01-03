@@ -1,9 +1,8 @@
-import _ from "underscore";
 import { tokenize } from "metabase-lib/expressions/tokenizer";
 
 import { generateExpression } from "./generator";
 
-const fuzz = process.env.MB_FUZZ ? describe : _.noop;
+const fuzz = process.env.MB_FUZZ ? describe : describe.skip;
 
 describe("metabase-lib/expressions/tokenizer", () => {
   // quick sanity check before the real fuzzing

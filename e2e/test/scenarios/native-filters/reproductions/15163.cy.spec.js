@@ -49,14 +49,14 @@ const dashboardDetails = {
         dashboardDetails,
       }).then(({ body: { id, card_id, dashboard_id } }) => {
         // Connect filter to the dashboard card
-        cy.request("PUT", `/api/dashboard/${dashboard_id}`, {
-          dashcards: [
+        cy.request("PUT", `/api/dashboard/${dashboard_id}/cards`, {
+          cards: [
             {
               id,
               card_id,
               row: 0,
               col: 0,
-              size_x: 13,
+              size_x: 10,
               size_y: 8,
               series: [],
               visualization_settings: {

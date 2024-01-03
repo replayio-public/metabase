@@ -7,7 +7,6 @@ import { getIn } from "icepick";
 import cx from "classnames";
 
 import MetabaseSettings from "metabase/lib/settings";
-import { getEngineNativeType } from "metabase/lib/engine";
 import ErrorMessage from "metabase/components/ErrorMessage";
 import ErrorDetails from "metabase/components/ErrorDetails/ErrorDetails";
 import { VISUALIZATION_SLOW_TIMEOUT } from "../constants";
@@ -91,12 +90,13 @@ class VisualizationError extends Component {
     via: PropTypes.object.isRequired,
     question: PropTypes.object.isRequired,
     duration: PropTypes.number.isRequired,
-    error: PropTypes.any.isRequired,
+    error: PropTypes.object.isRequired,
     className: PropTypes.string,
   };
 
   render() {
     const { via, question, duration, error, className } = this.props;
+    console.error(error);
 
     if (error && typeof error.status === "number") {
       // Assume if the request took more than 15 seconds it was due to a timeout
@@ -142,9 +142,6 @@ class VisualizationError extends Component {
       if (typeof error === "string") {
         processedError = stripRemarks(processedError);
       }
-      const database = question.database();
-      const isSql = database && getEngineNativeType(database.engine) === "sql";
-
       return (
         <QueryError className={className}>
           <QueryErrorContent>
@@ -153,13 +150,11 @@ class VisualizationError extends Component {
               <QueryErrorTitle>{t`An error occurred in your query`}</QueryErrorTitle>
             </QueryErrorHeader>
             <QueryErrorMessage>{processedError}</QueryErrorMessage>
-            {isSql && (
-              <QueryErrorLink
-                href={MetabaseSettings.learnUrl("debugging-sql/sql-syntax")}
-              >
-                {t`Learn how to debug SQL errors`}
-              </QueryErrorLink>
-            )}
+            <QueryErrorLink
+              href={MetabaseSettings.learnUrl("debugging-sql/sql-syntax")}
+            >
+              {t`Learn how to debug SQL errors`}
+            </QueryErrorLink>
           </QueryErrorContent>
         </QueryError>
       );

@@ -25,6 +25,7 @@ flags:
   back-end:
     paths:
       - enterprise/backend
+      - shared/src
       - src/metabase
     carryforward: true
 

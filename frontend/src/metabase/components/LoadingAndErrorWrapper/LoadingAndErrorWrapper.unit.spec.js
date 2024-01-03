@@ -7,7 +7,7 @@ describe("LoadingAndErrorWrapper", () => {
     it("should display a loading message if given a true loading prop", () => {
       render(<LoadingAndErrorWrapper loading={true} />);
 
-      expect(screen.getByTestId("loading-spinner")).toBeInTheDocument();
+      expect(screen.getByText("Loading...")).toBeInTheDocument();
     });
 
     it("should display a given child if loading is false", () => {

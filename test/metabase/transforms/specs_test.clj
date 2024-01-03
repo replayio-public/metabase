@@ -2,9 +2,9 @@
   (:require
    [clojure.test :refer :all]
    [metabase.transforms.specs :as tf.specs]
-   [schema.core :as s]))
+   [metabase.util.schema :as su]))
 
-(deftest ^:parallel extract-dimensions-test
+(deftest extract-dimensions-test
   (are [arg expected] (= expected
                          (#'tf.specs/extract-dimensions arg))
     [:dimension "foo"]                    ["foo"]
@@ -12,8 +12,7 @@
     nil                                   nil
     [1 2 3]                               nil))
 
-(deftest ^:parallel validate-yaml-test
+(deftest validate-yaml-test
   (testing "All specs should be valid YAML (the parser will raise an exception if not) and conforming to the schema."
-    (is (malli= [:sequential {:min 1} [:fn
-                                       (s/validator tf.specs/TransformSpec)]]
-                @tf.specs/transform-specs))))
+    (is (schema= (su/non-empty [tf.specs/TransformSpec])
+                 @tf.specs/transform-specs))))

@@ -1,8 +1,7 @@
-import type {
+import {
   Database,
   Group,
   GroupsPermissions,
-  Impersonation,
   PermissionsGraph,
 } from "metabase-types/api";
 
@@ -35,16 +34,5 @@ export const createMockPermissionsGraph = ({
   return {
     groups: permissionGroups,
     revision: 1,
-  };
-};
-
-export const createMockImpersonation = (
-  data: Partial<Impersonation>,
-): Impersonation => {
-  return {
-    db_id: 1,
-    group_id: 1,
-    attribute: "foo",
-    ...data,
   };
 };

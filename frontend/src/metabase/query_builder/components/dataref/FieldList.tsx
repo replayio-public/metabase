@@ -1,6 +1,6 @@
 import { t, ngettext, msgid } from "ttag";
-import type { IconName } from "metabase/core/components/Icon";
-import type Field from "metabase-lib/metadata/Field";
+import { getSemanticTypeIcon } from "metabase/lib/schema_metadata";
+import Field from "metabase-lib/metadata/Field";
 import {
   NodeListItemLink,
   NodeListItemName,
@@ -29,16 +29,14 @@ const FieldList = ({ fields, onFieldClick }: FieldListProps) => (
       </NodeListTitleText>
     </NodeListTitle>
     {fields.map(field => {
-      // field.icon() cannot be annotated to return IconName
-      // because metabase-lib cannot import from metabase.
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      const iconName: IconName = field.icon();
-      const tooltip = iconName === "unknown" ? t`Unknown type` : null;
+      const tooltip = field.semantic_type ? null : t`Unknown type`;
       return (
         <li key={field.getUniqueId()}>
           <NodeListItemLink onClick={() => onFieldClick(field)}>
-            <NodeListItemIcon name={iconName} tooltip={tooltip} />
+            <NodeListItemIcon
+              name={getSemanticTypeIcon(field.semantic_type, "warning")}
+              tooltip={tooltip}
+            />
             <NodeListItemName>{field.name}</NodeListItemName>
           </NodeListItemLink>
         </li>

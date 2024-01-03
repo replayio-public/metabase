@@ -1,21 +1,25 @@
-import { waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import fetchMock from "fetch-mock";
 import _ from "underscore";
+import fetchMock from "fetch-mock";
+import userEvent from "@testing-library/user-event";
+import { waitFor } from "@testing-library/react";
 
-import { getIcon, render, screen } from "__support__/ui";
+import { render, screen } from "__support__/ui";
 
 import {
+  createMockActionDashboardCard,
   createMockActionParameter,
   createMockFieldSettings,
-  createMockImplicitQueryAction,
   createMockQueryAction,
+  createMockImplicitQueryAction,
+  createMockDashboard,
 } from "metabase-types/api/mocks";
 
-import type { ActionParametersInputFormProps } from "./ActionParametersInputForm";
-import ActionParametersInputForm from "./ActionParametersInputForm";
-import type { ActionParametersInputModalProps } from "./ActionParametersInputModal";
-import ActionParametersInputModal from "./ActionParametersInputModal";
+import ActionParametersInputForm, {
+  ActionParametersInputFormProps,
+} from "./ActionParametersInputForm";
+import ActionParametersInputModal, {
+  ActionParametersInputModalProps,
+} from "./ActionParametersInputModal";
 
 const parameter1 = createMockActionParameter({
   id: "parameter_1",
@@ -48,8 +52,9 @@ const mockAction = createMockQueryAction({
 const defaultProps: ActionParametersInputFormProps = {
   action: mockAction,
   mappedParameters: [],
-  prefetchesInitialValues: false,
-  initialValues: {},
+  dashboard: createMockDashboard({ id: 123 }),
+  dashcard: createMockActionDashboardCard({ id: 456, action: mockAction }),
+  dashcardParamValues: {},
   onCancel: _.noop,
   onSubmitSuccess: _.noop,
   onSubmit: jest.fn().mockResolvedValue({ success: true }),
@@ -59,10 +64,9 @@ function setup(options?: Partial<ActionParametersInputModalProps>) {
   render(<ActionParametersInputForm {...defaultProps} {...options} />);
 }
 
-async function setupModal(options?: Partial<ActionParametersInputModalProps>) {
+async function setupModal(options?: any) {
   render(
     <ActionParametersInputModal
-      showEmptyState={false}
       title="Test Modal"
       onClose={_.noop}
       {...defaultProps}
@@ -146,6 +150,56 @@ describe("Actions > ActionParametersInputForm", () => {
     );
   });
 
+  it("should fetch and load existing values from API for implicit update actions", async () => {
+    setupPrefetch();
+
+    const idParameter = createMockActionParameter({ id: "id" });
+
+    const parameter1 = createMockActionParameter({
+      id: "parameter_1",
+      type: "type/Text",
+      "display-name": "Parameter 1",
+    });
+
+    const parameter2 = createMockActionParameter({
+      id: "parameter_2",
+      type: "type/Text",
+      "display-name": "Parameter 2",
+    });
+
+    await setup({
+      action: createMockImplicitQueryAction({
+        type: "implicit",
+        kind: "row/update",
+        parameters: [idParameter, parameter1, parameter2],
+      }),
+      mappedParameters: [idParameter],
+      dashcardParamValues: {
+        id: 888,
+      },
+    });
+
+    await waitFor(async () => {
+      expect(screen.getByLabelText("Parameter 1")).toHaveValue("uno");
+    });
+
+    await waitFor(async () => {
+      expect(screen.getByLabelText("Parameter 2")).toHaveValue("dos");
+    });
+  });
+
+  it("should show a warning if an implicit update action does not have a linked ID", async () => {
+    await setup({
+      action: createMockImplicitQueryAction({
+        type: "implicit",
+        kind: "row/update",
+      }),
+      dashcardParamValues: {},
+    });
+
+    expect(screen.getByText(/Choose a record to update/i)).toBeInTheDocument();
+  });
+
   it('should change the submit button label to "delete" for an implicit delete action', async () => {
     await setup({
       action: createMockImplicitQueryAction({
@@ -166,10 +220,9 @@ describe("Actions > ActionParametersInputForm", () => {
         type: "implicit",
         kind: "row/update",
       }),
-      initialValues: {
+      dashcardParamValues: {
         id: 888,
       },
-      prefetchesInitialValues: true,
     });
 
     expect(
@@ -195,29 +248,13 @@ describe("Actions > ActionParametersInputForm", () => {
           type: "implicit",
           kind: "row/delete",
         }),
+        missingParameters: [],
         showConfirmMessage: true,
       });
 
       expect(
         screen.getByText(/this action cannot be undone/i),
       ).toBeInTheDocument();
-    });
-
-    it("should render action edit action icon if onEdit is passed", async () => {
-      const onEditMock = jest.fn();
-
-      await setupModal({ onEdit: onEditMock });
-
-      const editActionTrigger = getIcon("pencil");
-      expect(editActionTrigger).toBeInTheDocument();
-
-      userEvent.hover(editActionTrigger);
-
-      expect(screen.getByText("Edit this action")).toBeInTheDocument();
-
-      userEvent.click(editActionTrigger);
-
-      expect(onEditMock).toHaveBeenCalledTimes(1);
     });
   });
 });

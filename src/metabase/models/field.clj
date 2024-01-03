@@ -5,8 +5,6 @@
    [clojure.string :as str]
    [medley.core :as m]
    [metabase.db.connection :as mdb.connection]
-   [metabase.lib.field :as lib.field]
-   [metabase.lib.metadata.jvm :as lib.metadata.jvm]
    [metabase.models.dimension :refer [Dimension]]
    [metabase.models.field-values :as field-values :refer [FieldValues]]
    [metabase.models.humanization :as humanization]
@@ -16,9 +14,9 @@
    [metabase.util :as u]
    [metabase.util.i18n :refer [trs tru]]
    [metabase.util.log :as log]
-   [metabase.util.malli :as mu]
-   [metabase.util.malli.schema :as ms]
    [methodical.core :as methodical]
+   [toucan.db :as db]
+   [toucan.hydrate :refer [hydrate]]
    [toucan2.core :as t2]
    [toucan2.tools.hydrate :as t2.hydrate]))
 
@@ -35,6 +33,37 @@
     :hidden         ; Lightweight hiding which removes field as a choice in most of the UI.  should still be returned in queries.
     :sensitive      ; Strict removal of field from all places except data model listing.  queries should error if someone attempts to access.
     :retired})      ; For fields that no longer exist in the physical db.  automatically set by Metabase.  QP should error if encountered in a query.
+
+(def has-field-values-options
+  "Possible options for `has_field_values`. This column is used to determine whether we keep FieldValues for a Field,
+  and which type of widget should be used to pick values of this Field when filtering by it in the Query Builder."
+  ;; AUTOMATICALLY-SET VALUES, SET DURING SYNC
+  ;;
+  ;; `nil` -- means infer which widget to use based on logic in [[infer-has-field-values]]; this will either return
+  ;; `:search` or `:none`.
+  ;;
+  ;; This is the default state for Fields not marked `auto-list`. Admins cannot explicitly mark a Field as
+  ;; `has_field_values` `nil`. This value is also subject to automatically change in the future if the values of a
+  ;; Field change in such a way that it can now be marked `auto-list`. Fields marked `nil` do *not* have FieldValues
+  ;; objects.
+  ;;
+  #{;; The other automatically-set option. Automatically marked as a 'List' Field based on cardinality and other factors
+    ;; during sync. Store a FieldValues object; use the List Widget. If this Field goes over the distinct value
+    ;; threshold in a future sync, the Field will get switched back to `has_field_values = nil`.
+    :auto-list
+    ;;
+    ;; EXPLICITLY-SET VALUES, SET BY AN ADMIN
+    ;;
+    ;; Admin explicitly marked this as a 'Search' Field, which means we should *not* keep FieldValues, and should use
+    ;; Search Widget.
+    :search
+    ;; Admin explicitly marked this as a 'List' Field, which means we should keep FieldValues, and use the List
+    ;; Widget. Unlike `auto-list`, if this Field grows past the normal cardinality constraints in the future, it will
+    ;; remain `List` until explicitly marked otherwise.
+    :list
+    ;; Admin explicitly marked that this Field shall always have a plain-text widget, neither allowing search, nor
+    ;; showing a list of possible values. FieldValues not kept.
+    :none})
 
 
 ;;; ----------------------------------------------- Entity & Lifecycle -----------------------------------------------
@@ -132,13 +161,6 @@
   (let [defaults {:display_name (humanization/name->human-readable-name (:name field))}]
     (merge defaults field)))
 
-(t2/define-before-update :model/Field
-  [field]
-  (u/prog1 (t2/changes field)
-    (when (false? (:active <>))
-      (t2/update! :model/Field {:fk_target_field_id (:id field)} {:semantic_type      nil
-                                                                  :fk_target_field_id nil}))))
-
 ;;; Field permissions
 ;; There are several API endpoints where large instances can return many thousands of Fields. Normally Fields require
 ;; a DB call to fetch information about their Table, because a Field's permissions set is the same as its parent
@@ -195,23 +217,6 @@
   [{:keys [id]}]
   (t2/select [FieldValues :field_id :values], :field_id id))
 
-(mu/defn nested-field-names->field-id :- [:maybe ms/PositiveInt]
-  "Recusively find the field id for a nested field name, return nil if not found.
-  Nested field here refer to a field that has another field as its parent_id, like nested field in Mongo DB.
-
-  This is to differentiate from the json nested field in, which the path is defined in metabase_field.nfc_path."
-  [table-id    :- ms/PositiveInt
-   field-names :- [:sequential ms/NonBlankString]]
-  (loop [field-names field-names
-         field-id    nil]
-    (if (seq field-names)
-      (let [field-name (first field-names)
-            field-id   (t2/select-one-pk :model/Field :name field-name :parent_id field-id :table_id table-id)]
-        (if field-id
-          (recur (rest field-names) field-id)
-          nil))
-      field-id)))
-
 (defn- select-field-id->instance
   "Select instances of `model` related by `field_id` FK to a Field in `fields`, and return a map of Field ID -> model
   instance. This only returns a single instance for each Field! Duplicates are discarded!
@@ -265,18 +270,41 @@
           :let  [dimension (get id->dimensions (:id field))]]
       (assoc field :dimensions (if dimension [dimension] [])))))
 
+(defn- is-searchable?
+  "Is this `field` a Field that you should be presented with a search widget for (to search its values)? If so, we can
+  give it a `has_field_values` value of `search`."
+  [{base-type :base_type}]
+  ;; For the time being we will consider something to be "searchable" if it's a text Field since the `starts-with`
+  ;; filter that powers the search queries (see `metabase.api.field/search-values`) doesn't work on anything else
+  (or (isa? base-type :type/Text)
+      (isa? base-type :type/TextLike)))
+
+(defn- infer-has-field-values
+  "Determine the value of `has_field_values` we should return for a `Field` As of 0.29.1 this doesn't require any DB
+  calls! :D"
+  [{has-field-values :has_field_values, :as field}]
+  (or
+   ;; if `has_field_values` is set in the DB, use that value; but if it's `auto-list`, return the value as `list` to
+   ;; avoid confusing FE code, which can remain blissfully unaware that `auto-list` is a thing
+   (when has-field-values
+     (if (= (keyword has-field-values) :auto-list)
+       :list
+       has-field-values))
+   ;; otherwise if it does not have value set in DB we will infer it
+   (if (is-searchable? field)
+     :search
+     :none)))
+
 (methodical/defmethod t2.hydrate/simple-hydrate [#_model :default #_k :has_field_values]
   "Infer what the value of the `has_field_values` should be for Fields where it's not set. See documentation for
-  [[metabase.lib.schema.metadata/column-has-field-values-options]] for a more detailed explanation of what these
-  values mean.
+  [[has-field-values-options]] above for a more detailed explanation of what these values mean.
 
   This does one important thing: if `:has_field_values` is already present and set to `:auto-list`, it is replaced by
   `:list` -- presumably because the frontend doesn't need to know `:auto-list` even exists?
-  See [[lib.field/infer-has-field-values]] for more info."
+  See [[infer-has-field-values]] for more info."
   [_model k field]
   (when field
-    (let [has-field-values (lib.field/infer-has-field-values (lib.metadata.jvm/instance->metadata field :metadata/column))]
-      (assoc field k has-field-values))))
+    (assoc field k (infer-has-field-values field))))
 
 (methodical/defmethod t2.hydrate/needs-hydration? [#_model :default #_k :has_field_values]
   "Always (re-)hydrate `:has_field_values`. This is used to convert an existing value of `:auto-list` to
@@ -287,7 +315,7 @@
 (defn readable-fields-only
   "Efficiently checks if each field is readable and returns only readable fields"
   [fields]
-  (for [field (t2/hydrate fields :table)
+  (for [field (hydrate fields :table)
         :when (mi/can-read? field)]
     (dissoc field :table)))
 
@@ -311,7 +339,7 @@
   (let [target-field-id (when (isa? (:semantic_type field) :type/FK)
                           (:fk_target_field_id field))
         target-field    (when-let [target-field (and target-field-id (t2/select-one Field :id target-field-id))]
-                          (when (mi/can-write? (t2/hydrate target-field :table))
+                          (when (mi/can-write? (hydrate target-field :table))
                             target-field))]
     (assoc field :target target-field)))
 
@@ -325,6 +353,11 @@
                          [schema])
                        table-name))))
         field-name))
+
+(defn json-field?
+  "Return true if field is a JSON field, false if not."
+  [field]
+  (some? (:nfc_path field)))
 
 (defn qualified-name
   "Return a combined qualified name for `field`, e.g. `table_name.parent_field_name.field_name`."
@@ -377,7 +410,7 @@
         dimensions (->> d
                         (group-by :field_id))]
     (eduction (map #(assoc % :dimensions (get dimensions (:id %))))
-              (t2/reducible-select Field))))
+              (db/select-reducible Field))))
 
 (defmethod serdes/dependencies "Field" [field]
   ;; Fields depend on their parent Table, plus any foreign Fields referenced by their Dimensions.
@@ -408,8 +441,7 @@
     (-> (serdes/extract-one-basics "Field" field)
         (update :dimensions         extract-dimensions)
         (update :table_id           serdes/*export-table-fk*)
-        (update :fk_target_field_id serdes/*export-field-fk*)
-        (dissoc :fingerprint :last_analyzed :fingerprint_version))))
+        (update :fk_target_field_id serdes/*export-field-fk*))))
 
 (defmethod serdes/load-xform "Field"
   [field]

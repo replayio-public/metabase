@@ -1,8 +1,6 @@
 (ns metabase.models.permissions-group-test
   (:require
    [clojure.test :refer :all]
-   [malli.core :as mc]
-   [metabase.api.permissions-test-util :as perm-test-util]
    [metabase.models.database :refer [Database]]
    [metabase.models.interface :as mi]
    [metabase.models.permissions :as perms :refer [Permissions]]
@@ -15,8 +13,8 @@
    [metabase.test.fixtures :as fixtures]
    [metabase.util :as u]
    [metabase.util.honey-sql-2 :as h2x]
-   [metabase.util.malli :as mu]
-   [metabase.util.malli.schema :as ms]
+   [metabase.util.schema :as su]
+   [schema.core :as s]
    [toucan2.core :as t2]
    [toucan2.tools.with-temp :as t2.with-temp]))
 
@@ -69,14 +67,13 @@
                           :user_id  user-id
                           :group_id (u/the-id (perms-group/admin)))))))))
 
-(mu/defn ^:private group-has-full-access?
+(s/defn ^:private group-has-full-access?
   "Does a group have permissions for `object` and *all* of its children?"
-  [group-id :- ms/PositiveInt
-   object   :- perms/PathSchema]
+  [group-id :- su/IntGreaterThanOrEqualToZero object :- perms/PathSchema]
   ;; e.g. WHERE (object || '%') LIKE '/db/1000/'
   (t2/exists? Permissions
-              :group_id group-id
-              object    [:like (h2x/concat :object (h2x/literal "%"))]))
+    :group_id group-id
+    object    [:like (h2x/concat :object (h2x/literal "%"))]))
 
 (deftest newly-created-databases-test
   (testing "magic groups should have permissions for newly created databases\n"
@@ -91,42 +88,23 @@
     (testing "adding user to Admin should set is_superuser -> true")
     (t2.with-temp/with-temp [User {user-id :id}]
       (t2/insert! PermissionsGroupMembership, :user_id user-id, :group_id (u/the-id (perms-group/admin)))
-      (is (true? (t2/select-one-fn :is_superuser User, :id user-id))))
+      (is (= true
+             (t2/select-one-fn :is_superuser User, :id user-id))))
 
     (testing "removing user from Admin should set is_superuser -> false"
       (t2.with-temp/with-temp [User {user-id :id} {:is_superuser true}]
         (t2/delete! PermissionsGroupMembership, :user_id user-id, :group_id (u/the-id (perms-group/admin)))
-        (is (false? (t2/select-one-fn :is_superuser User, :id user-id)))))
+        (is (= false
+               (t2/select-one-fn :is_superuser User, :id user-id)))))
 
     (testing "setting is_superuser -> true should add user to Admin"
       (t2.with-temp/with-temp [User {user-id :id}]
         (t2/update! User user-id {:is_superuser true})
-        (is (true? (t2/exists? PermissionsGroupMembership, :user_id user-id, :group_id (u/the-id (perms-group/admin)))))))
+        (is (= true
+               (t2/exists? PermissionsGroupMembership, :user_id user-id, :group_id (u/the-id (perms-group/admin)))))))
 
     (testing "setting is_superuser -> false should remove user from Admin"
       (t2.with-temp/with-temp [User {user-id :id} {:is_superuser true}]
         (t2/update! User user-id {:is_superuser false})
-        (is (false? (t2/exists? PermissionsGroupMembership, :user_id user-id, :group_id (u/the-id (perms-group/admin)))))))))
-
-(deftest data-graph-for-group-check-all-groups-test
-  (doseq [group-id (t2/select-fn-set :id :model/PermissionsGroup)]
-    (testing (str "testing data-graph-for-group with group-id: [" group-id "].")
-      (let [graph (perms/data-graph-for-group group-id)]
-        (is (mc/validate pos-int? (:revision graph)))
-        (is (perm-test-util/validate-graph-api-groups (:groups graph)))
-        (is (= #{group-id} (set (keys (:groups graph)))))))))
-
-(defn- perm-object->db [perm-obj]
-  (some-> (re-find #"/db/(\d+)/" perm-obj) second parse-long))
-
-(deftest data-graph-for-db-check-all-dbs-test
-  (let [perm-objects (t2/select-fn-set :object :model/Permissions)
-        dbs-in-perms (set (keep perm-object->db perm-objects))]
-    (doseq [db-id (t2/select-fn-set :id :model/Database)]
-      (testing (str "testing data-graph-for-db with db-id: [" db-id "].")
-        (let [graph (perms/data-graph-for-db db-id)]
-          (is (mc/validate pos-int? (:revision graph)))
-          (is (perm-test-util/validate-graph-api-groups (:groups graph)))
-          ;; Only check this for dbs with permissions
-          (when (contains? dbs-in-perms db-id)
-            (is (= #{db-id} (->> graph :groups vals (mapcat keys) set)))))))))
+        (is (= false
+               (t2/exists? PermissionsGroupMembership, :user_id user-id, :group_id (u/the-id (perms-group/admin)))))))))

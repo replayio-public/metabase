@@ -30,7 +30,7 @@ export const ActionsWrapper = styled.div`
   margin-right: -0.5rem;
 `;
 
-export const ModalContentActionIcon = styled(Icon)`
+export const ActionIcon = styled(Icon)`
   color: ${color("text-light")};
   cursor: pointer;
   padding: 0.5rem;

@@ -3,12 +3,11 @@ import { getIn } from "icepick";
 
 import { useMount, usePrevious } from "react-use";
 
-import { useDashboardQuery } from "metabase/common/hooks";
-import { Sidebar } from "metabase/dashboard/components/Sidebar";
+import Sidebar from "metabase/dashboard/components/Sidebar";
 
 import type {
   Dashboard,
-  DashboardCard,
+  DashboardOrderedCard,
   DashCardId,
   CardId,
   ClickBehavior,
@@ -17,15 +16,12 @@ import type {
 } from "metabase-types/api";
 import { isTableDisplay } from "metabase/lib/click-behavior";
 import type { UiParameter } from "metabase-lib/parameters/types";
-import {
-  canSaveClickBehavior,
-  clickBehaviorIsValid,
-} from "metabase-lib/parameters/utils/click-behavior";
+import { clickBehaviorIsValid } from "metabase-lib/parameters/utils/click-behavior";
 
 import { getColumnKey } from "metabase-lib/queries/utils/get-column-key";
 import { getClickBehaviorForColumn } from "./utils";
-import { ClickBehaviorSidebarContent } from "./ClickBehaviorSidebarContent";
-import { ClickBehaviorSidebarHeader } from "./ClickBehaviorSidebarHeader/ClickBehaviorSidebarHeader";
+import ClickBehaviorSidebarContent from "./ClickBehaviorSidebarContent";
+import ClickBehaviorSidebarHeader from "./ClickBehaviorSidebarHeader";
 
 function shouldShowTypeSelector(clickBehavior?: ClickBehavior) {
   return !clickBehavior || clickBehavior.type == null;
@@ -35,7 +31,7 @@ type VizSettings = Record<string, unknown>;
 
 interface Props {
   dashboard: Dashboard;
-  dashcard: DashboardCard;
+  dashcard: DashboardOrderedCard;
   dashcardData: Record<DashCardId, Record<CardId, DatasetData>>;
   parameters: UiParameter[];
   hideClickBehaviorSidebar: () => void;
@@ -54,7 +50,7 @@ interface Props {
   ) => void;
 }
 
-export function ClickBehaviorSidebar({
+function ClickBehaviorSidebar({
   dashboard,
   dashcard,
   dashcardData,
@@ -94,21 +90,9 @@ export function ClickBehaviorSidebar({
     }
   }, [dashcard, selectedColumn, hasSelectedColumn]);
 
-  const isDashboardLink =
-    clickBehavior?.type === "link" && clickBehavior.linkType === "dashboard";
-  const { data: targetDashboard } = useDashboardQuery({
-    enabled: isDashboardLink,
-    id: isDashboardLink ? clickBehavior.targetId : undefined,
-  });
-
   const isValidClickBehavior = useMemo(
     () => clickBehaviorIsValid(clickBehavior),
     [clickBehavior],
-  );
-
-  const closeIsDisabled = useMemo(
-    () => !canSaveClickBehavior(clickBehavior, targetDashboard),
-    [clickBehavior, targetDashboard],
   );
 
   const handleChangeSettings = useCallback(
@@ -201,7 +185,7 @@ export function ClickBehaviorSidebar({
     <Sidebar
       onClose={hideClickBehaviorSidebar}
       onCancel={handleCancel}
-      closeIsDisabled={closeIsDisabled}
+      closeIsDisabled={!isValidClickBehavior}
     >
       <ClickBehaviorSidebarHeader
         dashcard={dashcard}
@@ -225,3 +209,6 @@ export function ClickBehaviorSidebar({
     </Sidebar>
   );
 }
+
+// eslint-disable-next-line import/no-default-export -- deprecated usage
+export default ClickBehaviorSidebar;

@@ -16,10 +16,6 @@ import {
   computeMinimalBounds,
   getCanonicalRowKey,
 } from "metabase/visualizations/lib/mapping";
-import {
-  getDefaultSize,
-  getMinSize,
-} from "metabase/visualizations/shared/utils/sizes";
 import { isMetric, isString } from "metabase-lib/types/utils/isa";
 import ChartWithLegend from "./ChartWithLegend";
 import LegacyChoropleth from "./LegacyChoropleth";
@@ -55,7 +51,6 @@ export function getColorplethColorScale(
 }
 
 const geoJsonCache = new Map();
-
 function loadGeoJson(geoJsonPath, callback) {
   if (geoJsonCache.has(geoJsonPath)) {
     setTimeout(() => callback(geoJsonCache.get(geoJsonPath)), 0);
@@ -86,7 +81,6 @@ export function getLegendTitles(groups, columnSettings) {
 
 // if the average formatted length is greater than this, we switch to compact formatting
 const AVERAGE_LENGTH_CUTOFF = 5;
-
 function shouldUseCompactFormatting(groups, formatMetric) {
   const minValues = groups.map(([x]) => x);
   const maxValues = groups.slice(0, -1).map(group => group[group.length - 1]);
@@ -101,8 +95,8 @@ function shouldUseCompactFormatting(groups, formatMetric) {
 export default class ChoroplethMap extends Component {
   static propTypes = {};
 
-  static minSize = getMinSize("map");
-  static defaultSize = getDefaultSize("map");
+  static minSize = { width: 4, height: 4 };
+  static defaultSize = { width: 4, height: 4 };
 
   static isSensible({ cols }) {
     return cols.filter(isString).length > 0 && cols.filter(isMetric).length > 0;
@@ -280,20 +274,20 @@ export default class ChoroplethMap extends Component {
             settings,
           };
 
-    const isClickable = onVisualizationClick != null;
+    const isClickable =
+      onVisualizationClick &&
+      visualizationIsClickable(getFeatureClickObject(rows[0]));
 
     const onClickFeature =
       isClickable &&
       (click => {
-        if (visualizationIsClickable(getFeatureClickObject(rows[0]))) {
-          const featureKey = getFeatureKey(click.feature);
-          const row = rowByFeatureKey.get(featureKey);
-          if (onVisualizationClick) {
-            onVisualizationClick({
-              ...getFeatureClickObject(row, click.feature),
-              event: click.event,
-            });
-          }
+        const featureKey = getFeatureKey(click.feature);
+        const row = rowByFeatureKey.get(featureKey);
+        if (onVisualizationClick) {
+          onVisualizationClick({
+            ...getFeatureClickObject(row, click.feature),
+            event: click.event,
+          });
         }
       });
     const onHoverFeature =

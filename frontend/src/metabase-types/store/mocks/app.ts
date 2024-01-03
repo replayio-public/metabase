@@ -1,4 +1,4 @@
-import type { AppState } from "metabase-types/store";
+import { AppState } from "metabase-types/store";
 
 export const createMockAppState = (opts?: Partial<AppState>): AppState => ({
   isNavbarOpen: true,

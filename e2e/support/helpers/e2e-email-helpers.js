@@ -1,5 +1,3 @@
-import { sidebar } from "e2e/support/helpers";
-
 import { WEBMAIL_CONFIG } from "../cypress_data";
 
 const INBOX_TIMEOUT = 5000;
@@ -54,18 +52,11 @@ export const clearInbox = () => {
   return cy.request("DELETE", `http://localhost:${WEB_PORT}/email/all`);
 };
 
-export const viewEmailPage = emailSubject => {
-  const webmailInterface = `http://localhost:${WEB_PORT}`;
-
-  cy.window().then(win => (win.location.href = webmailInterface));
-  cy.findByText(emailSubject).click();
-};
-
 export const openEmailPage = emailSubject => {
   const webmailInterface = `http://localhost:${WEB_PORT}`;
 
   cy.window().then(win => (win.location.href = webmailInterface));
-  cy.findAllByText(emailSubject).first().click();
+  cy.findByText(emailSubject).click();
 
   return cy.hash().then(path => {
     const htmlPath = `${webmailInterface}${path.slice(1)}/html`;
@@ -75,58 +66,29 @@ export const openEmailPage = emailSubject => {
 };
 
 export const clickSend = () => {
-  cy.intercept("POST", "/api/pulse/test").as("emailSent");
-
-  cy.findByText("Send email now").click();
-  cy.wait("@emailSent");
-};
-
-export const openAndAddEmailsToSubscriptions = recipients => {
-  cy.findByLabelText("subscriptions").click();
-
-  cy.findByText("Email it").click();
-
-  const input = cy
-    .findByPlaceholderText("Enter user names or email addresses")
-    .click();
-  recipients.forEach(recipient => {
-    input.type(`${recipient}{enter}`);
-  });
-  input.blur();
-};
-
-export const setupSubscriptionWithRecipients = recipients => {
-  openAndAddEmailsToSubscriptions(recipients);
-  sidebar().findByText("Done").click();
-};
-
-export const openPulseSubscription = () => {
-  sidebar().findByLabelText("Pulse Card").click();
-};
-
-export const emailSubscriptionRecipients = () => {
-  openPulseSubscription();
-  clickSend();
+  cy.button("Send email now").click();
+  cy.button("Email sent", 60000);
 };
 
 export const sendSubscriptionsEmail = recipient => {
-  openAndAddEmailsToSubscriptions([recipient]);
+  cy.icon("subscription").click();
+
+  cy.findByText("Email it").click();
+  cy.findByPlaceholderText("Enter user names or email addresses")
+    .click()
+    .type(`${recipient}{enter}`)
+    .blur();
+
   clickSend();
 };
 
 export function sendEmailAndAssert(callback) {
-  clickSend();
+  cy.intercept("POST", "/api/pulse/test").as("emailSent");
+
+  cy.findByText("Send email now").click();
+  cy.wait("@emailSent");
 
   cy.request("GET", `http://localhost:${WEB_PORT}/email`).then(({ body }) => {
     callback(body[0]);
-  });
-}
-
-export function sendEmailAndVisitIt() {
-  clickSend();
-  const emailUrl = `http://localhost:${WEB_PORT}/email`;
-  return cy.request("GET", emailUrl).then(({ body }) => {
-    const latest = body.slice(-1)[0];
-    cy.visit(`${emailUrl}/${latest.id}/html`);
   });
 }

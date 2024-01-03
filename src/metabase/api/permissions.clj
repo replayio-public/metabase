@@ -5,6 +5,7 @@
    [compojure.core :refer [DELETE GET POST PUT]]
    [honey.sql.helpers :as sql.helpers]
    [malli.core :as mc]
+   [malli.error :as me]
    [malli.transform :as mtx]
    [metabase.api.common :as api]
    [metabase.api.common.validation :as validation]
@@ -16,15 +17,16 @@
    [metabase.models.permissions-group
     :as perms-group
     :refer [PermissionsGroup]]
-   [metabase.models.permissions-revision :as perms-revision]
    [metabase.public-settings.premium-features
     :as premium-features
     :refer [defenterprise]]
    [metabase.server.middleware.offset-paging :as mw.offset-paging]
    [metabase.util :as u]
    [metabase.util.i18n :refer [tru]]
-   [metabase.util.malli :as mu]
    [metabase.util.malli.schema :as ms]
+   [metabase.util.schema :as su]
+   [schema.core]
+   [toucan.hydrate :refer [hydrate]]
    [toucan2.core :as t2]))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
@@ -39,20 +41,6 @@
   (api/check-superuser)
   (perms/data-perms-graph))
 
-(api/defendpoint GET "/graph/db/:db-id"
-  "Fetch a graph of all v1 Permissions for db-id `db-id` (excludes v2 query and data permissions)."
-  [db-id]
-  {db-id ms/PositiveInt}
-  (api/check-superuser)
-  (perms/data-graph-for-db db-id))
-
-(api/defendpoint GET "/graph/group/:group-id"
-  "Fetch a graph of all v1 Permissions for group-id `group-id` (excludes v2 query and data permissions)."
-  [group-id]
-  {group-id ms/PositiveInt}
-  (api/check-superuser)
-  (perms/data-graph-for-group group-id))
-
 (api/defendpoint GET "/graph-v2"
   "Fetch a graph of all v2 Permissions (excludes v1 data permissions)."
   []
@@ -63,13 +51,8 @@
   "OSS implementation of `upsert-sandboxes!`. Errors since this is an enterprise feature."
   metabase-enterprise.sandbox.models.group-table-access-policy
   [_sandboxes]
- (throw (premium-features/ee-feature-error (tru "Sandboxes"))))
-
-(defenterprise insert-impersonations!
-  "OSS implementation of `insert-impersonations!`. Errors since this is an enterprise feature."
-  metabase-enterprise.advanced-permissions.models.connection-impersonation
-  [_impersonations]
-  (throw (premium-features/ee-feature-error (tru "Connection impersonation"))))
+  (throw (ex-info (tru "Sandboxes are an Enterprise feature. Please upgrade to a paid plan to use this feature.")
+                  {:status-code 402})))
 
 (api/defendpoint PUT "/graph"
   "Do a batch update of Permissions by passing in a modified graph. This should return the same graph, in the same
@@ -84,13 +67,9 @@
   The optional `sandboxes` key contains a list of sandboxes that should be created or modified in conjunction with
   this permissions graph update. Since data sandboxing is an Enterprise Edition-only feature, a 402 (Payment Required)
   response will be returned if this key is present and the server is not running the Enterprise Edition, and/or the
-  `:sandboxes` feature flag is not present.
-
-  If the skip-graph query param is truthy, then the graph will not be returned."
-  [:as {body :body
-        {skip-graph :skip-graph} :params}]
-  {body :map
-   skip-graph [:maybe :boolean]}
+  `:sandboxes` feature flag is not present."
+  [:as {body :body}]
+  {body :map}
   (api/check-superuser)
   (let [graph (mc/decode api.permission-graph/DataPermissionsGraph
                          body
@@ -98,21 +77,19 @@
                           mtx/string-transformer
                           (mtx/transformer {:name :perm-graph})))]
     (when-not (mc/validate api.permission-graph/DataPermissionsGraph graph)
-      (let [explained (mu/explain api.permission-graph/DataPermissionsGraph graph)]
-        (throw (ex-info (tru "Cannot parse permissions graph because it is invalid: {0}" (pr-str explained))
-                        {:status-code 400}))))
+      (let [explained (mc/explain api.permission-graph/DataPermissionsGraph body)]
+        (throw (ex-info (tru "Cannot parse permissions graph because it is invalid: {0}"
+                             (pr-str explained))
+                        {:status-code 400
+                         :error (str (me/humanize explained)
+                                     "\n"
+                                     (pr-str explained))}))))
     (t2/with-transaction [_conn]
-      (perms/update-data-perms-graph! (dissoc graph :sandboxes :impersonations))
-      (let [sandbox-updates        (:sandboxes graph)
-            sandboxes              (when sandbox-updates
-                                     (upsert-sandboxes! sandbox-updates))
-            impersonation-updates  (:impersonations graph)
-            impersonations         (when impersonation-updates
-                                     (insert-impersonations! impersonation-updates))]
-        (merge {:revision (perms-revision/latest-id)}
-               (when-not skip-graph {:groups (:groups (perms/data-perms-graph))})
-               (when sandboxes {:sandboxes sandboxes})
-               (when impersonations {:impersonations impersonations}))))))
+     (perms/update-data-perms-graph! (dissoc graph :sandboxes))
+     (if-let [sandboxes (:sandboxes body)]
+       (let [new-sandboxes (upsert-sandboxes! sandboxes)]
+         (assoc (perms/data-perms-graph) :sandboxes new-sandboxes))
+       (perms/data-perms-graph)))))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                          PERMISSIONS GROUP ENDPOINTS                                           |
@@ -149,7 +126,8 @@
     (for [group groups]
       (assoc group :member_count (get group-id->num-members (u/the-id group) 0)))))
 
-(api/defendpoint GET "/group"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema GET "/group"
   "Fetch all `PermissionsGroups`, including a count of the number of `:members` in that group.
   This API requires superuser or group manager of more than one group.
   Group manager is only available if `advanced-permissions` is enabled and returns only groups that user
@@ -168,30 +146,31 @@
                                    [:= :user_id api/*current-user-id*]
                                    [:= :is_group_manager true]]}])]
     (-> (ordered-groups mw.offset-paging/*limit* mw.offset-paging/*offset* query)
-        (t2/hydrate :member_count))))
+        (hydrate :member_count))))
 
-(api/defendpoint GET "/group/:id"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema GET "/group/:id"
   "Fetch the details for a certain permissions group."
   [id]
-  {id ms/PositiveInt}
   (validation/check-group-manager id)
   (api/check-404
    (-> (t2/select-one PermissionsGroup :id id)
-       (t2/hydrate :members))))
+       (hydrate :members))))
 
-(api/defendpoint POST "/group"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema POST "/group"
   "Create a new `PermissionsGroup`."
   [:as {{:keys [name]} :body}]
-  {name ms/NonBlankString}
+  {name su/NonBlankString}
   (api/check-superuser)
   (first (t2/insert-returning-instances! PermissionsGroup
                                          :name name)))
 
-(api/defendpoint PUT "/group/:group-id"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema PUT "/group/:group-id"
   "Update the name of a `PermissionsGroup`."
   [group-id :as {{:keys [name]} :body}]
-  {group-id ms/PositiveInt
-   name     ms/NonBlankString}
+  {name su/NonBlankString}
   (validation/check-manager-of-group group-id)
   (api/check-404 (t2/exists? PermissionsGroup :id group-id))
   (t2/update! PermissionsGroup group-id
@@ -199,10 +178,10 @@
   ;; return the updated group
   (t2/select-one PermissionsGroup :id group-id))
 
-(api/defendpoint DELETE "/group/:group-id"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema DELETE "/group/:group-id"
   "Delete a specific `PermissionsGroup`."
   [group-id]
-  {group-id ms/PositiveInt}
   (validation/check-manager-of-group group-id)
   (t2/delete! PermissionsGroup :id group-id)
   api/generic-204-no-content)
@@ -294,7 +273,8 @@
 
 ;;; ------------------------------------------- Execution Endpoints -------------------------------------------
 
-(api/defendpoint GET "/execution/graph"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema GET "/execution/graph"
   "Fetch a graph of execution permissions."
   []
   (api/check-superuser)

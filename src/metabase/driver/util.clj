@@ -7,18 +7,15 @@
    [metabase.config :as config]
    [metabase.db.connection :as mdb.connection]
    [metabase.driver :as driver]
-   [metabase.lib.metadata :as lib.metadata]
-   [metabase.lib.metadata.protocols :as lib.metadata.protocols]
-   [metabase.lib.schema.id :as lib.schema.id]
    [metabase.models.setting :refer [defsetting]]
    [metabase.public-settings.premium-features :as premium-features]
    [metabase.query-processor.error-type :as qp.error-type]
-   [metabase.query-processor.store :as qp.store]
    [metabase.util :as u]
    [metabase.util.i18n :refer [deferred-tru trs]]
    [metabase.util.log :as log]
-   [metabase.util.malli :as mu]
-   [metabase.util.malli.schema :as ms])
+   [metabase.util.schema :as su]
+   [schema.core :as s]
+   [toucan2.core :as t2])
   (:import
    (java.io ByteArrayInputStream)
    (java.security KeyFactory KeyStore PrivateKey)
@@ -144,12 +141,10 @@
   (if throw-exceptions
     (try
       (u/with-timeout (db-connection-timeout-ms)
-        (or (driver/can-connect? driver details-map)
-            (throw (Exception. "Failed to connect to Database"))))
+        (driver/can-connect? driver details-map))
       ;; actually if we are going to `throw-exceptions` we'll rethrow the original but attempt to humanize the message
       ;; first
       (catch Throwable e
-        (log/errorf e "Failed to connect to Database")
         (throw (if-let [humanized-message (some->> (.getMessage e)
                                                    (driver/humanize-connection-error-message driver))]
                  (let [error-data (cond
@@ -175,32 +170,22 @@
 
 (def ^:private ^{:arglists '([db-id])} database->driver*
   (memoize/ttl
-   (-> (mu/fn :- :keyword
-         [db-id :- ::lib.schema.id/database]
-         (qp.store/with-metadata-provider db-id
-           (:engine (lib.metadata.protocols/database (qp.store/metadata-provider)))))
-       (vary-meta assoc ::memoize/args-fn (fn [[db-id]]
-                                            [(mdb.connection/unique-identifier) db-id])))
+   ^{::memoize/args-fn (fn [[db-id]]
+                         [(mdb.connection/unique-identifier) db-id])}
+   (fn [db-id]
+     (t2/select-one-fn :engine 'Database, :id db-id))
    :ttl/threshold 1000))
 
-(mu/defn database->driver :- :keyword
+(defn database->driver
   "Look up the driver that should be used for a Database. Lightly cached.
 
   (This is cached for a second, so as to avoid repeated application DB calls if this function is called several times
   over the duration of a single API request or sync operation.)"
-  [database-or-id :- [:or
-                      {:error/message "Database or ID"}
-                      [:map
-                       [:engine [:or :keyword :string]]]
-                      [:map
-                       [:id ::lib.schema.id/database]]
-                      ::lib.schema.id/database]]
+  [database-or-id]
   (if-let [driver (:engine database-or-id)]
     ;; ensure we get the driver as a keyword (sometimes it's a String)
     (keyword driver)
-    (if (qp.store/initialized?)
-      (:engine (lib.metadata/database (qp.store/metadata-provider)))
-      (database->driver* (u/the-id database-or-id)))))
+    (database->driver* (u/the-id database-or-id))))
 
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
@@ -221,7 +206,7 @@
              :when  (driver/available? driver)]
          driver)))
 
-(mu/defn semantic-version-gte :- :boolean
+(s/defn semantic-version-gte
   "Returns true if xv is greater than or equal to yv according to semantic versioning.
    xv and yv are sequences of integers of the form `[major minor ...]`, where only
    major is obligatory.
@@ -230,8 +215,7 @@
    (semantic-version-gte [4 0 1] [4 1]) => false
    (semantic-version-gte [4 1] [4]) => true
    (semantic-version-gte [3 1] [4]) => false"
-  [xv :- [:maybe [:sequential ms/IntGreaterThanOrEqualToZero]]
-   yv :- [:maybe [:sequential ms/IntGreaterThanOrEqualToZero]]]
+  [xv :- [su/IntGreaterThanOrEqualToZero] yv :- [su/IntGreaterThanOrEqualToZero]] :- s/Bool
   (loop [xv (seq xv), yv (seq yv)]
     (or (nil? yv)
         (let [[x & xs] xv
@@ -372,7 +356,7 @@
                                                                           [(:name p) p])) expanded-props)))))
                     {::final-props [] ::props-by-name {}}
                     conn-props)
-        {::keys [final-props props-by-name]} res]
+        {:keys [::final-props ::props-by-name]} res]
     ;; now, traverse the visible-if-edges and update all visible-if entries with their full set of "transitive"
     ;; dependencies (if property x depends on y having a value, but y itself depends on z having a value, then x
     ;; should be hidden if y is)
@@ -400,14 +384,11 @@
                 (assoc :visible-if v-ifs*))))
          final-props)))
 
-(def data-url-pattern
-  "A regex to match data-URL-encoded files uploaded via the frontend"
-  #"^data:[^;]+;base64,")
-
 (defn decode-uploaded
-  "Returns bytes from encoded frontend file upload string."
-  ^bytes [^String uploaded-data]
-  (u/decode-base64-to-bytes (str/replace uploaded-data data-url-pattern "")))
+  "Decode `uploaded-data` as an uploaded field.
+  Optionally strip the Base64 MIME prefix."
+  ^bytes [uploaded-data]
+  (u/decode-base64-to-bytes (str/replace uploaded-data #"^data:[^;]+;base64," "")))
 
 (defn db-details-client->server
   "Currently, this transforms client side values for the various back into :type :secret for storage on the server.
@@ -443,7 +424,7 @@
                                           ;; version of the -value property (the :type "textFile" one)
                                           (let [textfile-prop (val-kw secrets-server->client)]
                                             (:treat-before-posting textfile-prop)))))
-                         value      (when-let [^String v (val-kw acc)]
+                         value      (let [^String v (val-kw acc)]
                                       (case (get-treat)
                                         "base64" (decode-uploaded v)
                                         v))]
@@ -484,7 +465,7 @@
 
 (def partner-drivers
   "The set of other drivers in the partnership program"
-  #{"clickhouse" "exasol" "firebolt" "materialize" "ocient" "starburst"})
+  #{"clickhouse" "exasol" "firebolt" "ocient" "starburst"})
 
 (defn driver-source
   "Return the source type of the driver: official, partner, or community"

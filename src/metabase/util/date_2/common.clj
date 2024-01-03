@@ -1,7 +1,7 @@
 (ns metabase.util.date-2.common
   (:require
    [clojure.string :as str]
-   [java-time.api :as t]
+   [java-time :as t]
    [metabase.util :as u])
   (:import
    (java.time ZoneId ZoneOffset)

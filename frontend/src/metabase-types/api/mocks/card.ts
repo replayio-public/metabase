@@ -1,4 +1,4 @@
-import type {
+import {
   ModerationReview,
   Card,
   UnsavedCard,
@@ -6,10 +6,7 @@ import type {
   SeriesOrderSetting,
   StructuredDatasetQuery,
   NativeDatasetQuery,
-  PublicCard,
-  TableColumnOrderSetting,
 } from "metabase-types/api";
-
 import {
   createMockNativeDatasetQuery,
   createMockStructuredDatasetQuery,
@@ -25,26 +22,11 @@ export const createMockCard = (opts?: Partial<Card>): Card => ({
   visualization_settings: createMockVisualizationSettings(),
   result_metadata: [],
   dataset: false,
-  can_write: true,
+  can_write: false,
   cache_ttl: null,
-  collection: null,
   collection_id: null,
   last_query_start: null,
-  average_query_time: null,
   archived: false,
-  enable_embedding: false,
-  ...opts,
-});
-
-export const createMockPublicCard = (
-  opts?: Partial<PublicCard>,
-): PublicCard => ({
-  id: 1,
-  name: "Question",
-  description: null,
-  display: "table",
-  dataset_query: { type: "query" },
-  visualization_settings: createMockVisualizationSettings(),
   ...opts,
 });
 
@@ -96,13 +78,5 @@ export const createMockModerationReview = (
   status: "verified",
   created_at: "2015-01-01T20:10:30.200",
   most_recent: true,
-  ...opts,
-});
-
-export const createMockTableColumnOrderSetting = (
-  opts?: Partial<TableColumnOrderSetting>,
-): TableColumnOrderSetting => ({
-  name: "Column",
-  enabled: true,
   ...opts,
 });

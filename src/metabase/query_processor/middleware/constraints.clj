@@ -5,59 +5,32 @@
    [metabase.models.setting :as setting]
    [metabase.util.i18n :refer [deferred-tru]]))
 
-;; The following "defaults" are not applied to the settings themselves - why not? Because the existing behavior is
-;; that, if you manually update the settings, queries are affected *WHETHER OR NOT* the
-;; `add-default-userland-constraints` middleware was applied.
-;;
-;; To achieve this, the QP looks for the following, in order:
-;; 1. a non-nil value set by the `add-default-userland-constraints` middleware below, either:
-;;    a) the value of the setting (if it's set),
-;;    b) the "default" value from the constant below, or
-;;    c) `nil` if the constraint middleware was not applied
-;; 2. a non-nil value for the appropriate setting (for aggregated vs. unaggregated queries) itself, either:
-;;    a) the value of the setting, or
-;;    b) `nil` if the setting is not set
-;; 3. the value of `absolute-max-results`
-;;
-;; If we turned the below `const`s into `:default`s on the settings themselves, we would use the default values for
-;; all queries, whether or not the middleware was applied.
-(def ^:private ^:const default-unaggregated-query-row-limit 2000)
-(def ^:private ^:const default-aggregated-query-row-limit 10000)
+(def ^:private ^:const default-max-results-bare-rows 2000)
 
-;; NOTE: this was changed from a hardcoded var with value of 2000 (now moved to [[default-unaggregated-query-row-limit]])
+;; NOTE: this was changed from a hardcoded var with value of 2000 (now moved to [[default-max-results-bare-rows]])
 ;; to a setting in 0.43 the setting, which allows for DB local value, can still be nil, so any places below that used
 ;; to reference the former constant value have to expect it could return nil instead
-(setting/defsetting unaggregated-query-row-limit
+(setting/defsetting max-results-bare-rows
   (deferred-tru "Maximum number of rows to return specifically on :rows type queries via the API.")
   :visibility     :authenticated
   :type           :integer
-  :database-local :allowed
-  :audit          :getter)
+  :database-local :allowed)
 
-(setting/defsetting aggregated-query-row-limit
-  (deferred-tru "Maximum number of rows to return for aggregated queries via the API.")
-  :visibility     :authenticated
-  :type           :integer
-  :database-local :allowed
-  :audit          :getter)
-
-(defn query->max-rows
-  "Given a query, returns the max rows that should be returned *as defined by settings*. In other words,
-  return `(aggregated-query-row-limit)` or `(unaggregated-query-row-limit)` depending on whether the query is
-  aggregated or not."
-  [{{aggregations :aggregation} :query}]
-  (if-not aggregations
-    (unaggregated-query-row-limit)
-    (aggregated-query-row-limit)))
+(def ^:private max-results
+  "General maximum number of rows to return from an API query."
+  10000)
 
 (defn default-query-constraints
   "Default map of constraints that we apply on dataset queries executed by the api."
   []
-  {:max-results           (or (aggregated-query-row-limit) default-aggregated-query-row-limit)
-   :max-results-bare-rows (or (unaggregated-query-row-limit) default-unaggregated-query-row-limit)})
+  {:max-results           max-results
+   :max-results-bare-rows (or (max-results-bare-rows) default-max-results-bare-rows)})
 
 (defn- ensure-valid-constraints
-  "Clamps the value of `max-results-bare-rows` to be less than or equal to the value of `max-results`."
+  "`:max-results-bare-rows` must be less than or equal to `:max-results`, so if someone sets `:max-results` but not
+  `:max-results-bare-rows` or sets an both but sets an invalid value for ``:max-results-bare-rows` use the same value
+  for both. Otherwise the default bare rows value could end up being higher than the custom `:max-rows` value, causing
+  an error."
   [{:keys [max-results max-results-bare-rows], :as constraints}]
   (if (<= max-results-bare-rows max-results)
     constraints

@@ -1,5 +1,4 @@
-import type { ChangeEvent } from "react";
-import { useMemo } from "react";
+import { ChangeEvent, useMemo } from "react";
 import { t } from "ttag";
 
 import Input from "metabase/core/components/Input";

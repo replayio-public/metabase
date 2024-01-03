@@ -1,7 +1,11 @@
-import { jt } from "ttag";
+import { t, jt } from "ttag";
 import LogoIcon from "metabase/components/LogoIcon";
-import type { Variant } from "./LogoBadge.styled";
-import { MetabaseLink, MetabaseName, Message } from "./LogoBadge.styled";
+import {
+  MetabaseLink,
+  MetabaseName,
+  Message,
+  Variant,
+} from "./LogoBadge.styled";
 
 function LogoBadge({
   dark,
@@ -13,7 +17,7 @@ function LogoBadge({
   const logoSize = variant === "large" ? 42 : 28;
   const Metabase = (
     <MetabaseName key="metabase" isDark={dark} variant={variant}>
-      Metabase
+      {t`Metabase`}
     </MetabaseName>
   );
   return (

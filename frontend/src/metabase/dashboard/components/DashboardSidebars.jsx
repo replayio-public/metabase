@@ -7,10 +7,10 @@ import { SIDEBAR_NAME } from "metabase/dashboard/constants";
 import ParameterSidebar from "metabase/parameters/components/ParameterSidebar";
 import SharingSidebar from "metabase/sharing/components/SharingSidebar";
 import * as MetabaseAnalytics from "metabase/lib/analytics";
-import { ClickBehaviorSidebar } from "./ClickBehaviorSidebar/ClickBehaviorSidebar";
+import ClickBehaviorSidebar from "./ClickBehaviorSidebar";
 import { DashboardInfoSidebar } from "./DashboardInfoSidebar";
-import { AddCardSidebar } from "./AddCardSidebar";
-import { ActionSidebarConnected } from "./ActionSidebar";
+import { AddCardSidebar } from "./add-card-sidebar/AddCardSidebar";
+import { ActionSidebar } from "./ActionSidebar";
 
 DashboardSidebars.propTypes = {
   dashboard: PropTypes.object,
@@ -44,6 +44,7 @@ DashboardSidebars.propTypes = {
   }).isRequired,
   closeSidebar: PropTypes.func.isRequired,
   setDashboardAttribute: PropTypes.func,
+  saveDashboardAndCards: PropTypes.func,
   selectedTabId: PropTypes.number,
 };
 
@@ -72,6 +73,7 @@ export function DashboardSidebars({
   sidebar,
   closeSidebar,
   setDashboardAttribute,
+  saveDashboardAndCards,
   selectedTabId,
 }) {
   const handleAddCard = useCallback(
@@ -92,7 +94,12 @@ export function DashboardSidebars({
 
   switch (sidebar.name) {
     case SIDEBAR_NAME.addQuestion:
-      return <AddCardSidebar onSelect={handleAddCard} />;
+      return (
+        <AddCardSidebar
+          initialCollection={dashboard.collection_id}
+          onSelect={handleAddCard}
+        />
+      );
     case SIDEBAR_NAME.action: {
       const onUpdateVisualizationSettings = settings =>
         onUpdateDashCardVisualizationSettings(
@@ -101,7 +108,7 @@ export function DashboardSidebars({
         );
 
       return (
-        <ActionSidebarConnected
+        <ActionSidebar
           dashboard={dashboard}
           dashcardId={sidebar.props.dashcardId}
           onUpdateVisualizationSettings={onUpdateVisualizationSettings}
@@ -161,6 +168,7 @@ export function DashboardSidebars({
       return (
         <DashboardInfoSidebar
           dashboard={dashboard}
+          saveDashboardAndCards={saveDashboardAndCards}
           setDashboardAttribute={setDashboardAttribute}
         />
       );

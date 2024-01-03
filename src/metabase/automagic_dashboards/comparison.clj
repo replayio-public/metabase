@@ -3,14 +3,17 @@
    [medley.core :as m]
    [metabase.api.common :as api]
    [metabase.automagic-dashboards.core
-    :refer [->related-entity
+    :refer [->field
+            ->related-entity
             ->root
             automagic-analysis
-            capitalize-first]]
+            capitalize-first
+            cell-title
+            encode-base64-json
+            metric-name
+            source-name]]
    [metabase.automagic-dashboards.filters :as filters]
-   [metabase.automagic-dashboards.names :as names]
    [metabase.automagic-dashboards.populate :as populate]
-   [metabase.automagic-dashboards.util :as magic.util]
    [metabase.mbql.normalize :as mbql.normalize]
    [metabase.models.interface :as mi]
    [metabase.models.table :refer [Table]]
@@ -25,7 +28,7 @@
 (defn- dashboard->cards
   [dashboard]
   (->> dashboard
-       :dashcards
+       :ordered_cards
        (map (fn [{:keys [size_y card col row series] :as dashcard}]
               (assoc card
                 :text     (-> dashcard :visualization_settings :text)
@@ -91,16 +94,16 @@
               series (-> card-right
                          (update :name #(format "%s (%s)" % (comparison-name right)))
                          vector)]
-          (update dashboard :dashcards conj (merge (populate/card-defaults)
-                                                       {:col                    0
-                                                        :row                    row
-                                                        :size_x                 populate/grid-width
-                                                        :size_y                 height
-                                                        :card                   card
-                                                        :card_id                (:id card)
-                                                        :series                 series
-                                                        :visualization_settings {:graph.y_axis.auto_split false
-                                                                                 :graph.series_labels     [(:name card) (:name (first series))]}})))
+          (update dashboard :ordered_cards conj {:col                    0
+                                                 :row                    row
+                                                 :size_x                 populate/grid-width
+                                                 :size_y                 height
+                                                 :card                   card
+                                                 :card_id                (:id card)
+                                                 :series                 series
+                                                 :visualization_settings {:graph.y_axis.auto_split false
+                                                                          :graph.series_labels     [(:name card) (:name (first series))]}
+                                                 :id                     (gensym)}))
         (let [width        (/ populate/grid-width 2)
               series-left  (map clone-card (:series card-left))
               series-right (map clone-card (:series card-right))
@@ -111,25 +114,24 @@
                              (not (multiseries? card-right))
                              (assoc-in [:visualization_settings :graph.colors] [color-right]))]
           (-> dashboard
-              (update :dashcards conj (merge (populate/card-defaults)
-                                                 {:col                    0
-                                                  :row                    row
-                                                  :size_x                 width
-                                                  :size_y                 height
-                                                  :card                   card-left
-                                                  :card_id                (:id card-left)
-                                                  :series                 series-left
-                                                  :visualization_settings {}}))
-              (update :dashcards conj (merge (populate/card-defaults)
-                                                 {:col                    width
-                                                   :row                    row
-                                                   :size_x                 width
-                                                   :size_y                 height
-                                                   :card                   card-right
-                                                   :card_id                (:id card-right)
-                                                   :series                 series-right
-                                                   :visualization_settings {}}))))))
-
+              (update :ordered_cards conj {:col                    0
+                                           :row                    row
+                                           :size_x                 width
+                                           :size_y                 height
+                                           :card                   card-left
+                                           :card_id                (:id card-left)
+                                           :series                 series-left
+                                           :visualization_settings {}
+                                           :id                     (gensym)})
+              (update :ordered_cards conj {:col                    width
+                                           :row                    row
+                                           :size_x                 width
+                                           :size_y                 height
+                                           :card                   card-right
+                                           :card_id                (:id card-right)
+                                           :series                 series-right
+                                           :visualization_settings {}
+                                           :id                     (gensym)})))))
     (populate/add-text-card dashboard {:text                   (:text card)
                                        :width                  (/ populate/grid-width 2)
                                        :height                 (:height card)
@@ -168,7 +170,7 @@
 (defn- series-labels
   [card]
   (get-in card [:visualization_settings :graph.series_labels]
-          (map (comp capitalize-first names/metric-name)
+          (map (comp capitalize-first metric-name)
                (get-in card [:dataset_query :query :aggregation]))))
 
 (defn- unroll-multiseries
@@ -187,10 +189,10 @@
 (defn- segment-constituents
   [segment]
   (->> (filters/inject-refinement (:query-filter segment) (:cell-query segment))
-       magic.util/collect-field-references
-       (map magic.util/field-reference->id)
+       filters/collect-field-references
+       (map filters/field-reference->id)
        distinct
-       (map (partial magic.util/->field segment))))
+       (map (partial ->field segment))))
 
 (defn- update-related
   [related left right]
@@ -209,7 +211,7 @@
                                           (str (:url left) "/compare/table/"
                                                (-> left :source u/the-id))
                                           (str (:url left) "/compare/adhoc/"
-                                               (magic.util/encode-base64-json
+                                               (encode-base64-json
                                                 {:database (:database left)
                                                  :type     :query
                                                  :query    {:source-table (->> left
@@ -243,7 +245,7 @@
                              (assoc :comparison-name (->> opts
                                                           :left
                                                           :cell-query
-                                                          (names/cell-title left))))
+                                                          (cell-title left))))
         right              (cond-> right
                              (part-vs-whole-comparison? left right)
                              (assoc :comparison-name (condp mi/instance-of? (:entity right)
@@ -252,7 +254,7 @@
 
                                                        (tru "{0}, all {1}"
                                                             (comparison-name right)
-                                                            (names/source-name right)))))
+                                                            (source-name right)))))
         segment-dashboards (->> (concat (segment-constituents left)
                                         (segment-constituents right))
                                 distinct
@@ -261,11 +263,7 @@
     (assert (or (= (:source left) (:source right))
                 (= (-> left :source :table_id) (-> right :source u/the-id))))
     (->> (concat segment-dashboards [dashboard])
-         (reduce (fn [dashboard-1 dashboard-2]
-                   (if dashboard-1
-                     (populate/merge-dashboards dashboard-1 dashboard-2 {:skip-titles? true})
-                     dashboard-2))
-                 nil)
+         (reduce #(populate/merge-dashboards %1 %2 {:skip-titles? true}))
          dashboard->cards
          (m/distinct-by (some-fn :dataset_query hash))
          (transduce (mapcat unroll-multiseries)

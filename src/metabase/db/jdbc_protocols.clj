@@ -5,7 +5,7 @@
   (:require
    [clojure.java.jdbc :as jdbc]
    [clojure.string :as str]
-   [java-time.api :as t]
+   [java-time :as t]
    [metabase.db.connection :as mdb.connection]
    [metabase.util :as u]
    [metabase.util.date-2 :as u.date]

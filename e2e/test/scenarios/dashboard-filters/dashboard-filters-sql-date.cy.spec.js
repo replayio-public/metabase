@@ -1,7 +1,6 @@
 import {
   restore,
   popover,
-  clearFilterWidget,
   filterWidget,
   editDashboard,
   saveDashboard,
@@ -18,10 +17,6 @@ import {
 
 describe("scenarios > dashboard > filters > SQL > date", () => {
   beforeEach(() => {
-    cy.intercept("POST", "/api/dashboard/*/dashcard/*/card/*/query").as(
-      "dashcardQuery",
-    );
-
     restore();
     cy.signInAsAdmin();
 
@@ -60,8 +55,7 @@ describe("scenarios > dashboard > filters > SQL > date", () => {
           cy.contains(representativeResult);
         });
 
-        clearFilterWidget(index);
-        cy.wait("@dashcardQuery");
+        clearFilter(index);
       },
     );
   });
@@ -73,7 +67,7 @@ describe("scenarios > dashboard > filters > SQL > date", () => {
     cy.findByText("Default value").next().click();
     DateFilter.setMonthAndYear({
       month: "October",
-      year: "2022",
+      year: "2017",
     });
 
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
@@ -83,15 +77,15 @@ describe("scenarios > dashboard > filters > SQL > date", () => {
 
     // The default value should immediately be applied
     cy.get(".Card").within(() => {
-      cy.contains("Dagmar Fay");
+      cy.contains("Hudson Borer");
     });
 
     // Make sure we can override the default value
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-    cy.findByText("October 2022").click();
+    cy.findByText("October, 2017").click();
     popover().contains("August").click();
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-    cy.findByText("Macy Olson");
+    cy.findByText("Oda Brakus");
   });
 });
 
@@ -126,4 +120,9 @@ function dateFilterSelector({ filterType, filterValue } = {}) {
     default:
       throw new Error("Wrong filter type!");
   }
+}
+
+function clearFilter(index) {
+  filterWidget().eq(index).find(".Icon-close").click();
+  cy.wait("@dashcardQuery2");
 }

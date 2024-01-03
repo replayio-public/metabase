@@ -1,5 +1,5 @@
 import type { AnchorHTMLAttributes, CSSProperties, ReactNode } from "react";
-import type { TooltipProps } from "metabase/core/components/Tooltip/Tooltip";
+import { TooltipProps } from "metabase/core/components/Tooltip/Tooltip";
 
 export interface LinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
   to: string;

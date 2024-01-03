@@ -1,9 +1,10 @@
-import type { ReactElement } from "react";
+import { ReactElement } from "react";
 import { hideAll } from "tippy.js";
 
 import PropTypes from "prop-types";
-import type { ITippyPopoverProps } from "metabase/components/Popover/TippyPopover";
-import TippyPopover from "metabase/components/Popover/TippyPopover";
+import TippyPopover, {
+  ITippyPopoverProps,
+} from "metabase/components/Popover/TippyPopover";
 import { isVirtualCardId } from "metabase-lib/metadata/utils/saved-questions";
 
 import { WidthBoundTableInfo } from "./TableInfoPopover.styled";

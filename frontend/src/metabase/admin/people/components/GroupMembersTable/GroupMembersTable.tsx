@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { Fragment, useMemo } from "react";
 import { t } from "ttag";
 
@@ -9,10 +10,10 @@ import PaginationControls from "metabase/components/PaginationControls";
 
 import User from "metabase/entities/users";
 
-import type { Group, Member, User as IUser } from "metabase-types/api";
+import { Group, Member, User as IUser } from "metabase-types/api";
 import { PLUGIN_GROUP_MANAGERS } from "metabase/plugins";
-import type { State } from "metabase-types/store";
-import { isNotNull } from "metabase/lib/types";
+import { State } from "metabase-types/store";
+import { isNotNull } from "metabase/core/utils/types";
 import AddMemberRow from "../AddMemberRow";
 
 const canEditMembership = (group: Group) =>
@@ -61,7 +62,7 @@ function GroupMembersTable({
   const canRemove = (user: IUser) =>
     !isDefaultGroup(group) && !(isAdminGroup(group) && isCurrentUser(user));
 
-  const hasMembers = group.members.length > 0;
+  const hasMembers = groupMemberships.length > 0;
 
   const handleAddUser: GroupMembersTableProps["onAddUserDone"] =
     async userIds => {

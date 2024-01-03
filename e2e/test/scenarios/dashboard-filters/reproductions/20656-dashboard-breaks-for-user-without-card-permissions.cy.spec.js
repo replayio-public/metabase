@@ -3,10 +3,8 @@ import {
   filterWidget,
   visitDashboard,
   editDashboard,
-  getDashboardCard,
 } from "e2e/support/helpers";
 import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
-import { ADMIN_PERSONAL_COLLECTION_ID } from "e2e/support/cypress_sample_instance_data";
 
 const { PRODUCTS, PRODUCTS_ID } = SAMPLE_DATABASE;
 
@@ -21,7 +19,7 @@ const filter = {
 const questionDetails = {
   query: { "source-table": PRODUCTS_ID, limit: 2 },
   // Admin's personal collection is always the first one (hence, the id 1)
-  collection_id: ADMIN_PERSONAL_COLLECTION_ID,
+  collection_id: 1,
 };
 
 const dashboardDetails = {
@@ -37,14 +35,14 @@ describe("issue 20656", () => {
   it("should allow a user to visit a dashboard even without a permission to see the dashboard card (metabase#20656, metabase#24536)", () => {
     cy.createQuestionAndDashboard({ questionDetails, dashboardDetails }).then(
       ({ body: { id, card_id, dashboard_id } }) => {
-        cy.request("PUT", `/api/dashboard/${dashboard_id}`, {
-          dashcards: [
+        cy.request("PUT", `/api/dashboard/${dashboard_id}/cards`, {
+          cards: [
             {
               id,
               card_id,
               row: 0,
               col: 0,
-              size_x: 24,
+              size_x: 18,
               size_y: 10,
               parameter_mappings: [
                 {
@@ -75,9 +73,11 @@ describe("issue 20656", () => {
       .find(".Icon-gear")
       .click();
 
-    getDashboardCard().within(() => {
-      cy.findByText("Column to filter on");
-      cy.icon("key");
-    });
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Column to filter on")
+      .parent()
+      .within(() => {
+        cy.icon("key");
+      });
   });
 });

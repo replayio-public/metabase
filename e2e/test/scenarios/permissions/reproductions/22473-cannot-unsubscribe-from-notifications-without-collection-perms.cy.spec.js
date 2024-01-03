@@ -1,7 +1,6 @@
 import { restore, setupSMTP, sidebar } from "e2e/support/helpers";
 import { modal } from "e2e/support/helpers/e2e-ui-elements-helpers";
 
-import { ORDERS_DASHBOARD_ID } from "e2e/support/cypress_sample_instance_data";
 import { USERS } from "e2e/support/cypress_data";
 const { nocollection } = USERS;
 
@@ -13,7 +12,7 @@ describe("issue 22473", () => {
   });
 
   it("nocollection user should be able to view and unsubscribe themselves from a subscription", () => {
-    cy.visit(`/dashboard/${ORDERS_DASHBOARD_ID}`);
+    cy.visit(`/dashboard/1`);
     cy.icon("subscription").click();
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
     cy.findByText("Email it").click();

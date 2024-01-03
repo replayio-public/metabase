@@ -1,6 +1,6 @@
 import { render, fireEvent, screen } from "@testing-library/react";
 import { createMockMetadata } from "__support__/metadata";
-import { checkNotNull } from "metabase/lib/types";
+import { checkNotNull } from "metabase/core/utils/types";
 import {
   ORDERS,
   ORDERS_ID,

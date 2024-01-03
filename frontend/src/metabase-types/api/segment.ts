@@ -1,5 +1,5 @@
-import type { StructuredQuery } from "./query";
-import type { TableId } from "./table";
+import { StructuredQuery } from "./query";
+import { TableId } from "./table";
 
 export type SegmentId = number;
 

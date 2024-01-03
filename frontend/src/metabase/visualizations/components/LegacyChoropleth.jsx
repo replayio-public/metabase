@@ -29,6 +29,7 @@ const LegacyChoropleth = ({
         }
       >
         {() => (
+          // eslint-disable-line react/display-name
           <svg
             className="flex-full m1"
             viewBox={`${minX} ${minY} ${width} ${height}`}
@@ -49,13 +50,12 @@ const LegacyChoropleth = ({
                 onMouseLeave={() => onHoverFeature(null)}
                 className={cx({ "cursor-pointer": !!onClickFeature })}
                 onClick={
-                  onClickFeature
-                    ? e =>
-                        onClickFeature({
-                          feature: feature,
-                          event: e.nativeEvent,
-                        })
-                    : undefined
+                  onClickFeature &&
+                  (e =>
+                    onClickFeature({
+                      feature: feature,
+                      event: e.nativeEvent,
+                    }))
                 }
               />
             ))}

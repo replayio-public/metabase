@@ -6,10 +6,9 @@
    [compojure.core :refer [POST]]
    [metabase.api.common :as api]
    [metabase.api.field :as api.field]
-   [metabase.driver :as driver]
+   [metabase.db.query :as mdb.query]
    [metabase.driver.util :as driver.u]
    [metabase.events :as events]
-   [metabase.lib.schema.id :as lib.schema.id]
    [metabase.mbql.normalize :as mbql.normalize]
    [metabase.mbql.schema :as mbql.s]
    [metabase.models.card :refer [Card]]
@@ -28,9 +27,8 @@
    [metabase.util :as u]
    [metabase.util.i18n :refer [trs tru]]
    [metabase.util.log :as log]
-   [metabase.util.malli :as mu]
    [metabase.util.malli.schema :as ms]
-   [steffan-westcott.clj-otel.api.trace.span :as span]
+   [schema.core :as s]
    [toucan2.core :as t2]))
 
 ;;; -------------------------------------------- Running a Query Normally --------------------------------------------
@@ -42,7 +40,7 @@
   well."
   [outer-query]
   (when-let [source-card-id (qp.util/query->source-card-id outer-query)]
-    (log/info (trs "Source query for this query is Card {0}" (pr-str source-card-id)))
+    (log/info (trs "Source query for this query is Card {0}" source-card-id))
     (api/read-check Card source-card-id)
     source-card-id))
 
@@ -52,36 +50,34 @@
       :or   {context       :ad-hoc
              export-format :api
              qp-runner     qp/process-query-and-save-with-max-results-constraints!}}]
-  (span/with-span!
-    {:name "run-query-async"}
-    (when (and (not= (:type query) "internal")
-               (not= database lib.schema.id/saved-questions-virtual-database-id))
-      (when-not database
-        (throw (ex-info (tru "`database` is required for all queries whose type is not `internal`.")
-                        {:status-code 400, :query query})))
-      (api/read-check Database database))
-    ;; store table id trivially iff we get a query with simple source-table
-    (let [table-id (get-in query [:query :source-table])]
-      (when (int? table-id)
-        (events/publish-event! :event/table-read {:object  (t2/select-one Table :id table-id)
-                                                  :user-id api/*current-user-id*})))
-    ;; add sensible constraints for results limits on our query
-    (let [source-card-id (query->source-card-id query)
-          source-card    (when source-card-id
-                           (t2/select-one [Card :result_metadata :dataset] :id source-card-id))
-          info           (cond-> {:executed-by api/*current-user-id*
-                                  :context     context
-                                  :card-id     source-card-id}
-                           (:dataset source-card)
-                           (assoc :metadata/dataset-metadata (:result_metadata source-card)))]
-      (binding [qp.perms/*card-id* source-card-id]
-        (qp.streaming/streaming-response [{:keys [rff context]} export-format]
-                                         (qp-runner query info rff context))))))
+  (when (and (not= (:type query) "internal")
+             (not= database mbql.s/saved-questions-virtual-database-id))
+    (when-not database
+      (throw (ex-info (tru "`database` is required for all queries whose type is not `internal`.")
+                      {:status-code 400, :query query})))
+    (api/read-check Database database))
+  ;; store table id trivially iff we get a query with simple source-table
+  (let [table-id (get-in query [:query :source-table])]
+    (when (int? table-id)
+      (events/publish-event! :table-read (assoc (t2/select-one Table :id table-id) :actor_id api/*current-user-id*))))
+  ;; add sensible constraints for results limits on our query
+  (let [source-card-id (query->source-card-id query)
+        source-card    (when source-card-id
+                         (t2/select-one [Card :result_metadata :dataset] :id source-card-id))
+        info           (cond-> {:executed-by api/*current-user-id*
+                                :context     context
+                                :card-id     source-card-id}
+                         (:dataset source-card)
+                         (assoc :metadata/dataset-metadata (:result_metadata source-card)))]
+    (binding [qp.perms/*card-id* source-card-id]
+      (qp.streaming/streaming-response [context export-format]
+        (qp-runner query info context)))))
 
-(api/defendpoint POST "/"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema POST "/"
   "Execute a query and retrieve the results in the usual format. The query will not use the cache."
   [:as {{:keys [database] :as query} :body}]
-  {database [:maybe :int]}
+  {database (s/maybe s/Int)}
   (run-query-async (update-in query [:middleware :js-int-to-string?] (fnil identity true))))
 
 
@@ -93,9 +89,9 @@
 
 (def ExportFormat
   "Schema for valid export formats for downloading query results."
-  (into [:enum] export-formats))
+  (apply s/enum export-formats))
 
-(mu/defn export-format->context :- mbql.s/Context
+(s/defn export-format->context :- mbql.s/Context
   "Return the `:context` that should be used when saving a QueryExecution triggered by a request to download results
   in `export-format`.
 
@@ -128,7 +124,7 @@
    export-format          (into [:enum] export-formats)}
   (let [query        (json/parse-string query keyword)
         viz-settings (-> (json/parse-string visualization_settings viz-setting-key-fn)
-                         (update :table.columns mbql.normalize/normalize)
+                         (update-in [:table.columns] mbql.normalize/normalize)
                          mb.viz/db->norm)
         query        (-> (assoc query
                                 :async? true
@@ -168,11 +164,13 @@
    pretty  [:maybe :boolean]}
   (binding [persisted-info/*allow-persisted-substitution* false]
     (qp.perms/check-current-user-has-adhoc-native-query-perms query)
-    (let [driver (driver.u/database->driver database)
-          prettify (partial driver/prettify-native-form driver)
-          compiled (qp/compile-and-splice-parameters query)]
-      (cond-> compiled
-        (not (false? pretty)) (update :query prettify)))))
+    (let [{q :query :as compiled} (qp/compile-and-splice-parameters query)
+          driver          (driver.u/database->driver database)
+          ;; Format the query unless we explicitly do not want to
+          formatted-query (if (false? pretty)
+                            q
+                            (or (u/ignore-exceptions (mdb.query/format-sql q driver)) q))]
+      (assoc compiled :query formatted-query))))
 
 (api/defendpoint POST "/pivot"
   "Generate a pivoted dataset for an ad-hoc query"
@@ -183,13 +181,9 @@
   (api/read-check Database database)
   (let [info {:executed-by api/*current-user-id*
               :context     :ad-hoc}]
-    (qp.streaming/streaming-response [{:keys [rff context]} :api]
-      (qp.pivot/run-pivot-query (assoc query
-                                       :async? true
-                                       :constraints (qp.constraints/default-query-constraints))
-                                info
-                                rff
-                                context))))
+    (qp.streaming/streaming-response [context :api]
+      (qp.pivot/run-pivot-query (assoc query :async? true) info context))))
+
 
 (defn- parameter-field-values
   [field-ids query]
@@ -197,7 +191,7 @@
     (throw (ex-info (tru "Missing field-ids for parameter")
                     {:status-code 400})))
   (-> (reduce (fn [resp id]
-                (let [{values :values more? :has_more_values} (api.field/search-values-from-field-id id query)]
+                (let [{values :values more? :has_more_values} (api.field/field-id->values id query)]
                   (-> resp
                       (update :values concat values)
                       (update :has_more_values #(or % more?)))))
@@ -205,7 +199,7 @@
                :values          []}
               field-ids)
       ;; deduplicate the values returned from multiple fields
-      (update :values (comp vec set))))
+      (update :values set)))
 
 (defn parameter-values
   "Fetch parameter values. Parameter should be a full parameter, field-ids is an optional vector of field ids, only
@@ -227,7 +221,7 @@
   [query :as {{:keys [parameter field_ids]} :body}]
   {parameter ms/Parameter
    field_ids [:maybe [:sequential ms/PositiveInt]]
-   query     ms/NonBlankString}
+   query     :string}
   (parameter-values parameter field_ids query))
 
 (api/define-routes)

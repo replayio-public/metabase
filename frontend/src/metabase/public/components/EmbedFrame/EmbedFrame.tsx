@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type * as React from "react";
+import * as React from "react";
 import { withRouter } from "react-router";
 import { connect } from "react-redux";
 import cx from "classnames";
@@ -14,7 +14,7 @@ import { isWithinIframe, initializeIframeResizer } from "metabase/lib/dom";
 import { parseHashOptions } from "metabase/lib/browser";
 
 import SyncedParametersList from "metabase/parameters/components/SyncedParametersList/SyncedParametersList";
-import { FilterApplyButton } from "metabase/parameters/components/FilterApplyButton";
+import FilterApplyButton from "metabase/parameters/components/FilterApplyButton";
 
 import type {
   Dashboard,
@@ -24,7 +24,7 @@ import type {
 } from "metabase-types/api";
 import type { State } from "metabase-types/store";
 
-import type Question from "metabase-lib/Question";
+import Question from "metabase-lib/Question";
 import { getValuePopulatedParameters } from "metabase-lib/parameters/utils/parameter-values";
 
 import LogoBadge from "./LogoBadge";
@@ -139,7 +139,7 @@ function EmbedFrame({
               />
             )}
             {hasParameters && (
-              <ParametersWidgetContainer data-testid="dashboard-parameters-widget-container">
+              <ParametersWidgetContainer>
                 <SyncedParametersList
                   className="mt1"
                   question={question}

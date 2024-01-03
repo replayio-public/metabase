@@ -1,24 +1,25 @@
 import { t } from "ttag";
-import type {
+import {
   RowValue,
   RowValues,
   SeriesOrderSetting,
   DatasetData,
 } from "metabase-types/api";
 
-import type {
+import {
   ChartColumns,
   ColumnDescriptor,
 } from "metabase/visualizations/lib/graph/columns";
-import type { ColumnFormatter } from "metabase/visualizations/shared/types/format";
-import type {
+import { ColumnFormatter } from "metabase/visualizations/shared/types/format";
+import {
   GroupedDataset,
   GroupedDatum,
   MetricDatum,
   MetricValue,
   SeriesInfo,
+  TwoDimensionalChartData,
 } from "metabase/visualizations/shared/types/data";
-import type { Series } from "metabase/visualizations/shared/components/RowChart/types";
+import { Series } from "metabase/visualizations/shared/components/RowChart/types";
 import { formatNullable } from "metabase/lib/formatting/nullable";
 import { getChartMetrics } from "./series";
 
@@ -164,7 +165,7 @@ export const trimData = (
 };
 
 const getBreakoutDistinctValues = (
-  data: DatasetData,
+  data: TwoDimensionalChartData,
   breakout: ColumnDescriptor,
   columnFormatter: ColumnFormatter,
 ) => {
@@ -226,7 +227,7 @@ const getMultipleMetricSeries = (
 };
 
 export const getSeries = (
-  data: DatasetData,
+  data: TwoDimensionalChartData,
   chartColumns: ChartColumns,
   columnFormatter: ColumnFormatter,
 ): Series<GroupedDatum, SeriesInfo>[] => {

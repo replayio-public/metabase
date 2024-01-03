@@ -1,4 +1,3 @@
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
 import moment from "moment-timezone";
 
 import timeseriesScale from "metabase/visualizations/lib/timeseriesScale";

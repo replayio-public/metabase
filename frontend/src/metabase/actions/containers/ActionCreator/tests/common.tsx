@@ -1,7 +1,11 @@
 /* istanbul ignore file */
 import fetchMock from "fetch-mock";
 
-import { renderWithProviders, waitForLoaderToBeRemoved } from "__support__/ui";
+import {
+  renderWithProviders,
+  screen,
+  waitForElementToBeRemoved,
+} from "__support__/ui";
 import {
   setupCardsEndpoints,
   setupDatabasesEndpoints,
@@ -80,5 +84,7 @@ export async function setup({
     },
   );
 
-  await waitForLoaderToBeRemoved();
+  await waitForElementToBeRemoved(() =>
+    screen.queryByTestId("loading-spinner"),
+  );
 }

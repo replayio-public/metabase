@@ -1,13 +1,12 @@
 (ns metabase-enterprise.serialization.cmd
   (:refer-clojure :exclude [load])
   (:require
-   [clojure.java.io :as io]
    [metabase-enterprise.serialization.dump :as dump]
    [metabase-enterprise.serialization.load :as load]
-   [metabase-enterprise.serialization.v2.entity-ids :as v2.entity-ids]
    [metabase-enterprise.serialization.v2.extract :as v2.extract]
    [metabase-enterprise.serialization.v2.ingest :as v2.ingest]
    [metabase-enterprise.serialization.v2.load :as v2.load]
+   [metabase-enterprise.serialization.v2.seed-entity-ids :as v2.seed-entity-ids]
    [metabase-enterprise.serialization.v2.storage :as v2.storage]
    [metabase.db :as mdb]
    [metabase.models.card :refer [Card]]
@@ -23,39 +22,34 @@
    [metabase.models.table :refer [Table]]
    [metabase.models.user :refer [User]]
    [metabase.plugins :as plugins]
-   [metabase.public-settings.premium-features :as premium-features]
    [metabase.util :as u]
    [metabase.util.i18n :refer [deferred-trs trs]]
    [metabase.util.log :as log]
-   [metabase.util.malli :as mu]
+   [metabase.util.schema :as su]
+   [schema.core :as s]
    [toucan2.core :as t2]))
 
 (set! *warn-on-reflection* true)
 
 (def ^:private Mode
-  (mu/with-api-error-message [:enum :skip :update]
+  (su/with-api-error-message (s/enum :skip :update)
     (deferred-trs "invalid --mode value")))
 
 (def ^:private OnError
-  (mu/with-api-error-message [:enum :continue :abort]
+  (su/with-api-error-message (s/enum :continue :abort)
     (deferred-trs "invalid --on-error value")))
 
 (def ^:private Context
-  (mu/with-api-error-message
-    [:map {:closed true}
-     [:on-error {:optional true} OnError]
-     [:mode     {:optional true} Mode]]
+  (su/with-api-error-message
+    {(s/optional-key :on-error) OnError
+     (s/optional-key :mode)     Mode}
     (deferred-trs "invalid context seed value")))
 
-(defn- check-premium-token! []
-  (premium-features/assert-has-feature :serialization (trs "Serialization")))
-
-(mu/defn v1-load!
+(s/defn v1-load
   "Load serialized metabase instance as created by [[dump]] command from directory `path`."
   [path context :- Context]
   (plugins/load-plugins!)
   (mdb/setup-db!)
-  (check-premium-token!)
   (when-not (load/compatible? path)
     (log/warn (trs "Dump was produced using a different version of Metabase. Things may break!")))
   (let [context (merge {:mode     :skip
@@ -63,10 +57,10 @@
                        context)]
     (try
       (log/info (trs "BEGIN LOAD from {0} with context {1}" path context))
-      (let [all-res    [(load/load! (str path "/users") context)
-                        (load/load! (str path "/databases") context)
-                        (load/load! (str path "/collections") context)
-                        (load/load-settings! path context)]
+      (let [all-res    [(load/load (str path "/users") context)
+                        (load/load (str path "/databases") context)
+                        (load/load (str path "/collections") context)
+                        (load/load-settings path context)]
             reload-fns (filter fn? all-res)]
         (when (seq reload-fns)
           (log/info (trs "Finished first pass of load; now performing second pass"))
@@ -77,33 +71,19 @@
         (log/error e (trs "ERROR LOAD from {0}: {1}" path (.getMessage e)))
         (throw e)))))
 
-(mu/defn v2-load-internal!
-  "SerDes v2 load entry point for internal users.
+(defn v2-load
+  "SerDes v2 load entry point.
 
-  `opts` are passed to [[v2.load/load-metabase]]."
-  [path :- :string
-   opts :- [:map [:abort-on-error {:optional true} [:maybe :boolean]]]
-   ;; Deliberately separate from the opts so it can't be set from the CLI.
-   & {:keys [token-check?]
-      :or   {token-check? true}}]
+   opts are passed to load-metabase"
+  [path opts]
   (plugins/load-plugins!)
   (mdb/setup-db!)
-  (when token-check?
-    (check-premium-token!))
   ; TODO This should be restored, but there's no manifest or other meta file written by v2 dumps.
   ;(when-not (load/compatible? path)
   ;  (log/warn (trs "Dump was produced using a different version of Metabase. Things may break!")))
   (log/info (trs "Loading serialized Metabase files from {0}" path))
   (serdes/with-cache
-    (v2.load/load-metabase! (v2.ingest/ingest-yaml path) opts)))
-
-(mu/defn v2-load!
-  "SerDes v2 load entry point.
-
-   opts are passed to load-metabase"
-  [path :- :string
-   opts :- [:map [:abort-on-error {:optional true} [:maybe :boolean]]]]
-  (v2-load-internal! path opts :token-check? true))
+    (v2.load/load-metabase (v2.ingest/ingest-yaml path) opts)))
 
 (defn- select-entities-in-collections
   ([model collections]
@@ -157,12 +137,11 @@
            (into base-collections))))))
 
 
-(defn v1-dump!
+(defn v1-dump
   "Legacy Metabase app data dump"
   [path {:keys [state user] :or {state :active} :as opts}]
   (log/info (trs "BEGIN DUMP to {0} via user {1}" path user))
   (mdb/setup-db!)
-  (check-premium-token!)
   (t2/select User) ;; TODO -- why??? [editor's note: this comment originally from Cam]
   (let [users       (if user
                       (let [user (t2/select-one User
@@ -184,7 +163,7 @@
                       (t2/select Metric :table_id [:in (map :id tables)] {:order-by [[:id :asc]]})
                       (t2/select Metric))
         collections (select-collections users state)]
-    (dump/dump! path
+    (dump/dump path
                databases
                tables
                (mapcat field/with-values (u/batches-of 32000 fields))
@@ -196,44 +175,27 @@
                (select-entities-in-collections Dashboard collections state)
                (select-entities-in-collections Pulse collections state)
                users))
-  (dump/dump-settings! path)
-  (dump/dump-dimensions! path)
+  (dump/dump-settings path)
+  (dump/dump-dimensions path)
   (log/info (trs "END DUMP to {0} via user {1}" path user)))
 
-(defn v2-dump!
+(defn v2-dump
   "Exports Metabase app data to directory at path"
-  [path {:keys [collection-ids] :as opts}]
+  [path {:keys [user-email collections] :as opts}]
   (log/info (trs "Exporting Metabase to {0}" path) (u/emoji "🏭 🚛💨"))
   (mdb/setup-db!)
-  (check-premium-token!)
   (t2/select User) ;; TODO -- why??? [editor's note: this comment originally from Cam]
-  (let [f (io/file path)]
-    (.mkdirs f)
-    (when-not (.canWrite f)
-      (throw (ex-info (format "Destination path is not writeable: %s" path) {:filename path}))))
   (serdes/with-cache
     (-> (cond-> opts
-          (seq collection-ids) (assoc :targets (v2.extract/make-targets-of-type "Collection" collection-ids)))
+         (seq collections) (assoc :targets (v2.extract/make-targets-of-type "Collection" collections))
+         user-email        (assoc :user-id (t2/select-one-pk User :email user-email :is_superuser true)))
         v2.extract/extract
         (v2.storage/store! path)))
-  (log/info (trs "Export to {0} complete!" path) (u/emoji "🚛💨 📦"))
-  ::v2-dump-complete)
+  (log/info (trs "Export to {0} complete!" path) (u/emoji "🚛💨 📦")))
 
-(defn seed-entity-ids!
+(defn seed-entity-ids
   "Add entity IDs for instances of serializable models that don't already have them.
 
   Returns truthy if all entity IDs were added successfully, or falsey if any errors were encountered."
   []
-  (v2.entity-ids/seed-entity-ids!))
-
-(defn drop-entity-ids!
-  "Drop entity IDs for all instances of serializable models.
-
-  This is needed for some cases of migrating from v1 to v2 serdes. v1 doesn't dump `entity_id`, so they may have been
-  randomly generated independently in both instances. Then when v2 serdes is used to export and import, the randomly
-  generated IDs don't match and the entities get duplicated. Dropping `entity_id` from both instances first will force
-  them to be regenerated based on the hashes, so they should match up if the receiving instance is a copy of the sender.
-
-  Returns truthy if all entity IDs have been dropped, or falsey if any errors were encountered."
-  []
-  (v2.entity-ids/drop-entity-ids!))
+  (v2.seed-entity-ids/seed-entity-ids!))

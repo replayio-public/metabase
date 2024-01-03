@@ -22,64 +22,16 @@
     [:private false true]
     (deferred-tru "made {0} private" identifier)
 
-    [:public_uuid _ nil]
-    (deferred-tru "made {0} private" identifier)
+    [:archived false true]
+    (deferred-tru "unarchived this")
 
-    [:public_uuid nil _]
-    (deferred-tru "made {0} public" identifier)
-
-    [:enable_embedding false true]
-    (deferred-tru "enabled embedding")
-
-    [:enable_embedding true false]
-    (deferred-tru "disabled embedding")
-
-    [:parameters _ _]
-    (deferred-tru "changed the filters")
-
-    [:embedding_params _ _]
-    (deferred-tru "changed the embedding parameters")
-
-    [:archived _ after]
-    (if after
-      (deferred-tru "archived {0}" identifier)
-      (deferred-tru "unarchived {0}" identifier))
-
-    [:collection_position _ _]
-    (deferred-tru "changed pin position")
-
-    [:collection_id nil coll-id]
-    (deferred-tru "moved {0} to {1}" identifier (if coll-id
-                                                  (t2/select-one-fn :name 'Collection coll-id)
-                                                  (deferred-tru "Our analytics")))
-
-    [:collection_id (prev-coll-id :guard int?) coll-id]
-    (deferred-tru "moved {0} from {1} to {2}"
-      identifier
-      (t2/select-one-fn :name 'Collection prev-coll-id)
-      (if coll-id
-        (t2/select-one-fn :name 'Collection coll-id)
-        (deferred-tru "Our analytics")))
-
-    [:visualization_settings _ _]
-    (deferred-tru "changed the visualization settings")
-
-    ;;  Card specific
-    [:parameter_mappings _ _]
-    (deferred-tru "changed the filter mapping")
-
-    [:collection_preview _ after]
-    (if after
-      (deferred-tru "enabled collection review")
-      (deferred-tru "disabled collection preview"))
-
-    [:dataset_query _ _]
-    (deferred-tru "modified the query")
+    [:archived true false]
+    (deferred-tru "archived this")
 
     [:dataset false true]
     (deferred-tru "turned this into a model")
 
-    [:dataset true false]
+    [:dataset false false]
     (deferred-tru "changed this from a model to a saved question")
 
     [:display _ _]
@@ -88,10 +40,20 @@
     [:result_metadata _ _]
     (deferred-tru "edited the metadata")
 
-    ;;  whenever database_id, query_type, table_id changed,
-    ;; the dataset_query will changed so we don't need a description for this
-    [#{:table_id :database_id :query_type} _ _]
-    nil
+    [:dataset_query _ _]
+    (deferred-tru "modified the query")
+
+    [:collection_id nil (coll-id :guard int?)]
+    (deferred-tru "moved {0} to {1}" identifier (t2/select-one-fn :name 'Collection coll-id))
+
+    [:collection_id (prev-coll-id :guard int?) (coll-id :guard int?)]
+    (deferred-tru "moved {0} from {1} to {2}"
+      identifier
+      (t2/select-one-fn :name 'Collection prev-coll-id)
+      (t2/select-one-fn :name 'Collection coll-id))
+
+    [:visualization_settings _ _]
+    (deferred-tru "changed the visualization settings")
 
     :else nil))
 
@@ -119,13 +81,8 @@
   (when-let [[before after] (data/diff o1 o2)]
     (let [ks         (keys (or after before))
           model-name (model-str->i18n-str model)]
-      (loop [ks               ks
-             identifier-count 0
-             strings          []]
-        (if-not (seq ks)
-          strings
-          (let [k          (first ks)
-                identifier (if (zero? identifier-count) (deferred-tru "this {0}" model-name) (deferred-tru "it"))]
-            (if-let [diff-str (diff-string k (k before) (k after) identifier)]
-              (recur (rest ks) (inc identifier-count) (conj strings diff-str))
-              (recur (rest ks) identifier-count strings))))))))
+      (filter identity
+              (map-indexed (fn [i k]
+                             (diff-string k (k before) (k after)
+                                          (if (zero? i) (deferred-tru "this {0}" model-name) (deferred-tru "it"))))
+                           ks)))))

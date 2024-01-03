@@ -2,8 +2,10 @@ import { Component } from "react";
 import { Motion, spring } from "react-motion";
 import { getScrollX, getScrollY } from "metabase/lib/dom";
 import SandboxedPortal from "metabase/components/SandboxedPortal";
-import type { BaseModalProps } from "metabase/components/Modal/utils";
-import { getModalContent } from "metabase/components/Modal/utils";
+import {
+  BaseModalProps,
+  getModalContent,
+} from "metabase/components/Modal/utils";
 import { MaybeOnClickOutsideWrapper } from "metabase/components/Modal/MaybeOnClickOutsideWrapper";
 
 export type FullPageModalProps = BaseModalProps & {

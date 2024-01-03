@@ -3,7 +3,7 @@
    [clojure.spec.alpha :as s]
    [column.common]))
 
-(defmulti ^:private column-name :name)
+(defmulti column-name :name)
 
 ;; remark is *required* for non-ID columns
 (defmethod column-name :default

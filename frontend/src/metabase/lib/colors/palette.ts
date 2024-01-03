@@ -1,10 +1,11 @@
 import Color from "color";
-import type { ColorPalette } from "./types";
+import { ColorPalette } from "./types";
 
 export const ACCENT_COUNT = 8;
 
 // NOTE: DO NOT ADD COLORS WITHOUT EXTREMELY GOOD REASON AND DESIGN REVIEW
 // NOTE: KEEP SYNCRONIZED WITH COLORS.CSS
+/* eslint-disable no-color-literals */
 export const colors = {
   brand: "#509EE3",
   summarize: "#88BF4D",

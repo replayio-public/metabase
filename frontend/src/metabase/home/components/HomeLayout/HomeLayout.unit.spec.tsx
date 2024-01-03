@@ -1,4 +1,4 @@
-import type { User } from "metabase-types/api";
+import { User } from "metabase-types/api";
 import { renderWithProviders, screen } from "__support__/ui";
 import { createMockUser } from "metabase-types/api/mocks";
 import { createMockState } from "metabase-types/store/mocks";

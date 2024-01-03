@@ -13,21 +13,22 @@
    [metabase.driver.common.parameters.dates :as params.dates]
    [metabase.driver.common.parameters.operators :as params.ops]
    [metabase.driver.sql.query-processor :as sql.qp]
-   [metabase.lib.metadata :as lib.metadata]
-   [metabase.lib.schema.common :as lib.schema.common]
    [metabase.mbql.schema :as mbql.s]
    [metabase.mbql.util :as mbql.u]
    [metabase.query-processor.error-type :as qp.error-type]
    [metabase.query-processor.middleware.wrap-value-literals
     :as qp.wrap-value-literals]
+   [metabase.query-processor.store :as qp.store]
    [metabase.query-processor.timezone :as qp.timezone]
    [metabase.query-processor.util.add-alias-info :as add]
    [metabase.util :as u]
    [metabase.util.date-2 :as u.date]
    [metabase.util.i18n :refer [tru]]
-   [metabase.util.malli :as mu])
+   [metabase.util.schema :as su]
+   [schema.core :as s])
   (:import
    (clojure.lang IPersistentVector Keyword)
+   (honeysql.types SqlCall)
    (java.time.temporal Temporal)
    (java.util UUID)
    (metabase.driver.common.parameters Date DateRange FieldFilter ReferencedCardQuery ReferencedQuerySnippet)))
@@ -38,84 +39,73 @@
   "Returns a `PreparedStatementSubstitution` (see schema below) for `x` and the given driver. This allows driver
   specific parameters and SQL replacement text (usually just ?). The param value is already prepared and ready for
   inlcusion in the query, such as what's needed for SQLite and timestamps."
-  {:added "0.34.0" :arglists '([driver x])}
+  {:arglists '([driver x])}
   (fn [driver x] [(driver/dispatch-on-initialized-driver driver) (class x)])
   :hierarchy #'driver/hierarchy)
 
 (def PreparedStatementSubstitution
   "Represents the SQL string replace value (usually ?) and the typed parameter value"
-  [:map
-   [:sql-string   :string]
-   [:param-values [:maybe [:sequential :any]]]])
+  {:sql-string   s/Str
+   :param-values [s/Any]})
 
-(mu/defn make-stmt-subs :- PreparedStatementSubstitution
+(s/defn make-stmt-subs :- PreparedStatementSubstitution
   "Create a `PreparedStatementSubstitution` map for `sql-string` and the `param-seq`"
   [sql-string param-seq]
   {:sql-string   sql-string
    :param-values param-seq})
 
-(defn- honeysql->prepared-stmt-subs
+(s/defn ^:private honeysql->prepared-stmt-subs
   "Convert X to a replacement snippet info map by passing it to HoneySQL's `format` function."
   [driver x]
   (let [[snippet & args] (sql.qp/format-honeysql driver x)]
     (make-stmt-subs snippet args)))
 
-(mu/defmethod ->prepared-substitution [:sql nil] :- PreparedStatementSubstitution
+(s/defmethod ->prepared-substitution [:sql nil] :- PreparedStatementSubstitution
   [driver _]
   (honeysql->prepared-stmt-subs driver nil))
 
-(mu/defmethod ->prepared-substitution [:sql Object] :- PreparedStatementSubstitution
+(s/defmethod ->prepared-substitution [:sql Object] :- PreparedStatementSubstitution
   [driver obj]
   (honeysql->prepared-stmt-subs driver (str obj)))
 
-(mu/defmethod ->prepared-substitution [:sql Number] :- PreparedStatementSubstitution
+(s/defmethod ->prepared-substitution [:sql Number] :- PreparedStatementSubstitution
   [driver num]
-  (honeysql->prepared-stmt-subs driver (sql.qp/inline-num num)))
+  (honeysql->prepared-stmt-subs driver (sql.qp/with-driver-honey-sql-version driver (sql.qp/inline-num num))))
 
-(mu/defmethod ->prepared-substitution [:sql Boolean] :- PreparedStatementSubstitution
+(s/defmethod ->prepared-substitution [:sql Boolean] :- PreparedStatementSubstitution
   [driver b]
   (honeysql->prepared-stmt-subs driver b))
 
-(mu/defmethod ->prepared-substitution [:sql Keyword] :- PreparedStatementSubstitution
+(s/defmethod ->prepared-substitution [:sql Keyword] :- PreparedStatementSubstitution
   [driver kwd]
   (honeysql->prepared-stmt-subs driver kwd))
 
+(s/defmethod ->prepared-substitution [:sql SqlCall] :- PreparedStatementSubstitution
+  [driver sql-call]
+  (honeysql->prepared-stmt-subs driver sql-call))
+
 ;; TIMEZONE FIXME - remove this since we aren't using `Date` anymore
-(mu/defmethod ->prepared-substitution [:sql Date] :- PreparedStatementSubstitution
+(s/defmethod ->prepared-substitution [:sql Date] :- PreparedStatementSubstitution
   [_driver date]
   (make-stmt-subs "?" [date]))
 
-(mu/defmethod ->prepared-substitution [:sql Temporal] :- PreparedStatementSubstitution
+(s/defmethod ->prepared-substitution [:sql Temporal] :- PreparedStatementSubstitution
   [_driver t]
   (make-stmt-subs "?" [t]))
-
-(defmulti align-temporal-unit-with-param-type
-  "Returns a suitable temporal unit conversion keyword for `field`, `param-type` and the given driver. The resulting keyword
-  will be used to call the corresponding `metabase.driver.sql.query-processor/date` implementation to convert the `field`.
-  Returns `nil` if the conversion is not necessary for this `field` and `param-type` combination."
-  {:added "0.48.0" :arglists '([driver field param-type])}
-  driver/dispatch-on-initialized-driver
-  :hierarchy #'driver/hierarchy)
-
-(defmethod align-temporal-unit-with-param-type :default
-  [_driver _field param-type]
-  (when (params.dates/date-type? param-type)
-    :day))
 
 
 ;;; ------------------------------------------- ->replacement-snippet-info -------------------------------------------
 
 (def ^:private ParamSnippetInfo
-  [:map
-   [:replacement-snippet     {:optional true} :string] ; allowed to be blank if this is an optional param
-   [:prepared-statement-args {:optional true} [:maybe [:sequential :any]]]])
+  {(s/optional-key :replacement-snippet)     s/Str ; allowed to be blank if this is an optional param
+   (s/optional-key :prepared-statement-args) [s/Any]})
 
 (defmulti ->replacement-snippet-info
   "Return information about how `value` should be converted to SQL, as a map with keys `:replacement-snippet` and
   `:prepared-statement-args`.
 
     (->replacement-snippet-info :h2 \"ABC\") -> {:replacement-snippet \"?\", :prepared-statement-args \"ABC\"}"
-  {:added "0.33.4" :arglists '([driver value])}
+  {:arglists '([driver value])}
   (fn [driver v] [(driver/the-initialized-driver driver) (class v)])
   :hierarchy #'driver/hierarchy)
 
@@ -146,6 +136,10 @@
   (if (= this params/no-value)
     {:replacement-snippet ""}
     (create-replacement-snippet driver this)))
+
+(defmethod ->replacement-snippet-info [:sql SqlCall]
+  [driver this]
+  (create-replacement-snippet driver this))
 
 (defmethod ->replacement-snippet-info [:sql UUID]
   [_driver this]
@@ -198,65 +192,67 @@
 
 ;;; ------------------------------------- Field Filter replacement snippet info --------------------------------------
 
-(mu/defn ^:private combine-replacement-snippet-maps :- ParamSnippetInfo
+(s/defn ^:private combine-replacement-snippet-maps :- ParamSnippetInfo
   "Combine multiple `replacement-snippet-maps` into a single map using a SQL `AND` clause."
-  [replacement-snippet-maps :- [:maybe [:sequential ParamSnippetInfo]]]
+  [replacement-snippet-maps :- [ParamSnippetInfo]]
   {:replacement-snippet     (str \( (str/join " AND " (map :replacement-snippet replacement-snippet-maps)) \))
-   :prepared-statement-args (mapcat :prepared-statement-args replacement-snippet-maps)})
+   :prepared-statement-args (reduce concat (map :prepared-statement-args replacement-snippet-maps))})
 
 ;; for relative dates convert the param to a `DateRange` record type and call `->replacement-snippet-info` on it
-(mu/defn ^:private date-range-field-filter->replacement-snippet-info :- ParamSnippetInfo
+(s/defn ^:private date-range-field-filter->replacement-snippet-info :- ParamSnippetInfo
   [driver value]
   (->> (params.dates/date-string->range value)
        params/map->DateRange
        (->replacement-snippet-info driver)))
 
-(mu/defn ^:private field-filter->equals-clause-sql :- ParamSnippetInfo
+(s/defn ^:private field-filter->equals-clause-sql :- ParamSnippetInfo
   [driver value]
   (-> (->replacement-snippet-info driver value)
       (update :replacement-snippet (partial str "= "))))
 
-(mu/defn ^:private field-filter-multiple-values->in-clause-sql :- ParamSnippetInfo
+(s/defn ^:private field-filter-multiple-values->in-clause-sql :- ParamSnippetInfo
   [driver values]
   (-> (->replacement-snippet-info driver (vec values))
       (update :replacement-snippet (partial format "IN (%s)"))))
 
-(mu/defn ^:private honeysql->replacement-snippet-info :- ParamSnippetInfo
+(s/defn ^:private honeysql->replacement-snippet-info :- ParamSnippetInfo
   "Convert `hsql-form` to a replacement snippet info map by passing it to HoneySQL's `format` function."
   [driver hsql-form]
   (let [[snippet & args] (sql.qp/format-honeysql driver hsql-form)]
     {:replacement-snippet     snippet
      :prepared-statement-args args}))
 
-(mu/defn ^:private field->clause :- mbql.s/field
-  [driver     :- :keyword
-   field      :- lib.metadata/ColumnMetadata
-   param-type :- ::mbql.s/ParameterType]
+(s/defn ^:private field->clause :- mbql.s/field
+  [_driver {table-id :table_id, field-id :id, :as field} param-type]
   ;; The [[metabase.query-processor.middleware.parameters/substitute-parameters]] QP middleware actually happens before
   ;; the [[metabase.query-processor.middleware.resolve-fields/resolve-fields]] middleware that would normally fetch all
   ;; the Fields we need in a single pass, so this is actually necessary here. I don't think switching the order of the
   ;; middleware would work either because we don't know what Field this parameter actually refers to until we resolve
   ;; the parameter. There's probably _some_ way to structure things that would make this "duplicate" call unneeded, but
   ;; I haven't figured out what that is yet
+  (qp.store/fetch-and-store-fields! #{field-id})
+  (qp.store/fetch-and-store-tables! #{table-id})
   [:field
    (u/the-id field)
-   {:base-type                (:base-type field)
-    :temporal-unit            (align-temporal-unit-with-param-type driver field param-type)
-    ::add/source-table        (:table-id field)
+   {:base-type                (:base_type field)
+    :temporal-unit            (when (params.dates/date-type? param-type)
+                                :day)
+    ::add/source-table        (:table_id field) ; TODO -- are we sure we want to qualify this?
     ;; in case anyone needs to know we're compiling a Field filter.
     ::compiling-field-filter? true}])
 
-(mu/defn ^:private field->identifier :- ::lib.schema.common/non-blank-string
+(s/defn ^:private field->identifier :- su/NonBlankString
   "Return an approprate snippet to represent this `field` in SQL given its param type.
    For non-date Fields, this is just a quoted identifier; for dates, the SQL includes appropriately bucketing based on
    the `param-type`."
   [driver field param-type]
-  (->> (field->clause driver field param-type)
-       (sql.qp/->honeysql driver)
-       (honeysql->replacement-snippet-info driver)
-       :replacement-snippet))
+  (sql.qp/with-driver-honey-sql-version driver
+    (->> (field->clause driver field param-type)
+         (sql.qp/->honeysql driver)
+         (honeysql->replacement-snippet-info driver)
+         :replacement-snippet)))
 
-(mu/defn ^:private field-filter->replacement-snippet-info :- ParamSnippetInfo
+(s/defn ^:private field-filter->replacement-snippet-info :- ParamSnippetInfo
   "Return `[replacement-snippet & prepared-statement-args]` appropriate for a field filter parameter."
   [driver {{param-type :type, value :value, :as params} :value, field :field, :as _field-filter}]
   (assert (:id field) (format "Why doesn't Field have an ID?\n%s" (u/pprint-to-str field)))
@@ -264,7 +260,8 @@
             (update x :replacement-snippet
                     (partial str (field->identifier driver field param-type) " ")))
           (->honeysql [form]
-            (sql.qp/->honeysql driver form))]
+            (sql.qp/with-driver-honey-sql-version driver
+              (sql.qp/->honeysql driver form)))]
     (cond
       (params.ops/operator? param-type)
       (->> (assoc params :target [:template-tag (field->clause driver field param-type)])
@@ -297,11 +294,8 @@
       :else                                           (prepend-field
                                                        (field-filter->equals-clause-sql driver value)))))
 
-(mu/defmethod ->replacement-snippet-info [:sql FieldFilter]
-  [driver                            :- :keyword
-   {:keys [value], :as field-filter} :- [:map
-                                         [:field lib.metadata/ColumnMetadata]
-                                         [:value :any]]]
+(defmethod ->replacement-snippet-info [:sql FieldFilter]
+  [driver {:keys [value], :as field-filter}]
   (cond
     ;; otherwise if the value isn't present just put in something that will always be true, such as `1` (e.g. `WHERE 1
     ;; = 1`). This is only used for field filters outside of optional clauses

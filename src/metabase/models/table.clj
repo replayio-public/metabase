@@ -3,13 +3,14 @@
    [metabase.db.connection :as mdb.connection]
    [metabase.db.util :as mdb.u]
    [metabase.driver :as driver]
-   [metabase.models.audit-log :as audit-log]
    [metabase.models.database :refer [Database]]
    [metabase.models.field :refer [Field]]
    [metabase.models.field-values :refer [FieldValues]]
    [metabase.models.humanization :as humanization]
    [metabase.models.interface :as mi]
+   [metabase.models.metric :refer [Metric]]
    [metabase.models.permissions :as perms :refer [Permissions]]
+   [metabase.models.segment :refer [Segment]]
    [metabase.models.serialization :as serdes]
    [metabase.util :as u]
    [methodical.core :as methodical]
@@ -37,7 +38,6 @@
   "Used to be the toucan1 model name defined using [[toucan.models/defmodel]], not it's a reference to the toucan2 model name.
   We'll keep this till we replace all the Table symbol in our codebase."
   :model/Table)
-
 (methodical/defmethod t2/table-name :model/Table [_model] :metabase_table)
 
 (doto :model/Table
@@ -57,13 +57,14 @@
 
 (t2/define-before-insert :model/Table
   [table]
-  (let [defaults {:display_name (humanization/name->human-readable-name (:name table))
-                  :field_order  (driver/default-field-order (t2/select-one-fn :engine Database :id (:db_id table)))}]
+  (let [defaults {:display_name        (humanization/name->human-readable-name (:name table))
+                  :field_order         (driver/default-field-order (t2/select-one-fn :engine Database :id (:db_id table)))
+                  :initial_sync_status "incomplete"}]
     (merge defaults table)))
 
 (t2/define-before-delete :model/Table
   [{:keys [db_id schema id]}]
-  (t2/delete! Permissions :object [:like (str "%" (perms/data-perms-path db_id schema id) "%")]))
+  (t2/delete! Permissions :object [:like (str (perms/data-perms-path db_id schema id) "%")]))
 
 (defmethod mi/perms-objects-set :model/Table
   [{db-id :db_id, schema :schema, table-id :id, :as table} read-or-write]
@@ -178,7 +179,7 @@
   [tables]
   (with-objects :segments
     (fn [table-ids]
-      (t2/select :model/Segment :table_id [:in table-ids], :archived false, {:order-by [[:name :asc]]}))
+      (t2/select Segment :table_id [:in table-ids], :archived false, {:order-by [[:name :asc]]}))
     tables))
 
 (mi/define-batched-hydration-method with-metrics
@@ -187,7 +188,7 @@
   [tables]
   (with-objects :metrics
     (fn [table-ids]
-      (t2/select :model/Metric :table_id [:in table-ids], :archived false, {:order-by [[:name :asc]]}))
+      (t2/select Metric :table_id [:in table-ids], :archived false, {:order-by [[:name :asc]]}))
     tables))
 
 (defn with-fields
@@ -252,9 +253,3 @@
 (defmethod serdes/storage-path "Table" [table _ctx]
   (concat (serdes/storage-table-path-prefix (serdes/path table))
           [(:name table)]))
-
-;;; -------------------------------------------------- Audit Log Table -------------------------------------------------
-
-(defmethod audit-log/model-details Table
-  [table _event-type]
-  (select-keys table [:id :name :db_id]))

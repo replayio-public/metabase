@@ -1,10 +1,10 @@
 import Collections from "metabase/entities/collections";
-import type { Collection, CollectionId } from "metabase-types/api";
-import type {
+import { Collection, CollectionId } from "metabase-types/api";
+import {
+  useEntityQuery,
   UseEntityQueryProps,
   UseEntityQueryResult,
 } from "../use-entity-query";
-import { useEntityQuery } from "../use-entity-query";
 
 export const useCollectionQuery = (
   props: UseEntityQueryProps<CollectionId, unknown>,

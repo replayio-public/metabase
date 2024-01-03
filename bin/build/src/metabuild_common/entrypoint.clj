@@ -2,11 +2,7 @@
   (:require
    [metabuild-common.output :as out]))
 
-(set! *warn-on-reflection* true)
-
-(defn do-exit-when-finished-nonzero-on-exception
-  "Impl for [[exit-when-finished-nonzero-on-exception]]."
-  [thunk]
+(defn do-exit-when-finished-nonzero-on-exception [thunk]
   (try
     (thunk)
     (System/exit 0)

@@ -1,7 +1,7 @@
-import type { CollectionId } from "metabase-types/api";
-import { SearchBar } from "metabase/nav/components/search/SearchBar";
+import { CollectionId, User } from "metabase-types/api";
 import NewItemButton from "../NewItemButton";
-import { ProfileLink } from "../ProfileLink";
+import ProfileLink from "../ProfileLink";
+import SearchBar from "../SearchBar";
 import CollectionBreadcrumbs from "../../containers/CollectionBreadcrumbs";
 import QuestionLineage from "../../containers/QuestionLineage";
 import AppBarLogo from "./AppBarLogo";
@@ -14,6 +14,7 @@ import {
 } from "./AppBarLarge.styled";
 
 export interface AppBarLargeProps {
+  currentUser: User;
   collectionId?: CollectionId;
   isNavBarOpen?: boolean;
   isNavBarEnabled?: boolean;
@@ -28,6 +29,7 @@ export interface AppBarLargeProps {
 }
 
 const AppBarLarge = ({
+  currentUser,
   collectionId,
   isNavBarOpen,
   isNavBarEnabled,
@@ -70,7 +72,7 @@ const AppBarLarge = ({
           {isNewButtonVisible && <NewItemButton collectionId={collectionId} />}
           {isProfileLinkVisible && (
             <AppBarProfileLinkContainer>
-              <ProfileLink onLogout={onLogout} />
+              <ProfileLink user={currentUser} onLogout={onLogout} />
             </AppBarProfileLinkContainer>
           )}
         </AppBarRightContainer>

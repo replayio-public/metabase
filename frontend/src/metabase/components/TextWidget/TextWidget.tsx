@@ -2,6 +2,7 @@ import { Component } from "react";
 import ReactDOM from "react-dom";
 import { t } from "ttag";
 import { forceRedraw } from "metabase/lib/dom";
+import { KEYCODE_ENTER, KEYCODE_ESCAPE } from "metabase/lib/keyboard";
 
 type Props = {
   value: string | number;
@@ -19,7 +20,7 @@ type State = {
   isFocused: boolean;
 };
 
-export class TextWidget extends Component<Props, State> {
+class TextWidget extends Component<Props, State> {
   static defaultProps = {
     isEditing: false,
     commitImmediately: false,
@@ -81,9 +82,9 @@ export class TextWidget extends Component<Props, State> {
         }}
         onKeyUp={e => {
           const target = e.target as HTMLInputElement;
-          if (e.key === "Escape") {
+          if (e.keyCode === KEYCODE_ESCAPE) {
             target.blur();
-          } else if (e.key === "Enter") {
+          } else if (e.keyCode === KEYCODE_ENTER) {
             setValue(this.state.value ?? null);
             target.blur();
           }
@@ -93,9 +94,7 @@ export class TextWidget extends Component<Props, State> {
         }}
         onBlur={() => {
           changeFocus(false);
-          if (this.state.value !== this.props.value) {
-            setValue(this.state.value ?? null);
-          }
+          this.setState({ value: this.props.value });
         }}
         placeholder={isEditing ? t`Enter a default value…` : defaultPlaceholder}
         disabled={disabled}
@@ -103,3 +102,6 @@ export class TextWidget extends Component<Props, State> {
     );
   }
 }
+
+// eslint-disable-next-line import/no-default-export -- deprecated usage
+export default TextWidget;

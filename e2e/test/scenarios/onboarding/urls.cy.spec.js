@@ -5,13 +5,6 @@ import {
   getFullName,
 } from "e2e/support/helpers";
 import { USERS, SAMPLE_DB_ID } from "e2e/support/cypress_data";
-import {
-  ORDERS_QUESTION_ID,
-  ADMIN_PERSONAL_COLLECTION_ID,
-  NORMAL_PERSONAL_COLLECTION_ID,
-  FIRST_COLLECTION_ID,
-  ORDERS_DASHBOARD_ID,
-} from "e2e/support/cypress_sample_instance_data";
 
 import { SAVED_QUESTIONS_VIRTUAL_DB_ID } from "metabase-lib/metadata/utils/saved-questions";
 
@@ -41,7 +34,8 @@ describe("URLs", () => {
     ].forEach(url => {
       it("should open 'Saved Questions' database correctly", () => {
         cy.visit(url);
-        cy.findByTestId("browse-data");
+        // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+        cy.findByText("Saved Questions");
         cy.location("pathname").should("eq", url);
       });
     });
@@ -54,7 +48,7 @@ describe("URLs", () => {
       cy.findByText("Orders in a dashboard").click();
       cy.location("pathname").should(
         "eq",
-        `/dashboard/${ORDERS_DASHBOARD_ID}-orders-in-a-dashboard`,
+        "/dashboard/1-orders-in-a-dashboard",
       );
     });
   });
@@ -64,23 +58,16 @@ describe("URLs", () => {
       cy.visit("/collection/root");
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.findByText("Orders").click();
-      cy.location("pathname").should(
-        "eq",
-        `/question/${ORDERS_QUESTION_ID}-orders`,
-      );
+      cy.location("pathname").should("eq", "/question/1-orders");
     });
   });
 
   describe("collections", () => {
     it("should slugify collection name", () => {
       cy.visit("/collection/root");
-      cy.findAllByTestId("collection-entry-name")
-        .contains("First collection")
-        .click();
-      cy.location("pathname").should(
-        "eq",
-        `/collection/${FIRST_COLLECTION_ID}-first-collection`,
-      );
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText("First collection").click();
+      cy.location("pathname").should("eq", "/collection/9-first-collection");
     });
 
     it("should slugify current user's personal collection name correctly", () => {
@@ -89,9 +76,7 @@ describe("URLs", () => {
       cy.findByText("Your personal collection").click();
       cy.location("pathname").should(
         "eq",
-        `/collection/${ADMIN_PERSONAL_COLLECTION_ID}-${getUsersPersonalCollectionSlug(
-          admin,
-        )}`,
+        `/collection/1-${getUsersPersonalCollectionSlug(admin)}`,
       );
     });
 
@@ -106,28 +91,30 @@ describe("URLs", () => {
       cy.location("pathname").should("eq", "/collection/users");
     });
 
+    it("should slugify users' personal collection URLs", () => {
+      cy.visit("/collection/users");
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText(getFullName(normal)).click();
+      cy.location("pathname").should(
+        "eq",
+        `/collection/8-${getUsersPersonalCollectionSlug(normal)}`,
+      );
+    });
+
     it("should open slugified URLs correctly", () => {
-      cy.visit(`/collection/${FIRST_COLLECTION_ID}-first-collection`);
+      cy.visit("/collection/9-first-collection");
       cy.findByTestId("collection-name-heading").should(
         "have.text",
         "First collection",
       );
 
-      cy.visit(
-        `/collection/${ADMIN_PERSONAL_COLLECTION_ID}-${getUsersPersonalCollectionSlug(
-          admin,
-        )}`,
-      );
+      cy.visit(`/collection/1-${getUsersPersonalCollectionSlug(admin)}`);
       cy.findByTestId("collection-name-heading").should(
         "have.text",
         `${getFullName(admin)}'s Personal Collection`,
       );
 
-      cy.visit(
-        `/collection/${NORMAL_PERSONAL_COLLECTION_ID}-${getUsersPersonalCollectionSlug(
-          normal,
-        )}`,
-      );
+      cy.visit(`/collection/8-${getUsersPersonalCollectionSlug(normal)}`);
       cy.findByTestId("collection-name-heading").should(
         "have.text",
         `${getFullName(normal)}'s Personal Collection`,

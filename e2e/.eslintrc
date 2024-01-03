@@ -3,8 +3,7 @@
     "no-unscoped-text-selectors": 2,
     "import/no-commonjs": 0,
     "no-color-literals": 0,
-    "no-console": 0,
-    "@typescript-eslint/no-namespace": "off"
+    "no-console": 0
   },
   "env": {
     "cypress/globals": true,

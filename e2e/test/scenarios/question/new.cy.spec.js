@@ -5,22 +5,15 @@ import {
   visualize,
   startNewQuestion,
   visitQuestionAdhoc,
+  getCollectionIdFromSlug,
   saveQuestion,
   getPersonalCollectionName,
   visitCollection,
   modal,
-  setTokenFeatures,
-  describeOSS,
-  queryBuilderHeader,
 } from "e2e/support/helpers";
 
 import { SAMPLE_DB_ID, USERS } from "e2e/support/cypress_data";
 import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
-import {
-  ORDERS_QUESTION_ID,
-  SECOND_COLLECTION_ID,
-  THIRD_COLLECTION_ID,
-} from "e2e/support/cypress_sample_instance_data";
 
 const { ORDERS, ORDERS_ID } = SAMPLE_DATABASE;
 
@@ -36,14 +29,15 @@ describe("scenarios > question > new", () => {
     it("data selector popover should not be too small (metabase#15591)", () => {
       // Add 10 more databases
       for (let i = 0; i < 10; i++) {
-        cy.addSQLiteDatabase({ name: "Sample" + i });
+        cy.addH2SampleDatabase({ name: "Sample" + i });
       }
 
       startNewQuestion();
-      popover().within(() => {
-        cy.findByText("Raw Data").click();
-        cy.findByText("Sample3").isVisibleInPopover();
-      });
+
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.contains("Pick your starting data");
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText("Sample3").isVisibleInPopover();
     });
 
     it("new question data picker search should work for both saved questions and database tables", () => {
@@ -53,16 +47,14 @@ describe("scenarios > question > new", () => {
 
       startNewQuestion();
 
-      popover()
-        .findAllByRole("menuitem")
-        .should("have.length", 3)
-        .and("contain", "Models")
-        .and("contain", "Raw Data")
+      cy.get(".List-section")
+        .should("have.length", 2)
+        .and("contain", "Sample Database")
         .and("contain", "Saved Questions");
 
       // should not trigger search for an empty string
-      cy.findByPlaceholderText("Search for some data…").type("  ").blur();
-      cy.findByPlaceholderText("Search for some data…").type("ord");
+      cy.findByPlaceholderText("Search for a table…").type("  ").blur();
+      cy.findByPlaceholderText("Search for a table…").type("ord");
       cy.wait("@search");
       cy.get("@searchQuery").should("have.been.calledOnce");
 
@@ -73,20 +65,20 @@ describe("scenarios > question > new", () => {
       );
 
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-      cy.contains("Our analytics");
-      // cy.findAllByRole("link", { name: "Our analytics" })
-      //   .should("have.attr", "href")
-      //   .and("eq", "/collection/root");
+      cy.contains("Saved question in Our analytics");
+      cy.findAllByRole("link", { name: "Our analytics" })
+        .should("have.attr", "href")
+        .and("eq", "/collection/root");
 
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-      cy.contains("Sample Database");
-      // cy.findAllByRole("link", { name: "Sample Database" })
-      //   .should("have.attr", "href")
-      //   .and("eq", `/browse/${SAMPLE_DB_ID}-sample-database`);
+      cy.contains("Table in Sample Database");
+      cy.findAllByRole("link", { name: "Sample Database" })
+        .should("have.attr", "href")
+        .and("eq", `/browse/${SAMPLE_DB_ID}-sample-database`);
 
       // Discarding the search query should take us back to the original selector
       // that starts with the list of databases and saved questions
-      cy.findByPlaceholderText("Search for some data…");
+      cy.findByPlaceholderText("Search for a table…");
       cy.findByTestId("input-reset-button").click();
 
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
@@ -122,11 +114,9 @@ describe("scenarios > question > new", () => {
       cy.findByText("Orders");
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.findByText("Saved Questions").click();
-      popover().within(() => {
-        cy.contains("Raw Data").click();
-        cy.contains("Sample Database").click();
-        cy.findByText("Products").click();
-      });
+      popover().contains("Sample Database").click();
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText("Products").click();
       cy.findByTestId("data-step-cell").contains("Products");
       visualize();
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
@@ -136,10 +126,11 @@ describe("scenarios > question > new", () => {
     it("should suggest questions saved in collections with colon in their name (metabase#14287)", () => {
       cy.request("POST", "/api/collection", {
         name: "foo:bar",
+        color: "#509EE3",
         parent_id: null,
       }).then(({ body: { id: COLLECTION_ID } }) => {
         // Move question #1 ("Orders") to newly created collection
-        cy.request("PUT", `/api/card/${ORDERS_QUESTION_ID}`, {
+        cy.request("PUT", "/api/card/1", {
           collection_id: COLLECTION_ID,
         });
         // Sanity check: make sure Orders is indeed inside new collection
@@ -157,9 +148,11 @@ describe("scenarios > question > new", () => {
     });
 
     it("'Saved Questions' prompt should respect nested collections structure (metabase#14178)", () => {
-      // Move first question in a DB snapshot ("Orders") to a "Second collection"
-      cy.request("PUT", `/api/card/${ORDERS_QUESTION_ID}`, {
-        collection_id: SECOND_COLLECTION_ID,
+      getCollectionIdFromSlug("second_collection", id => {
+        // Move first question in a DB snapshot ("Orders") to a "Second collection"
+        cy.request("PUT", "/api/card/1", {
+          collection_id: id,
+        });
       });
 
       startNewQuestion();
@@ -175,9 +168,7 @@ describe("scenarios > question > new", () => {
       cy.signOut();
       cy.signIn("nocollection");
       startNewQuestion();
-      popover().within(() => {
-        cy.findByText("Orders").click();
-      });
+      popover().findByText("Orders").click();
       visualize();
       saveQuestion("Personal question");
 
@@ -268,7 +259,9 @@ describe("scenarios > question > new", () => {
   });
 
   it("should suggest the currently viewed collection when saving question", () => {
-    visitCollection(THIRD_COLLECTION_ID);
+    getCollectionIdFromSlug("third_collection", THIRD_COLLECTION_ID => {
+      visitCollection(THIRD_COLLECTION_ID);
+    });
 
     cy.findByLabelText("Navigation bar").within(() => {
       cy.findByText("New").click();
@@ -277,7 +270,7 @@ describe("scenarios > question > new", () => {
     popover().findByText("Question").click();
 
     popover().within(() => {
-      cy.findByText("Raw Data").click();
+      cy.findByText("Sample Database").click();
       cy.findByText("Orders").click();
     });
 
@@ -288,158 +281,4 @@ describe("scenarios > question > new", () => {
       cy.findByTestId("select-button").should("have.text", "Third collection");
     });
   });
-
-  it("should be able to save a question to a collection created on the go", () => {
-    visitCollection(THIRD_COLLECTION_ID);
-
-    cy.findByLabelText("Navigation bar").findByText("New").click();
-    popover().findByText("Question").click();
-    popover().within(() => {
-      cy.findByText("Raw Data").click();
-      cy.findByText("Orders").click();
-    });
-    cy.findByTestId("qb-header").findByText("Save").click();
-    modal().findByTestId("select-button").click();
-    popover().findByText("New collection").click();
-
-    const NEW_COLLECTION = "Foo";
-    modal().within(() => {
-      cy.findByLabelText("Name").type(NEW_COLLECTION);
-      cy.findByText("Create").click();
-      cy.findByText("Save new question");
-      cy.findByTestId("select-button").should("have.text", NEW_COLLECTION);
-      cy.findByText("Save").click();
-    });
-    cy.get("header").findByText(NEW_COLLECTION);
-  });
-
-  describe("add to a dashboard", () => {
-    const collectionInRoot = {
-      name: "Collection in root collection",
-    };
-    const dashboardInRoot = {
-      name: "Dashboard in root collection",
-    };
-    const myPersonalCollection = "My personal collection";
-
-    beforeEach(() => {
-      cy.intercept("POST", "/api/card").as("createQuestion");
-      cy.createCollection(collectionInRoot);
-      cy.createDashboard(dashboardInRoot);
-      // Can't use `startNewQuestion` because it's missing `display: "table"` and
-      // adding that will fail a lot of other tests and I don't want to deal with that yet.
-      cy.visit("/");
-      cy.findByTestId("app-bar").button("New").click();
-      popover().findByText("Question").click();
-    });
-
-    it("should hide public collections when selecting a dashboard for a question in a personal collection", () => {
-      popover().within(() => {
-        cy.findByText("Raw Data").click();
-        cy.findByText("Orders").click();
-      });
-
-      queryBuilderHeader().button("Save").click();
-      modal().findByTestId("select-button").click();
-      popover().findByText("My personal collection").click();
-      modal().within(() => {
-        cy.button("Save").click();
-        cy.wait("@createQuestion");
-        cy.button("Yes please!").click();
-
-        cy.findByText("Add this question to a dashboard").should("be.visible");
-        cy.findByText(myPersonalCollection).should("be.visible");
-        cy.findByText(collectionInRoot.name).should("not.exist");
-        cy.findByText(dashboardInRoot.name).should("not.exist");
-        cy.findByText("Create a new dashboard").should("not.exist");
-      });
-    });
-
-    it("should show all collections when selecting a dashboard for a question in a public collection", () => {
-      popover().within(() => {
-        cy.findByText("Raw Data").click();
-        cy.findByText("Orders").click();
-      });
-
-      queryBuilderHeader().button("Save").click();
-      cy.log("default selected collection is the root collection");
-      modal().within(() => {
-        cy.button("Save").click();
-        cy.wait("@createQuestion");
-        cy.button("Yes please!").click();
-
-        cy.findByText("Add this question to a dashboard").should("be.visible");
-        cy.findByText(myPersonalCollection).should("be.visible");
-        cy.findByText(collectionInRoot.name).should("be.visible");
-        cy.findByText(dashboardInRoot.name).should("be.visible");
-        cy.findByText("Create a new dashboard").should("be.visible");
-      });
-    });
-  });
 });
-
-// the data picker has different behavior if there are no models in the instance
-// the default instance image has a model in it, so we need to separately test the
-// model-less behavior
-describeOSS(
-  "scenarios > question > new > data picker > without models",
-  { tags: "@OSS" },
-  () => {
-    beforeEach(() => {
-      restore("without-models");
-      cy.signInAsAdmin();
-      setTokenFeatures("none");
-    });
-
-    it("can create a question from the sample database", () => {
-      cy.visit("/question/new");
-
-      cy.get("#DataPopover").within(() => {
-        cy.findByText("Saved Questions").should("be.visible");
-        cy.findByText("Models").should("not.exist");
-        cy.findByText("Sample Database").click();
-        cy.findByText("Products").click();
-      });
-      cy.get("main")
-        .findByText(/Doing Science/)
-        .should("not.exist");
-
-      cy.findByTestId("TableInteractive-root").within(() => {
-        cy.findByText("Rustic Paper Wallet").should("be.visible");
-      });
-    });
-
-    it("can create a question from a saved question", () => {
-      cy.visit("/question/new");
-
-      cy.get("#DataPopover").within(() => {
-        cy.findByText("Saved Questions").click();
-        cy.findByText("Models").should("not.exist");
-        cy.findByText("Orders").click();
-      });
-      cy.get("main")
-        .findByText(/Doing Science/)
-        .should("not.exist");
-
-      cy.findByTestId("TableInteractive-root").within(() => {
-        cy.findByText(39.72).should("be.visible");
-      });
-    });
-
-    it("shows models and raw data options after creating a model", () => {
-      cy.createQuestion({
-        name: "Orders Model",
-        query: { "source-table": ORDERS_ID },
-        dataset: true,
-      });
-
-      cy.visit("/question/new");
-
-      cy.get("#DataPopover").within(() => {
-        cy.findByText("Raw Data").should("be.visible");
-        cy.findByText("Saved Questions").should("be.visible");
-        cy.findByText("Models").should("be.visible");
-      });
-    });
-  },
-);

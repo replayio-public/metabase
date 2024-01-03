@@ -1,5 +1,4 @@
 import PropTypes from "prop-types";
-import { t } from "ttag";
 
 import Dashboard from "metabase/entities/dashboards";
 import * as Urls from "metabase/lib/urls";
@@ -61,18 +60,14 @@ function AuditDashboardAuditLogTab({ dashboardId }) {
 }
 
 AuditDashboardDetail.tabs = [
-  {
-    path: "activity",
-    title: t`Activity`,
-    component: AuditDashboardActivityTab,
-  },
+  { path: "activity", title: "Activity", component: AuditDashboardActivityTab },
   { path: "details", title: "Details" },
   {
     path: "revisions",
-    title: t`Revision history`,
+    title: "Revision history",
     component: AuditDashboardRevisionsTab,
   },
-  { path: "log", title: t`Audit log`, component: AuditDashboardAuditLogTab },
+  { path: "log", title: "Audit log", component: AuditDashboardAuditLogTab },
 ];
 
 export default AuditDashboardDetail;

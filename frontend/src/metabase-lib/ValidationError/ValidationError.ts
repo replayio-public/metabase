@@ -1,4 +1,4 @@
-import type { ErrorType } from "./types";
+import { ErrorType } from "./types";
 
 // eslint-disable-next-line import/no-default-export -- deprecated usage
 export default class ValidationError extends Error {

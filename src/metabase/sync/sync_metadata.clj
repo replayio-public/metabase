@@ -7,44 +7,38 @@
    3.  Sync FKs    (`metabase.sync.sync-metadata.fks`)
    4.  Sync Metabase Metadata table (`metabase.sync.sync-metadata.metabase-metadata`)"
   (:require
-   [metabase.models.table :as table]
    [metabase.sync.fetch-metadata :as fetch-metadata]
    [metabase.sync.interface :as i]
    [metabase.sync.sync-metadata.dbms-version :as sync-dbms-ver]
    [metabase.sync.sync-metadata.fields :as sync-fields]
    [metabase.sync.sync-metadata.fks :as sync-fks]
-   [metabase.sync.sync-metadata.indexes :as sync-indexes]
    [metabase.sync.sync-metadata.metabase-metadata :as metabase-metadata]
-   [metabase.sync.sync-metadata.sync-table-privileges :as sync-table-privileges]
    [metabase.sync.sync-metadata.sync-timezone :as sync-tz]
    [metabase.sync.sync-metadata.tables :as sync-tables]
    [metabase.sync.util :as sync-util]
    [metabase.util :as u]
-   [metabase.util.malli :as mu]))
+   [metabase.util.i18n :refer [trs]]
+   [schema.core :as s]))
 
 (defn- sync-dbms-version-summary [{:keys [version] :as _step-info}]
   (if version
-    (format "Found DBMS version %s" version)
-    "Could not determine DBMS version"))
+    (trs "Found DBMS version {0}" version)
+    (trs "Could not determine DBMS version")))
 
 (defn- sync-fields-summary [{:keys [total-fields updated-fields] :as _step-info}]
-  (format "Total number of fields sync''d %d, number of fields updated %d"
-          total-fields updated-fields))
+  (trs "Total number of fields sync''d {0}, number of fields updated {1}"
+       total-fields updated-fields))
 
 (defn- sync-tables-summary [{:keys [total-tables updated-tables] :as _step-info}]
-  (format "Total number of tables sync''d %d, number of tables updated %d"
-          total-tables updated-tables))
+  (trs "Total number of tables sync''d {0}, number of tables updated {1}"
+       total-tables updated-tables))
 
 (defn- sync-timezone-summary [{:keys [timezone-id]}]
-  (format "Found timezone id %s" timezone-id))
+  (trs "Found timezone id {0}" timezone-id))
 
 (defn- sync-fks-summary [{:keys [total-fks updated-fks total-failed]}]
-  (format "Total number of foreign keys sync''d %d, %d updated and %d tables failed to update"
-          total-fks updated-fks total-failed))
-
-(defn- sync-indexes-summary [{:keys [total-indexes added-indexes removed-indexes]}]
-  (format "Total number of indexes sync''d %d, %d added and %d removed"
-          total-indexes added-indexes removed-indexes))
+  (trs "Total number of foreign keys sync''d {0}, {1} updated and {2} tables failed to update"
+       total-fks updated-fks total-failed))
 
 (defn- make-sync-steps [db-metadata]
   [(sync-util/create-sync-step "sync-dbms-version" sync-dbms-ver/sync-dbms-version! sync-dbms-version-summary)
@@ -55,14 +49,10 @@
    (sync-util/create-sync-step "sync-fields" sync-fields/sync-fields! sync-fields-summary)
    ;; Now for each table, sync the FKS. This has to be done after syncing all the fields to make sure target fields exist
    (sync-util/create-sync-step "sync-fks" sync-fks/sync-fks! sync-fks-summary)
-   ;; Sync index info if the database supports it
-   (sync-util/create-sync-step "sync-indexes" sync-indexes/maybe-sync-indexes! sync-indexes-summary)
    ;; finally, sync the metadata metadata table if it exists.
-   (sync-util/create-sync-step "sync-metabase-metadata" #(metabase-metadata/sync-metabase-metadata! % db-metadata))
-   ;; Now sync the table privileges
-   (sync-util/create-sync-step "sync-table-privileges" sync-table-privileges/sync-table-privileges!)])
+   (sync-util/create-sync-step "sync-metabase-metadata" #(metabase-metadata/sync-metabase-metadata! % db-metadata))])
 
-(mu/defn sync-db-metadata!
+(s/defn sync-db-metadata!
   "Sync the metadata for a Metabase `database`. This makes sure child Table & Field objects are synchronized."
   [database :- i/DatabaseInstance]
   (let [db-metadata (fetch-metadata/db-metadata database)]
@@ -72,10 +62,8 @@
           (sync-util/set-initial-database-sync-aborted! database)
           (sync-util/set-initial-database-sync-complete! database))))))
 
-(mu/defn sync-table-metadata!
+(s/defn sync-table-metadata!
   "Sync the metadata for an individual `table` -- make sure Fields and FKs are up-to-date."
   [table :- i/TableInstance]
-  (let [database (table/database table)]
-    (sync-fields/sync-fields-for-table! database table)
-    (sync-fks/sync-fks-for-table! database table)
-    (sync-indexes/maybe-sync-indexes-for-table! database table)))
+  (sync-fields/sync-fields-for-table! table)
+  (sync-fks/sync-fks-for-table! table))

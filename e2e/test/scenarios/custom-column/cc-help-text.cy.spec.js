@@ -33,26 +33,25 @@ describe("scenarios > question > custom column > help text", () => {
   });
 
   it("should not appear when formula field is not in focus (metabase#15891)", () => {
-    enterCustomColumnDetails({ formula: "rou{enter}1.5){leftArrow}" });
+    enterCustomColumnDetails({ formula: "rou{enter}1.5" });
 
-    cy.findByTestId("expression-helper-popover").findByText(
-      "round([Temperature])",
-    );
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("round([Temperature])");
 
-    cy.log("Blur event should remove the expression helper popover");
-    cy.get("@formula").blur();
-    cy.findByTestId("expression-helper-popover").should("not.exist");
+    // Click outside of formula field instead of blur
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("Expression").click();
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("round([Temperature])").should("not.exist");
 
+    // Should also work with escape key
     cy.get("@formula").focus();
-    cy.findByTestId("expression-helper-popover").findByText(
-      "round([Temperature])",
-    );
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("round([Temperature])");
 
-    cy.log(
-      "Pressing `escape` key should also remove the expression helper popover",
-    );
     cy.get("@formula").type("{esc}");
-    cy.findByTestId("expression-helper-popover").should("not.exist");
+    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+    cy.findByText("round([Temperature])").should("not.exist");
   });
 
   it("should not disappear when clicked on (metabase#17548)", () => {

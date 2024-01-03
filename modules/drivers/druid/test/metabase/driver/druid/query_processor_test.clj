@@ -4,7 +4,7 @@
    [cheshire.core :as json]
    [clojure.test :refer :all]
    [clojure.tools.macro :as tools.macro]
-   [java-time.api :as t]
+   [java-time :as t]
    [medley.core :as m]
    [metabase.db.metadata-queries :as metadata-queries]
    [metabase.driver :as driver]
@@ -548,8 +548,7 @@
       (tqpt/with-flattened-dbdef
         (t2.with-temp/with-temp [Metric metric {:definition (mt/$ids checkins
                                                               {:aggregation [:sum $venue_price]
-                                                               :filter      [:> $venue_price 1]})
-                                                :table_id (mt/id :checkins)}]
+                                                               :filter      [:> $venue_price 1]})}]
           (is (= [["2" 1231.0]
                   ["3"  346.0]
                   ["4" 197.0]]
@@ -655,7 +654,7 @@
   (mt/test-driver :druid
     (testing "parse-filter should generate the correct filter clauses"
       (tqpt/with-flattened-dbdef
-        (mt/with-metadata-provider (mt/id)
+        (mt/with-everything-store
           (tools.macro/macrolet [(parse-filter [filter-clause]
                                    `(#'druid.qp/parse-filter (mt/$ids ~'checkins ~filter-clause)))]
             (testing "normal non-compound filters should work as expected"

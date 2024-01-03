@@ -9,11 +9,6 @@ import {
   openQuestionsSidebar,
 } from "e2e/support/helpers";
 
-import {
-  ORDERS_QUESTION_ID,
-  ORDERS_DASHBOARD_ID,
-} from "e2e/support/cypress_sample_instance_data";
-
 const PERMISSIONS = {
   curate: ["admin", "normal", "nodata"],
   view: ["readonly"],
@@ -61,7 +56,7 @@ describe("revision history", () => {
             beforeEach(() => {
               cy.signInAsAdmin();
               // Generate some history for the question
-              cy.request("PUT", `/api/card/${ORDERS_QUESTION_ID}`, {
+              cy.request("PUT", "/api/card/1", {
                 name: "Orders renamed",
               });
 
@@ -89,7 +84,7 @@ describe("revision history", () => {
 
             // skipped because it's super flaky in CI
             it.skip("should be able to revert a dashboard (metabase#15237)", () => {
-              visitDashboard(ORDERS_DASHBOARD_ID);
+              visitDashboard(1);
               openRevisionHistory();
               clickRevert(/created this/);
 
@@ -119,7 +114,7 @@ describe("revision history", () => {
             it("should be able to access the question's revision history via the revision history button in the header of the query builder", () => {
               cy.skipOn(user === "nodata");
 
-              visitQuestion(ORDERS_QUESTION_ID);
+              visitQuestion(1);
 
               cy.findByTestId("revision-history-button").click();
 
@@ -137,7 +132,7 @@ describe("revision history", () => {
             it("should be able to revert the question via the action button found in the saved question timeline", () => {
               cy.skipOn(user === "nodata");
 
-              visitQuestion(ORDERS_QUESTION_ID);
+              visitQuestion(1);
 
               questionInfoButton().click();
               // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
@@ -161,13 +156,13 @@ describe("revision history", () => {
             it("should not see question nor dashboard revert buttons (metabase#13229)", () => {
               cy.signIn(user);
 
-              visitDashboard(ORDERS_DASHBOARD_ID);
+              visitDashboard(1);
               openRevisionHistory();
               cy.findAllByRole("button", { name: "Revert" }).should(
                 "not.exist",
               );
 
-              visitQuestion(ORDERS_QUESTION_ID);
+              visitQuestion(1);
               cy.findByRole("button", { name: /Edited .*/ }).click();
 
               cy.findAllByRole("button", { name: "Revert" }).should(

@@ -13,7 +13,6 @@ import {
   visitPublicDashboard,
   describeEE,
   setSearchBoxFilterType,
-  setTokenFeatures,
 } from "e2e/support/helpers";
 import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
 
@@ -52,7 +51,7 @@ const targetQuestion = {
   },
 };
 
-describe("scenarios > dashboard > filters", { tags: "@slow" }, () => {
+describe("scenarios > dashboard > filters", () => {
   beforeEach(() => {
     restore();
     cy.signInAsAdmin();
@@ -243,7 +242,6 @@ describeEE("scenarios > dashboard > filters", () => {
   beforeEach(() => {
     restore();
     cy.signInAsAdmin();
-    setTokenFeatures("all");
   });
 
   it("should sandbox parameter values in dashboards", () => {

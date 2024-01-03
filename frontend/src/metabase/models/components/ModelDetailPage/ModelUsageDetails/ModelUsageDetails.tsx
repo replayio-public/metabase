@@ -2,7 +2,6 @@ import { t } from "ttag";
 
 import Button from "metabase/core/components/Button";
 import Link from "metabase/core/components/Link";
-import type { IconName } from "metabase/core/components/Icon";
 import { Icon } from "metabase/core/components/Icon";
 
 import * as Urls from "metabase/lib/urls";
@@ -12,7 +11,6 @@ import Questions, {
 
 import type { State } from "metabase-types/store";
 import type Question from "metabase-lib/Question";
-import * as ML_Urls from "metabase-lib/urls";
 
 import {
   EmptyStateContainer,
@@ -42,7 +40,7 @@ function ModelUsageDetails({ model, questions, hasNewQuestionLink }: Props) {
           <EmptyStateActionContainer>
             <Button
               as={Link}
-              to={ML_Urls.getUrl(model.composeDataset())}
+              to={model.composeDataset().getUrl()}
               icon="add"
             >{t`Create a new question`}</Button>
           </EmptyStateActionContainer>
@@ -59,7 +57,7 @@ function ModelUsageDetails({ model, questions, hasNewQuestionLink }: Props) {
             to={Urls.question(question.card())}
             aria-label={question.displayName() ?? ""}
           >
-            <Icon name={getQuestionIcon(question.card()).name as IconName} />
+            <Icon name={getQuestionIcon(question.card()).name} />
             <CardTitle>{question.displayName()}</CardTitle>
           </CardListItem>
         </li>

@@ -1,5 +1,5 @@
 import { getMetadata } from "metabase/selectors/metadata";
-import type { TableId, Table } from "metabase-types/api";
+import { TableId, Table } from "metabase-types/api";
 import {
   createMockField,
   createMockForeignKey,

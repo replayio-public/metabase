@@ -6,7 +6,7 @@ import {
   renderWithProviders,
   screen,
   waitFor,
-  waitForLoaderToBeRemoved,
+  waitForElementToBeRemoved,
 } from "__support__/ui";
 
 import type {
@@ -90,7 +90,9 @@ async function setup({
     },
   );
 
-  await waitForLoaderToBeRemoved();
+  await waitForElementToBeRemoved(() =>
+    screen.queryByTestId("loading-spinner"),
+  );
 }
 
 describe("PublicAction", () => {

@@ -1,7 +1,7 @@
-import type { Timeline } from "metabase-types/api";
+import { Timeline } from "metabase-types/api";
 import TimelineDetailsModal from "../../containers/TimelineDetailsModal";
 import TimelineListModal from "../../containers/TimelineListModal";
-import type { ModalParams } from "../../types";
+import { ModalParams } from "../../types";
 
 export interface TimelineIndexModalProps {
   timelines: Timeline[];

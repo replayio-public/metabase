@@ -9,9 +9,12 @@
    [metabase.models.database :refer [Database]]
    [metabase.models.table :refer [Table]]
    [metabase.query-processor :as qp]
+   [metabase.query-processor-test :as qp.test]
    [metabase.sync :as sync]
    [metabase.test :as mt]
+   [metabase.test.data :as data]
    [metabase.util :as u]
+   [toucan.hydrate :refer [hydrate]]
    [toucan2.core :as t2]
    [toucan2.tools.with-temp :as t2.with-temp]))
 
@@ -19,7 +22,7 @@
 
 (deftest timezone-id-test
   (mt/test-driver :sqlite
-    (is (= "UTC"
+    (is (= nil
            (driver/db-default-timezone :sqlite (mt/db))))))
 
 (deftest filter-by-date-test
@@ -31,15 +34,15 @@
               [995 "2014-03-05T00:00:00Z"]
               [159 "2014-03-06T00:00:00Z"]
               [951 "2014-03-06T00:00:00Z"]]
-             (mt/rows
-              (mt/run-mbql-query checkins
+             (qp.test/rows
+              (data/run-mbql-query checkins
                 {:fields   [$id $date]
                  :filter   [:and
                             [:>= $date "2014-03-04"]
                             [:<= $date "2014-03-06"]]
                  :order-by [[:asc $date]]}))
-             (mt/rows
-              (mt/run-mbql-query checkins
+             (qp.test/rows
+              (data/run-mbql-query checkins
                 {:fields   [$id $date]
                  :filter   [:between $date "2014-03-04" "2014-03-07"]
                  :order-by [[:asc $date]]})))))))
@@ -74,7 +77,7 @@
                              :base_type :type/Integer}
                             {:name      "time"
                              :base_type :type/Text}]}]
-                 (->> (t2/hydrate (t2/select Table :db_id db-id {:order-by [:name]}) :fields)
+                 (->> (hydrate (t2/select Table :db_id db-id {:order-by [:name]}) :fields)
                       (map table-fingerprint))))
           (doseq [statement ["drop view if exists v_groupby_test;"
                              "drop table if exists groupby_test;"
@@ -110,7 +113,7 @@
                              :base_type :type/Text}
                             {:name      "totalValue"
                              :base_type :type/Float}]}]
-                 (->> (t2/hydrate (t2/select Table :db_id db-id
+                 (->> (hydrate (t2/select Table :db_id db-id
                                           {:where    [:in :name ["groupby_test" "v_groupby_test"]]
                                            :order-by [:name]}) :fields)
                       (map table-fingerprint)))))))))
@@ -180,33 +183,33 @@
             (is (= [["2021-08-25T04:18:24Z"   ; TIMESTAMP
                      "2021-08-25T00:00:00Z"   ; DATE
                      "2021-08-25T04:18:24Z"]] ; DATETIME
-                   (mt/rows
+                   (qp.test/rows
                     (mt/run-mbql-query datetime_table
                       {:fields [$col_timestamp $col_date $col_datetime]
                        :filter [:= $test_case "epoch"]})))))
           (testing "select datetime stored as string with milliseconds"
             (is (= [["2021-08-25T04:18:24.111Z"   ; TIMESTAMP (raw string)
                      "2021-08-25T04:18:24.111Z"]] ; DATETIME
-                   (mt/rows
+                   (qp.test/rows
                     (mt/run-mbql-query datetime_table
                       {:fields [$col_timestamp $col_datetime]
                        :filter [:= $test_case "iso8601-ms"]})))))
           (testing "select datetime stored as string without milliseconds"
             (is (= [["2021-08-25T04:18:24Z"   ; TIMESTAMP (raw string)
                      "2021-08-25T04:18:24Z"]] ; DATETIME
-                   (mt/rows
+                   (qp.test/rows
                     (mt/run-mbql-query datetime_table
                       {:fields [$col_timestamp $col_datetime]
                        :filter [:= $test_case "iso8601-no-ms"]})))))
           (testing "select date stored as string without time"
             (is (= [["2021-08-25T00:00:00Z"]] ; DATE
-                   (mt/rows
+                   (qp.test/rows
                     (mt/run-mbql-query datetime_table
                       {:fields [$col_date]
                        :filter [:= $test_case "iso8601-no-time"]})))))
           (testing "select NULL"
             (is (= [[nil nil nil]]
-                   (mt/rows
+                   (qp.test/rows
                     (mt/run-mbql-query datetime_table
                       {:fields [$col_timestamp $col_date $col_datetime]
                        :filter [:= $test_case "null"]}))))))))))
@@ -214,7 +217,7 @@
 (deftest duplicate-identifiers-test
   (testing "Make sure duplicate identifiers (even with different cases) get unique aliases"
     (mt/test-driver :sqlite
-      (mt/dataset test-data
+      (mt/dataset sample-dataset
         (is (= '{:select   [source.CATEGORY_2 AS CATEGORY_2
                             COUNT (*)         AS count]
                  :from     [{:select [products.category       AS category
@@ -236,9 +239,9 @@
   (testing "Don't allow connections to other SQLite databases with ATTACH DATABASE (https://github.com/metabase/metaboat/issues/152)"
     (mt/test-driver :sqlite
       ;; force creation of the sample dataset file
-      (mt/dataset test-data
+      (mt/dataset sample-dataset
         (mt/id))
-      (let [file (io/file "test-data.sqlite")
+      (let [file (io/file "sample-dataset.sqlite")
             path (.getAbsolutePath file)]
         (is (.exists file))
         (testing "Attach the sample dataset as an FDW called fdw_test"

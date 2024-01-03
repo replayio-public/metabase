@@ -8,10 +8,10 @@ import { SEARCH_DEBOUNCE_DURATION } from "metabase/lib/constants";
 import EmptyState from "metabase/components/EmptyState";
 
 import { CardApi } from "metabase/services";
-import type {
+import {
   Card,
   CardId,
-  DashboardCard,
+  DashboardOrderedCard,
   GetCompatibleCardsPayload,
 } from "metabase-types/api";
 import {
@@ -30,7 +30,7 @@ const PAGE_SIZE = 50;
 interface QuestionListProps {
   enabledCards: Card[];
   onSelect: (card: Card, isChecked: boolean) => void;
-  dashcard: DashboardCard;
+  dashcard: DashboardOrderedCard;
 }
 
 export const QuestionList = memo(function QuestionList({

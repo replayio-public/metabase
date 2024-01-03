@@ -4,7 +4,6 @@ import {
   describeEE,
   assertPermissionForItem,
   modifyPermission,
-  setTokenFeatures,
 } from "e2e/support/helpers";
 
 import { SAMPLE_DB_ID, SAMPLE_DB_SCHEMA_ID } from "e2e/support/cypress_data";
@@ -19,13 +18,12 @@ describeEE("scenarios > admin > permissions", () => {
   beforeEach(() => {
     restore();
     cy.signInAsAdmin();
-    setTokenFeatures("all");
 
     cy.intercept("PUT", "/api/table/*").as("tableUpdate");
     cy.intercept("PUT", "/api/field/*").as("fieldUpdate");
     cy.intercept(
       "GET",
-      "/api/table/*/query_metadata?include_sensitive_fields=true&include_editable_data_model=true",
+      "/api/table/2/query_metadata?include_sensitive_fields=true&include_editable_data_model=true",
     ).as("tableMetadataFetch");
   });
 
@@ -52,7 +50,7 @@ describeEE("scenarios > admin > permissions", () => {
 
     // Assert the Data Model page state
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-    cy.findByText("Table Metadata");
+    cy.findByText("Data Model");
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
     cy.findByText("1 Queryable Table");
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
@@ -101,7 +99,7 @@ describeEE("scenarios > admin > permissions", () => {
 
     // Assert the Data Model page state
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-    cy.findByText("Table Metadata");
+    cy.findByText("Data Model");
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
     cy.findByText("4 Queryable Tables");
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage

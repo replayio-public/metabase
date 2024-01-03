@@ -11,7 +11,8 @@ import ListSearchField from "metabase/components/ListSearchField";
 import { Icon } from "metabase/core/components/Icon";
 import PopoverWithTrigger from "metabase/components/PopoverWithTrigger";
 import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper";
-import { DATA_BUCKET, getDataTypes } from "metabase/containers/DataPicker";
+
+import MetabaseSettings from "metabase/lib/settings";
 
 import Databases from "metabase/entities/databases";
 import Schemas from "metabase/entities/schemas";
@@ -20,7 +21,6 @@ import Search from "metabase/entities/search";
 
 import { getMetadata } from "metabase/selectors/metadata";
 import { getHasDataAccess } from "metabase/selectors/data";
-import { getSetting } from "metabase/selectors/settings";
 import { getSchemaName } from "metabase-lib/metadata/utils/schema";
 import {
   isVirtualCardId,
@@ -41,6 +41,8 @@ import {
   EmptyStateContainer,
   TableSearchContainer,
 } from "./DataSelector.styled";
+
+import { DATA_BUCKET } from "./constants";
 
 import "./DataSelector.css";
 
@@ -180,7 +182,6 @@ const DataSelector = _.compose(
         entityQuery: { include: "tables" },
       }),
       hasDataAccess: getHasDataAccess(ownProps.allDatabases ?? []),
-      hasNestedQueriesEnabled: getSetting(state, "enable-nested-queries"),
     }),
     {
       fetchDatabases: databaseQuery =>
@@ -492,11 +493,7 @@ export class UnconnectedDataSelector extends Component {
 
   hasUsableDatasets = () => {
     // As datasets are actually saved questions, nested queries must be enabled
-    return this.hasDatasets() && this.props.hasNestedQueriesEnabled;
-  };
-
-  hasSavedQuestions = () => {
-    return this.state.databases.some(database => database.is_saved_questions);
+    return this.hasDatasets() && MetabaseSettings.get("enable-nested-queries");
   };
 
   getDatabases = () => {
@@ -506,7 +503,7 @@ export class UnconnectedDataSelector extends Component {
     // "Saved Questions" are presented in a different picker step
     // So it should be excluded from a regular databases list
     const shouldRemoveSavedQuestionDatabaseFromList =
-      !this.props.hasNestedQueriesEnabled || this.hasDatasets();
+      !MetabaseSettings.get("enable-nested-queries") || this.hasDatasets();
 
     return shouldRemoveSavedQuestionDatabaseFromList
       ? databases.filter(db => !db.is_saved_questions)
@@ -665,12 +662,6 @@ export class UnconnectedDataSelector extends Component {
   async loadStepData(stepName) {
     const loadersForSteps = {
       // NOTE: make sure to return the action's resulting promise
-      [DATA_BUCKET_STEP]: () => {
-        return Promise.all([
-          this.props.fetchDatabases(this.props.databaseQuery),
-          this.props.fetchDatabases({ saved: true }),
-        ]);
-      },
       [DATABASE_STEP]: () => {
         return Promise.all([
           this.props.fetchDatabases(this.props.databaseQuery),
@@ -865,7 +856,7 @@ export class UnconnectedDataSelector extends Component {
   };
 
   renderActiveStep() {
-    const { combineDatabaseSchemaSteps, hasNestedQueriesEnabled } = this.props;
+    const { combineDatabaseSchemaSteps } = this.props;
 
     const props = {
       ...this.state,
@@ -887,16 +878,7 @@ export class UnconnectedDataSelector extends Component {
 
     switch (this.state.activeStep) {
       case DATA_BUCKET_STEP:
-        return (
-          <DataBucketPicker
-            dataTypes={getDataTypes({
-              hasModels: this.hasDatasets(),
-              hasNestedQueriesEnabled,
-              hasSavedQuestions: this.hasSavedQuestions(),
-            })}
-            {...props}
-          />
-        );
+        return <DataBucketPicker {...props} />;
       case DATABASE_STEP:
         return combineDatabaseSchemaSteps ? (
           <DatabaseSchemaPicker
@@ -987,7 +969,7 @@ export class UnconnectedDataSelector extends Component {
 
   getSearchModels = () => {
     const { selectedDataBucketId, isSavedQuestionPickerShown } = this.state;
-    if (!this.props.hasNestedQueriesEnabled) {
+    if (!MetabaseSettings.get("enable-nested-queries")) {
       return ["table"];
     }
     if (!this.hasUsableDatasets()) {

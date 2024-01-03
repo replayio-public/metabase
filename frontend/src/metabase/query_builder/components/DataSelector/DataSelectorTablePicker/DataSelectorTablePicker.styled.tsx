@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { css } from "@emotion/react";
 
 import { color } from "metabase/lib/colors";
 import { space } from "metabase/styled-components/theme";
@@ -22,7 +23,9 @@ export const DataSelectorTablePickerHeaderClickable = styled.span<Props>`
   align-items: center;
   display: flex;
 
-  cursor: pointer;
+  ${({ onClick }) => css`
+    cursor: pointer;
+  `}
 `;
 
 export const DataSelectorTablePickerHeaderDatabaseName = styled.span`

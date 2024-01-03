@@ -6,7 +6,7 @@ import { isSyncCompleted } from "metabase/lib/syncing";
 import { Icon } from "metabase/core/components/Icon";
 import AccordionList from "metabase/core/components/AccordionList";
 import ExternalLink from "metabase/core/components/ExternalLink";
-import { isNotNull } from "metabase/lib/types";
+import { isNotNull } from "metabase/core/utils/types";
 import type Database from "metabase-lib/metadata/Database";
 import type Schema from "metabase-lib/metadata/Schema";
 import type Table from "metabase-lib/metadata/Table";
@@ -98,9 +98,6 @@ const DataSelectorTablePicker = ({
     const renderItemIcon = ({ table }: { table: Table }) =>
       table ? <Icon name="table" /> : null;
 
-    const showSpinner = ({ table }: { table: Table }) =>
-      Boolean(table && !isSyncCompleted(table));
-
     const handleChange = ({ table }: { table: Table }) => onChangeTable(table);
 
     const isSearchable = hasFiltering && tables.length >= minTablesToShowSearch;
@@ -117,7 +114,6 @@ const DataSelectorTablePicker = ({
           width="100%"
           searchable={isSearchable}
           onChange={handleChange}
-          showSpinner={showSpinner}
           itemIsSelected={checkIfItemIsSelected}
           itemIsClickable={checkIfItemIsClickable}
           renderItemIcon={renderItemIcon}

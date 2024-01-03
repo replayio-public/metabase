@@ -5,7 +5,7 @@ import {
   getGenericErrorMessage,
   getPermissionErrorMessage,
 } from "metabase/visualizations/lib/errors";
-import type Question from "metabase-lib/Question";
+import Question from "metabase-lib/Question";
 
 export interface PinnedQuestionLoaderProps {
   id: number;
@@ -42,7 +42,7 @@ const PinnedQuestionLoader = ({
   return (
     <Questions.Loader id={id} loadingAndErrorWrapper={false}>
       {({ loading, question: loadedQuestion }: QuestionLoaderProps) => {
-        if (loading !== false || !loadedQuestion.query()) {
+        if (loading || !loadedQuestion.query()) {
           return children({ loading: true });
         }
 

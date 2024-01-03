@@ -1,4 +1,4 @@
-import type { Database, Field, Table } from "metabase-types/api";
+import { Database, Field, Table } from "metabase-types/api";
 import {
   createMockDateTimeFieldFingerprint,
   createMockField,

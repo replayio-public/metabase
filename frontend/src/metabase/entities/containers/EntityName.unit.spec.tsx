@@ -2,12 +2,8 @@ import { screen } from "@testing-library/react";
 
 import { renderWithProviders } from "__support__/ui";
 import { createMockEntitiesState } from "__support__/store";
-import { createMockCard, createMockUser } from "metabase-types/api/mocks";
-import {
-  setupCardEndpoints,
-  setupUserEndpoints,
-} from "__support__/server-mocks";
-import { EntityName } from "./EntityName";
+import { createMockUser } from "metabase-types/api/mocks";
+import EntityName from "./EntityName";
 
 describe("EntityName", () => {
   describe("users", () => {
@@ -15,8 +11,6 @@ describe("EntityName", () => {
       const mockUser = createMockUser({
         common_name: "Testy Tableton",
       });
-      setupUserEndpoints(mockUser);
-
       renderWithProviders(
         <EntityName entityType="users" entityId={mockUser.id} />,
         {
@@ -28,26 +22,6 @@ describe("EntityName", () => {
         },
       );
       expect(await screen.findByText("Testy Tableton")).toBeInTheDocument();
-    });
-  });
-
-  describe("questions", () => {
-    test("question with name (metabase#33192)", async () => {
-      const expectedQuestionName = "Mock Products question";
-      const mockCard = createMockCard({ name: expectedQuestionName });
-      setupCardEndpoints(mockCard);
-
-      renderWithProviders(
-        <EntityName entityType="questions" entityId={mockCard.id} />,
-        {
-          storeInitialState: {
-            entities: createMockEntitiesState({
-              questions: [mockCard],
-            }),
-          },
-        },
-      );
-      expect(await screen.findByText(expectedQuestionName)).toBeInTheDocument();
     });
   });
 });

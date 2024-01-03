@@ -1,12 +1,10 @@
-import { SAMPLE_DB_ID } from "e2e/support/cypress_data";
 import {
   restore,
   snapshot,
   visualize,
   changeBinningForDimension,
   summarize,
-  openTable,
-  visitQuestionAdhoc,
+  startNewQuestion,
 } from "e2e/support/helpers";
 
 const questionDetails = {
@@ -17,19 +15,12 @@ const questionDetails = {
   },
 };
 
-let questionId;
-
 describe("scenarios > binning > from a saved sql question", () => {
   before(() => {
     restore();
     cy.signInAsAdmin();
 
-    cy.createNativeQuestion(questionDetails, {
-      loadMetadata: true,
-      wrapId: true,
-    });
-
-    cy.get("@questionId").then(id => (questionId = id));
+    cy.createNativeQuestion(questionDetails, { loadMetadata: true });
 
     snapshot("binningSql");
   });
@@ -43,12 +34,11 @@ describe("scenarios > binning > from a saved sql question", () => {
 
   context("via simple question", () => {
     beforeEach(() => {
-      openTable({
-        database: SAMPLE_DB_ID,
-        table: `card__${questionId}`,
-        mode: "notebook",
-      });
-
+      startNewQuestion();
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText("Saved Questions").click();
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText("SQL Binning").click();
       visualize();
       cy.findByTextEnsureVisible("LONGITUDE");
       summarize();
@@ -103,21 +93,16 @@ describe("scenarios > binning > from a saved sql question", () => {
 
   context("via custom question", () => {
     beforeEach(() => {
-      visitQuestionAdhoc(
-        {
-          dataset_query: {
-            database: SAMPLE_DB_ID,
-            type: "query",
-            query: {
-              "source-table": `card__${questionId}`,
-              aggregation: [["count"]],
-            },
-          },
-        },
-        { mode: "notebook" },
-      );
+      startNewQuestion();
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-      cy.findByText("Summarize").click();
+      cy.findByText("Saved Questions").click();
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText("SQL Binning").click();
+
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText("Pick the metric you want to see").click();
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText("Count of rows").click();
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.findByText("Pick a column to group by").click();
     });
@@ -176,10 +161,12 @@ describe("scenarios > binning > from a saved sql question", () => {
 
   context("via column popover", () => {
     beforeEach(() => {
-      openTable({
-        database: SAMPLE_DB_ID,
-        table: `card__${questionId}`,
-      });
+      startNewQuestion();
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText("Saved Questions").click();
+      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
+      cy.findByText("SQL Binning").click();
+      visualize();
       cy.findByTextEnsureVisible("LONGITUDE");
     });
 
@@ -195,14 +182,14 @@ describe("scenarios > binning > from a saved sql question", () => {
       cy.get("circle");
 
       // Open a popover with bucket options from the time series footer
-      cy.findByTestId("timeseries-bucket-button").contains("Month").click();
+      cy.findAllByTestId("select-button-content").contains("Month").click();
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.findByText("Quarter").click();
 
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.findByText("Count by CREATED_AT: Quarter");
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-      cy.findByText("Q1 2023");
+      cy.findByText("Q1 - 2017");
     });
 
     it("should work for number", () => {

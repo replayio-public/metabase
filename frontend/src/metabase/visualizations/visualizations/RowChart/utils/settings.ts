@@ -1,7 +1,7 @@
-import type { VisualizationSettings } from "metabase-types/api";
+import { VisualizationSettings } from "metabase-types/api";
 import { getStackOffset } from "metabase/visualizations/lib/settings/stacking";
-import type { Series } from "metabase/visualizations/shared/components/RowChart/types";
-import type { Range } from "metabase/visualizations/shared/types/scale";
+import { Series } from "metabase/visualizations/shared/components/RowChart/types";
+import { Range } from "metabase/visualizations/shared/types/scale";
 
 export const getLabelledSeries = <TDatum>(
   settings: VisualizationSettings,

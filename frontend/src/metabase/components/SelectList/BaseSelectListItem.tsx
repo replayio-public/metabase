@@ -1,4 +1,4 @@
-import type * as React from "react";
+import * as React from "react";
 
 import { useScrollOnMount } from "metabase/hooks/use-scroll-on-mount";
 

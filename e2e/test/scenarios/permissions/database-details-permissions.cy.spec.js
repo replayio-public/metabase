@@ -4,7 +4,6 @@ import {
   describeEE,
   assertPermissionForItem,
   modifyPermission,
-  setTokenFeatures,
 } from "e2e/support/helpers";
 
 import { SAMPLE_DB_ID } from "e2e/support/cypress_data";
@@ -18,7 +17,6 @@ describeEE(
     beforeEach(() => {
       restore();
       cy.signInAsAdmin();
-      setTokenFeatures("all");
     });
 
     it("allows database managers to see and edit database details but not to delete a database (metabase#22293)", () => {

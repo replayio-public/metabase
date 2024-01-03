@@ -1,5 +1,4 @@
 import { isElementOfType } from "react-dom/test-utils";
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
 import moment from "moment-timezone";
 
 import {
@@ -156,7 +155,7 @@ describe("formatting", () => {
         expect(formatNumber(724.9, options)).toEqual("$724.90");
         expect(formatNumber(1234.56, options)).toEqual("$1.2k");
         expect(formatNumber(1234567.89, options)).toEqual("$1.2M");
-        expect(formatNumber(-1234567.89, options)).toEqual("-$1.2M");
+        expect(formatNumber(-1234567.89, options)).toEqual("$-1.2M");
         expect(
           formatNumber(1234567.89, { ...options, currency: "CNY" }),
         ).toEqual("CN¥1.2M");
@@ -582,7 +581,7 @@ describe("formatting", () => {
       ["hour", "Wed, April 27, 2022, 6:00 AM"],
       ["day", "Wed, April 27, 2022"],
       ["week", "Wed, April 27, 2022"],
-      ["month", "April 2022"],
+      ["month", "April, 2022"],
       ["year", "2022"],
     ])(
       "should include weekday when date unit is smaller or equal whan a week",

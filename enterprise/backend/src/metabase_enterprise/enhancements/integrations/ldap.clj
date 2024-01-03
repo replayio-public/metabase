@@ -3,6 +3,8 @@
   (:require
    [metabase.integrations.common :as integrations.common]
    [metabase.integrations.ldap.default-implementation :as default-impl]
+   [metabase.integrations.ldap.interface :as i]
+   [metabase.models.interface :as mi]
    [metabase.models.setting :as setting :refer [defsetting]]
    [metabase.models.user :as user :refer [User]]
    [metabase.public-settings.premium-features
@@ -10,32 +12,29 @@
     :refer [defenterprise-schema]]
    [metabase.util :as u]
    [metabase.util.i18n :refer [deferred-tru]]
-   [metabase.util.malli.schema :as ms]
+   [metabase.util.schema :as su]
+   [schema.core :as s]
    [toucan2.core :as t2])
   (:import
    (com.unboundid.ldap.sdk LDAPConnectionPool)))
 
 (def ^:private EEUserInfo
-  [:merge default-impl/UserInfo
-   [:map [:attributes [:maybe [:map-of :keyword :any]]]]])
+  (assoc i/UserInfo :attributes (s/maybe {s/Keyword s/Any})))
 
 (defsetting ldap-sync-user-attributes
   (deferred-tru "Should we sync user attributes when someone logs in via LDAP?")
   :type    :boolean
-  :default true
-  :audit   :getter)
+  :default true)
 
 ;; TODO - maybe we want to add a csv setting type?
 (defsetting ldap-sync-user-attributes-blacklist
   (deferred-tru "Comma-separated list of user attributes to skip syncing for LDAP users.")
   :default "userPassword,dn,distinguishedName"
-  :type    :csv
-  :audit   :getter)
+  :type    :csv)
 
 (defsetting ldap-group-membership-filter
   (deferred-tru "Group membership lookup filter. The placeholders '{dn}' and '{uid}' will be replaced by the user''s Distinguished Name and UID, respectively.")
-  :default "(member={dn})"
-  :audit   :getter)
+  :default "(member={dn})")
 
 (defn- syncable-user-attributes [m]
   (when (ldap-sync-user-attributes)
@@ -61,12 +60,12 @@
           (t2/select-one [User :id :last_login :is_active] :id (:id user))) ; Reload updated user
         user))))
 
-(defenterprise-schema find-user :- [:maybe EEUserInfo]
+(defenterprise-schema find-user :- (s/maybe EEUserInfo)
   "Get user information for the supplied username."
-  :feature :sso-ldap
-  [ldap-connection :- (ms/InstanceOfClass LDAPConnectionPool)
-   username        :- ms/NonBlankString
-   settings        :- default-impl/LDAPSettings]
+  :feature :any
+  [ldap-connection :- LDAPConnectionPool
+   username        :- su/NonBlankString
+   settings        :- i/LDAPSettings]
   (when-let [result (default-impl/search ldap-connection username settings)]
     (when-let [user-info (default-impl/ldap-search-result->user-info
                           ldap-connection
@@ -75,13 +74,11 @@
                           (ldap-group-membership-filter))]
       (assoc user-info :attributes (syncable-user-attributes result)))))
 
-;;; for some reason the `:clj-kondo/ignore` doesn't work inside of [[defenterprise-schema]]
-#_{:clj-kondo/ignore [:deprecated-var]}
-(defenterprise-schema fetch-or-create-user! :- (ms/InstanceOf User)
+(defenterprise-schema fetch-or-create-user! :- (mi/InstanceOf User)
   "Using the `user-info` (from `find-user`) get the corresponding Metabase user, creating it if necessary."
-  :feature :sso-ldap
+  :feature :any
   [{:keys [first-name last-name email groups attributes], :as user-info} :- EEUserInfo
-   {:keys [sync-groups?], :as settings}                                  :- default-impl/LDAPSettings]
+   {:keys [sync-groups?], :as settings}                                  :- i/LDAPSettings]
   (let [user (or (attribute-synced-user user-info)
                  (-> (user/create-new-ldap-auth-user! {:first_name       first-name
                                                        :last_name        last-name

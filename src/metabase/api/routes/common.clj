@@ -8,16 +8,16 @@
 (def +public-exceptions
   "Wrap `routes` so any Exception except 404 thrown is just returned as a generic 400, to prevent details from leaking in public
   endpoints."
-  #'mw.exceptions/public-exceptions)
+  #'mw.exceptions/public-execptions)
 
 (def +message-only-exceptions
   "Wrap `routes` so any Exception thrown is just returned as a 400 with only the message from the original
   Exception (i.e., remove the original stacktrace), to prevent details from leaking in public endpoints."
   #'mw.exceptions/message-only-exceptions)
 
-(def +static-apikey
+(def +apikey
   "Wrap `routes` so they may only be accessed with a correct API key header."
-  #'mw.auth/enforce-static-api-key)
+  #'mw.auth/enforce-api-key)
 
 (def +auth
   "Wrap `routes` so they may only be accessed with proper authentication credentials."

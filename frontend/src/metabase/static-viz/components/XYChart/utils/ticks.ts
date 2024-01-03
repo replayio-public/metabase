@@ -1,14 +1,15 @@
-import type { TickRendererProps } from "@visx/axis";
+import { TickRendererProps } from "@visx/axis";
 import { getTicks } from "@visx/scale";
 import { timeWeek, timeMonth } from "d3-time";
 
 import type { TimeInterval } from "d3-time";
-import type { DateFormatOptions } from "metabase/static-viz/lib/dates";
-import { formatDate } from "metabase/static-viz/lib/dates";
-import type { NumberFormatOptions } from "metabase/static-viz/lib/numbers";
-import { formatNumber } from "metabase/static-viz/lib/numbers";
+import { formatDate, DateFormatOptions } from "metabase/static-viz/lib/dates";
 import {
-  measureTextWidth,
+  formatNumber,
+  NumberFormatOptions,
+} from "metabase/static-viz/lib/numbers";
+import {
+  measureText,
   measureTextHeight,
   truncateText,
 } from "metabase/static-viz/lib/text";
@@ -22,7 +23,7 @@ import type {
   XScale,
   ChartSettings,
 } from "metabase/static-viz/components/XYChart/types";
-import type { ContinuousDomain } from "metabase/visualizations/shared/types/scale";
+import { ContinuousDomain } from "metabase/visualizations/shared/types/scale";
 
 const getRotatedXTickHeight = (tickWidth: number) => {
   return tickWidth;
@@ -82,7 +83,7 @@ export const getXTicksDimensions = (
     .flatMap(s => s.data)
     .map(datum => {
       const tick = formatXTick(getX(datum), settings.type, settings.format);
-      return measureTextWidth(tick.toString(), fontSize);
+      return measureText(tick.toString(), fontSize);
     })
     .reduce((a, b) => Math.max(a, b), 0);
 
@@ -136,7 +137,7 @@ export const calculateYTickWidth = (
 ) => {
   const domainValuesWidths = domain
     .map(value => formatNumber(value, settings))
-    .map(formatted => measureTextWidth(formatted, fontSize));
+    .map(formatted => measureText(formatted, fontSize));
 
   return Math.max(...domainValuesWidths);
 };
@@ -159,14 +160,6 @@ export const getYTickWidths = (
   };
 };
 
-/**
- * The reason this function exists in the first place is because of
- * a bug in visx's `getTicks` function. It's supposed to ensure that
- * the result ticks array has a length less than or equal to `numTicks`,
- * but sometimes it returns an array with a length greater than `numTicks`.
- *
- * If this bug is fixed in visx, this function can be removed.
- */
 export function fixTimeseriesTicksExceedXTickCount(
   xScaleType: XAxisType,
   xScale: XScale["scale"],
@@ -189,13 +182,7 @@ export function fixTimeseriesTicksExceedXTickCount(
         }
       });
 
-    if (numTicks == null || minLengthTicks.length <= numTicks) {
-      return minLengthTicks;
-    }
-
-    return minLengthTicks.filter(
-      (_, index, ticks) => index % Math.ceil(ticks.length / numTicks) === 0,
-    );
+    return minLengthTicks;
   }
 
   return defaultTicks;

@@ -1,5 +1,4 @@
-import type { HTMLAttributes, ReactNode } from "react";
-import { Children } from "react";
+import { Children, HTMLAttributes, ReactNode } from "react";
 import {
   ButtonBarCenter,
   ButtonBarLeft,

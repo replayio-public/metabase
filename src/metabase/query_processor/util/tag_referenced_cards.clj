@@ -1,10 +1,8 @@
 (ns metabase.query-processor.util.tag-referenced-cards
   (:require
-   [metabase.lib.metadata :as lib.metadata]
-   [metabase.lib.metadata.protocols :as lib.metadata.protocols]
-   [metabase.query-processor.store :as qp.store]
+   [metabase.models.card :refer [Card]]
    [metabase.util.i18n :refer [tru]]
-   [metabase.util.malli :as mu]))
+   [toucan2.core :as t2]))
 
 (defn- query->template-tags
   [query]
@@ -15,12 +13,12 @@
   [query]
   (keep :card-id (query->template-tags query)))
 
-(mu/defn tags-referenced-cards :- [:maybe [:sequential lib.metadata/CardMetadata]]
+(defn tags-referenced-cards
   "Returns Card instances referenced by the given native `query`."
   [query]
   (mapv
    (fn [card-id]
-     (if-let [card (lib.metadata.protocols/card (qp.store/metadata-provider) card-id)]
+     (if-let [card (t2/select-one Card :id card-id)]
        card
        (throw (ex-info (tru "Referenced question #{0} could not be found" (str card-id))
                        {:card-id card-id}))))

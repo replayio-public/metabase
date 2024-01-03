@@ -11,14 +11,12 @@ const TEST_SCHEMA = Yup.object({
 interface TestFormInputProps {
   initialValue?: string;
   optional?: boolean;
-  infoTooltip?: string;
   onSubmit: () => void;
 }
 
 const TestFormInput = ({
   initialValue = "",
   optional,
-  infoTooltip,
   onSubmit,
 }: TestFormInputProps) => {
   return (
@@ -28,12 +26,7 @@ const TestFormInput = ({
       onSubmit={onSubmit}
     >
       <Form>
-        <FormInput
-          name="value"
-          title="Label"
-          optional={optional}
-          infoTooltip={infoTooltip}
-        />
+        <FormInput name="value" title="Label" optional={optional} />
         <button type="submit">Submit</button>
       </Form>
     </Formik>
@@ -112,22 +105,5 @@ describe("FormInput", () => {
     render(<TestFormInput initialValue="" onSubmit={onSubmit} optional />);
 
     expect(screen.getByLabelText("Label")).toBeInTheDocument();
-  });
-
-  it("should have info tooltip", () => {
-    const onSubmit = jest.fn();
-    const infoTooltipText = "info tooltip text";
-
-    render(
-      <TestFormInput
-        initialValue=""
-        onSubmit={onSubmit}
-        optional
-        infoTooltip={infoTooltipText}
-      />,
-    );
-
-    userEvent.hover(screen.getByLabelText("info icon"));
-    expect(screen.getByText(infoTooltipText)).toBeInTheDocument();
   });
 });

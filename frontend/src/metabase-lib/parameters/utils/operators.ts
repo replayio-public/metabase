@@ -1,4 +1,4 @@
-import type { Parameter } from "metabase-types/api";
+import { Parameter } from "metabase-types/api";
 import {
   doesOperatorExist,
   getOperatorByTypeAndName,

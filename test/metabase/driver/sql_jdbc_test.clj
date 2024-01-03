@@ -17,7 +17,7 @@
 (set! *warn-on-reflection* true)
 
 (deftest ^:parallel describe-database-test
-  (is (= {:tables (set (for [table ["CATEGORIES" "VENUES" "CHECKINS" "USERS" "ORDERS" "PEOPLE" "PRODUCTS" "REVIEWS"]]
+  (is (= {:tables (set (for [table ["CATEGORIES" "VENUES" "CHECKINS" "USERS"]]
                          {:name table, :schema "PUBLIC", :description nil}))}
          (driver/describe-database :h2 (mt/db)))))
 
@@ -229,10 +229,10 @@
                  (driver/connection-properties driver))))
 
 (deftest syncable-schemas-with-schema-filters-test
-  (mt/test-drivers (set (for [driver (set/intersection (sql-jdbc.tu/sql-jdbc-drivers)
-                                                       (mt/normal-drivers-with-feature :actions))
-                              :when  (driver.u/find-schema-filters-prop driver)]
-                          driver))
+  (mt/test-driver (set (for [driver (set/intersection (sql-jdbc.tu/sql-jdbc-drivers)
+                                                      (mt/normal-drivers-with-feature :actions))
+                             :when  (driver.u/find-schema-filters-prop driver)]
+                         driver))
     (let [fake-schema-name (u/qualified-name ::fake-schema)]
       (with-redefs [sql-jdbc.describe-database/all-schemas (let [orig sql-jdbc.describe-database/all-schemas]
                                                              (fn [metadata]

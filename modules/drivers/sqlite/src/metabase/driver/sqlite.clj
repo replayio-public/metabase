@@ -1,16 +1,15 @@
 (ns metabase.driver.sqlite
   (:require
    [clojure.java.io :as io]
-   [clojure.set :as set]
    [clojure.string :as str]
-   [java-time.api :as t]
+   [java-time :as t]
    [metabase.config :as config]
    [metabase.driver :as driver]
+   [metabase.driver.common :as driver.common]
    [metabase.driver.sql :as driver.sql]
    [metabase.driver.sql-jdbc.connection :as sql-jdbc.conn]
    [metabase.driver.sql-jdbc.execute :as sql-jdbc.execute]
    [metabase.driver.sql-jdbc.sync :as sql-jdbc.sync]
-   [metabase.driver.sql-jdbc.sync.describe-table :as sql-jdbc.describe-table]
    [metabase.driver.sql.parameters.substitution
     :as sql.params.substitution]
    [metabase.driver.sql.query-processor :as sql.qp]
@@ -18,7 +17,7 @@
    [metabase.util.date-2 :as u.date]
    [metabase.util.honey-sql-2 :as h2x]
    [metabase.util.i18n :refer [tru]]
-   [metabase.util.malli :as mu])
+   [schema.core :as s])
   (:import
    (java.sql Connection ResultSet Types)
    (java.time LocalDate LocalDateTime LocalTime OffsetDateTime OffsetTime ZonedDateTime)
@@ -27,6 +26,10 @@
 (set! *warn-on-reflection* true)
 
 (driver/register! :sqlite, :parent :sql-jdbc)
+
+(defmethod sql.qp/honey-sql-version :sqlite
+  [_driver]
+  2)
 
 ;; SQLite does not support a lot of features, so do not show the options in the interface
 (doseq [[feature supported?] {:right-join                             false
@@ -40,8 +43,7 @@
                               :now                                    true
                               ;; SQLite `LIKE` clauses are case-insensitive by default, and thus cannot be made case-sensitive. So let people know
                               ;; we have this 'feature' so the frontend doesn't try to present the option to you.
-                              :case-sensitivity-string-filter-options false
-                              :index-info                             true}]
+                              :case-sensitivity-string-filter-options false}]
   (defmethod driver/database-supports? [:sqlite feature] [_driver _feature _db] supported?))
 
 ;; HACK SQLite doesn't support ALTER TABLE ADD CONSTRAINT FOREIGN KEY and I don't have all day to work around this so
@@ -79,19 +81,6 @@
          ;; disallow "FDW" (connecting to other SQLite databases on the local filesystem) -- see https://github.com/metabase/metaboat/issues/152
          {:limit_attached 0}))
 
-(defmethod driver/describe-table-indexes :sqlite
-  [driver database table]
-  (let [pk (first (sql-jdbc.execute/do-with-connection-with-options
-                   driver database nil
-                   (fn [conn]
-                     (sql-jdbc.describe-table/get-table-pks :sqlite conn (:name database) table))))]
-    ;; In sqlite a PK will implicitly have a UNIQUE INDEX, but if the PK is integer the getIndexInfo method from
-    ;; jdbc doesn't return it as indexed. so we need to manually get mark the pk as indexed here
-    (cond-> ((get-method driver/describe-table-indexes :sql-jdbc) driver database table)
-      (some? pk)
-      (set/union #{{:type :normal-column-index
-                    :value pk}}))))
-
 ;; We'll do regex pattern matching here for determining Field types because SQLite types can have optional lengths,
 ;; e.g. NVARCHAR(100) or NUMERIC(10,5) See also http://www.sqlite.org/datatype3.html
 (def ^:private database-type->base-type
@@ -121,22 +110,14 @@
 ;; The normal SELECT * FROM table WHERE 1 <> 1 LIMIT 0 query doesn't return any information for SQLite views -- it
 ;; seems to be the case that the query has to return at least one row
 (defmethod sql-jdbc.sync/fallback-metadata-query :sqlite
-  [driver _db-name-or-nil _schema-name table-name]
+  [driver schema table]
   (sql.qp/format-honeysql driver {:select [:*]
-                                  :from   [[(h2x/identifier :table table-name)]]
+                                  :from   [[(h2x/identifier :table schema table)]]
                                   :limit  1}))
 
-(defn- ->date [& args]
-  (-> (into [:date] args)
-      (h2x/with-database-type-info "date")))
-
-(defn- ->datetime [& args]
-  (-> (into [:datetime] args)
-      (h2x/with-database-type-info "datetime")))
-
-(defn- ->time [& args]
-  (-> (into [:time] args)
-      (h2x/with-database-type-info "time")))
+(def ^:private ->date     (partial conj [:date]))
+(def ^:private ->datetime (partial conj [:datetime]))
+(def ^:private ->time     (partial conj [:time]))
 
 (defn- strftime [format-str expr]
   [:strftime (h2x/literal format-str) expr])
@@ -146,30 +127,24 @@
 (defmethod sql.qp/date [:sqlite :default] [_driver _unit expr] expr)
 
 (defmethod sql.qp/date [:sqlite :second]
-  [_driver _unit expr]
-  (if (= (h2x/database-type expr) "time")
-    (->time (strftime "%H:%M:%S" expr))
-    (->datetime (strftime "%Y-%m-%d %H:%M:%S" expr))))
+  [_driver _ expr]
+  (->datetime (strftime "%Y-%m-%d %H:%M:%S" expr)))
 
 (defmethod sql.qp/date [:sqlite :second-of-minute]
-  [_driver _unit expr]
+  [_driver _ expr]
   (h2x/->integer (strftime "%S" expr)))
 
 (defmethod sql.qp/date [:sqlite :minute]
-  [_driver _unit expr]
-  (if (= (h2x/database-type expr) "time")
-    (->time (strftime "%H:%M" expr))
-    (->datetime (strftime "%Y-%m-%d %H:%M" expr))))
+  [_driver _ expr]
+  (->datetime (strftime "%Y-%m-%d %H:%M" expr)))
 
 (defmethod sql.qp/date [:sqlite :minute-of-hour]
   [_driver _ expr]
   (h2x/->integer (strftime "%M" expr)))
 
 (defmethod sql.qp/date [:sqlite :hour]
-  [_driver _unit expr]
-  (if (= (h2x/database-type expr) "time")
-    (->time (strftime "%H:00" expr))
-    (->datetime (strftime "%Y-%m-%d %H:00" expr))))
+  [_driver _ expr]
+  (->datetime (strftime "%Y-%m-%d %H:00" expr)))
 
 (defmethod sql.qp/date [:sqlite :hour-of-day]
   [_driver _ expr]
@@ -285,7 +260,7 @@
 ;;
 ;; TIMESTAMP FIXME — this doesn't seem like the correct thing to do for non-Dates. I think params only support dates
 ;; rn however
-(mu/defmethod driver.sql/->prepared-substitution [:sqlite Temporal] :- driver.sql/PreparedStatementSubstitution
+(s/defmethod driver.sql/->prepared-substitution [:sqlite Temporal] :- driver.sql/PreparedStatementSubstitution
   [_driver date]
   ;; for anything that's a Temporal value convert it to a yyyy-MM-dd formatted date literal
   ;; string For whatever reason the SQL generated from parameters ends up looking like `WHERE date(some_field) = ?`
@@ -363,9 +338,17 @@
     [:datetime (h2x/literal (u.date/format-sql t))]))
 
 ;; SQLite defaults everything to UTC
-(defmethod driver/db-default-timezone :sqlite
-  [_driver _database]
-  "UTC")
+(defmethod driver.common/current-db-time-date-formatters :sqlite
+  [_]
+  (driver.common/create-db-time-formatters "yyyy-MM-dd HH:mm:ss"))
+
+(defmethod driver.common/current-db-time-native-query :sqlite
+  [_]
+  "select cast(datetime('now') as text);")
+
+(defmethod driver/current-db-time :sqlite
+  [& args]
+  (apply driver.common/current-db-time args))
 
 (defmethod sql-jdbc.sync/active-tables :sqlite
   [& args]
@@ -426,16 +409,15 @@
 ;; SQLite's JDBC driver is fussy and won't let you change connections to read-only after you create them. So skip that
 ;; step. SQLite doesn't have a notion of session timezones so don't do that either. The only thing we're doing here from
 ;; the default impl is setting the transaction isolation level
-(defmethod sql-jdbc.execute/do-with-connection-with-options :sqlite
-  [driver db-or-id-or-spec options f]
-  (sql-jdbc.execute/do-with-resolved-connection
-   driver
-   db-or-id-or-spec
-   options
-   (fn [^Connection conn]
-     (when-not (sql-jdbc.execute/recursive-connection?)
-       (sql-jdbc.execute/set-best-transaction-level! driver conn))
-     (f conn))))
+(defmethod sql-jdbc.execute/connection-with-timezone :sqlite
+  [driver database _timezone-id]
+  (let [conn (.getConnection (sql-jdbc.execute/datasource-with-diagnostic-info! driver database))]
+    (try
+      (sql-jdbc.execute/set-best-transaction-level! driver conn)
+      conn
+      (catch Throwable e
+        (.close conn)
+        (throw e)))))
 
 ;; SQLite's JDBC driver is dumb and complains if you try to call `.setFetchDirection` on the Connection
 (defmethod sql-jdbc.execute/prepared-statement :sqlite

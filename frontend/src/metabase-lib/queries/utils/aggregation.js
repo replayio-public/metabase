@@ -95,6 +95,9 @@ export function setName(aggregation, name) {
     { name, "display-name": name, ...getOptions(aggregation) },
   ];
 }
+export function setContent(aggregation, content) {
+  return ["aggregation-options", content, getOptions(aggregation)];
+}
 
 // METRIC
 export function getMetric(aggregation) {

@@ -9,7 +9,7 @@ import { updateGoogleSettings } from "../../../settings";
 
 const mapStateToProps = (state: State) => ({
   isEnabled: getSetting(state, "google-auth-enabled"),
-  isSsoEnabled: getSetting(state, "token-features").sso_google,
+  isSsoEnabled: getSetting(state, "token-features").sso,
 });
 
 const mapDispatchToProps = {

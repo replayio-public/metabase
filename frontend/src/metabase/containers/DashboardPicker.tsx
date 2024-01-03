@@ -1,15 +1,9 @@
-import type { CollectionId, DashboardId } from "metabase-types/api";
-import type { ItemPickerProps } from "./ItemPicker/ItemPicker";
+import { CollectionId } from "metabase-types/api";
+import ItemPicker, { PickerValue, PickerItemId } from "./ItemPicker";
 
-import ItemPicker from "./ItemPicker";
-
-export interface DashboardPickerProps
-  extends Pick<
-    ItemPickerProps<DashboardId>,
-    "filterPersonalCollections" | "onOpenCollectionChange"
-  > {
-  value?: DashboardId;
-  onChange: (dashboardId: DashboardId) => void;
+export interface DashboardPickerProps {
+  value?: PickerItemId;
+  onChange: (dashboardId: PickerItemId | undefined) => void;
   collectionId?: CollectionId;
 }
 
@@ -23,7 +17,9 @@ const DashboardPicker = ({
     {...props}
     initialOpenCollectionId={collectionId}
     value={value === undefined ? undefined : { model: "dashboard", id: value }}
-    onChange={dashboard => onChange(dashboard.id)}
+    onChange={(dashboard: PickerValue) =>
+      onChange(dashboard ? dashboard.id : undefined)
+    }
     models={["dashboard"]}
   />
 );

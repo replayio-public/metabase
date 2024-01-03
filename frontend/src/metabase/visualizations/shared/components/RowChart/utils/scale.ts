@@ -1,15 +1,20 @@
-import type { ContinuousDomain } from "@visx/scale";
-import { scaleBand, scaleLinear, scaleLog, scalePower } from "@visx/scale";
+import {
+  ContinuousDomain,
+  scaleBand,
+  scaleLinear,
+  scaleLog,
+  scalePower,
+} from "@visx/scale";
 import type { ScaleContinuousNumeric } from "d3-scale";
-import type { ValueFormatter } from "metabase/visualizations/shared/types/format";
-import type { TextWidthMeasurer } from "metabase/visualizations/shared/types/measure-text";
-import type {
+import { ValueFormatter } from "metabase/visualizations/shared/types/format";
+import { TextMeasurer } from "metabase/visualizations/shared/types/measure-text";
+import {
   ContinuousScaleType,
   Range,
 } from "metabase/visualizations/shared/types/scale";
-import type { ChartFont } from "metabase/visualizations/shared/types/style";
+import { ChartFont } from "metabase/visualizations/shared/types/style";
 import { DATA_LABEL_OFFSET } from "../../RowChartView";
-import type { SeriesData, StackOffset } from "../types";
+import { SeriesData, StackOffset } from "../types";
 import { createXDomain, createYDomain } from "./domain";
 
 export const createXScale = (
@@ -95,7 +100,7 @@ const getTickInfo = (
   tickX: number,
   tickFormatter: ValueFormatter,
   tickFont: ChartFont,
-  measureTextWidth: TextWidthMeasurer,
+  measureText: TextMeasurer,
   xScale: ScaleContinuousNumeric<number, number, never>,
 ) => {
   const value = xScale.invert(tickX);
@@ -104,7 +109,7 @@ const getTickInfo = (
     value,
     tickX,
     formatted: tickFormatter(value),
-    tickWidth: measureTextWidth(tickFormatter(value), tickFont),
+    tickWidth: measureText(tickFormatter(value), tickFont),
   };
 };
 
@@ -112,7 +117,7 @@ const Y_AXIS_LEFT_PADDING = 16;
 
 export const addSideSpacingForTicksAndLabels = (
   xScale: ScaleContinuousNumeric<number, number, never>,
-  measureTextWidth: TextWidthMeasurer,
+  measureText: TextMeasurer,
   tickFont: ChartFont,
   tickFormatter: ValueFormatter,
   labelFont: ChartFont,
@@ -127,7 +132,7 @@ export const addSideSpacingForTicksAndLabels = (
     rangeMin,
     tickFormatter,
     tickFont,
-    measureTextWidth,
+    measureText,
     xScale,
   );
 
@@ -136,7 +141,7 @@ export const addSideSpacingForTicksAndLabels = (
     const leftLabelOverflow = shouldShowLabels
       ? rangeMin -
         (xScale(domainMin) -
-          measureTextWidth(labelFormatter(domainMin), labelFont) -
+          measureText(labelFormatter(domainMin), labelFont) -
           DATA_LABEL_OFFSET * 2 -
           Y_AXIS_LEFT_PADDING)
       : 0;
@@ -148,13 +153,13 @@ export const addSideSpacingForTicksAndLabels = (
     rangeMax,
     tickFormatter,
     tickFont,
-    measureTextWidth,
+    measureText,
     xScale,
   );
   const maxTickOverflow = maxTick.tickX + maxTick.tickWidth / 2 - rangeMax;
   const rightLabelOverflow = shouldShowLabels
     ? xScale(domainMax) +
-      measureTextWidth(labelFormatter(domainMax), labelFont) +
+      measureText(labelFormatter(domainMax), labelFont) +
       DATA_LABEL_OFFSET -
       rangeMax
     : 0;

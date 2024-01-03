@@ -215,7 +215,6 @@ describe("parameters/utils/cards", () => {
       ).toEqual({
         "template-tag-1": "aaa",
         "template-tag-2": "bbb",
-        "template-tag-3": null,
       });
     });
   });

@@ -7,10 +7,10 @@ import { getUserIsAdmin, getUser } from "metabase/selectors/user";
 import { hasActiveUploads } from "metabase/redux/uploads";
 
 import DatabaseStatus from "../../containers/DatabaseStatus";
-import { FileUploadStatus } from "../FileUploadStatus";
+import FileUploadStatus from "../FileUploadStatus";
 import { StatusListingRoot } from "./StatusListing.styled";
 
-const StatusListing = () => {
+const StatusListingView = () => {
   const isLoggedIn = !!useSelector(getUser);
   const isAdmin = useSelector(getUserIsAdmin);
 
@@ -34,4 +34,4 @@ const StatusListing = () => {
 };
 
 // eslint-disable-next-line import/no-default-export -- deprecated usage
-export default StatusListing;
+export default StatusListingView;

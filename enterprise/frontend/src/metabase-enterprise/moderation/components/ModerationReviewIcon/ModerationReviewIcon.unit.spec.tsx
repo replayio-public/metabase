@@ -4,8 +4,9 @@ import {
   createMockModerationReview,
   createMockUser,
 } from "metabase-types/api/mocks";
-import type { ModerationReviewIconProps } from "./ModerationReviewIcon";
-import ModerationReviewIcon from "./ModerationReviewIcon";
+import ModerationReviewIcon, {
+  ModerationReviewIconProps,
+} from "./ModerationReviewIcon";
 
 describe("ModerationReviewIcon", () => {
   beforeEach(() => {

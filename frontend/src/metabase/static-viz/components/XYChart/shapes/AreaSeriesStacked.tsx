@@ -1,7 +1,7 @@
 import { Group } from "@visx/group";
-import type { PositionScale } from "@visx/shape/lib/types";
+import { PositionScale } from "@visx/shape/lib/types";
 import { LineArea } from "metabase/static-viz/components/XYChart/shapes/LineArea";
-import type {
+import {
   HydratedSeries,
   StackedDatumAccessor,
 } from "metabase/static-viz/components/XYChart/types";
@@ -20,7 +20,7 @@ export const AreaSeriesStacked = ({
 }: AreaSeriesProps) => {
   return (
     <Group>
-      {multipleSeries.map(series => {
+      {multipleSeries.map((series, seriesIndex) => {
         return (
           <LineArea
             key={series.name}

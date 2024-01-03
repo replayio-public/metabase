@@ -1,10 +1,12 @@
-import type * as React from "react";
+import * as React from "react";
 import _ from "underscore";
 
 import type { IconProps } from "metabase/core/components/Icon";
 
-import type { BaseSelectListItemProps } from "./BaseSelectListItem";
-import { BaseSelectListItem } from "./BaseSelectListItem";
+import {
+  BaseSelectListItem,
+  BaseSelectListItemProps,
+} from "./BaseSelectListItem";
 import { ItemRoot, ItemIcon, ItemTitle } from "./SelectListItem.styled";
 
 export interface SelectListItemProps

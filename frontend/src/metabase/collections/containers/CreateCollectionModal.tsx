@@ -11,8 +11,9 @@ import * as Urls from "metabase/lib/urls";
 import type { Collection } from "metabase-types/api";
 import type { State } from "metabase-types/store";
 
-import type { CreateCollectionFormOwnProps } from "../components/CreateCollectionForm";
-import { CreateCollectionForm } from "../components/CreateCollectionForm";
+import CreateCollectionForm, {
+  CreateCollectionFormOwnProps,
+} from "./CreateCollectionForm";
 
 interface CreateCollectionModalOwnProps
   extends Omit<CreateCollectionFormOwnProps, "onCancel"> {

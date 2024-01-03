@@ -5,8 +5,6 @@
    [build-drivers.verify :as verify]
    [clojure.test :refer :all]))
 
-(set! *warn-on-reflection* true)
-
 (defn- jar-path ^String []
   (c/driver-jar-destination-path :oracle))
 

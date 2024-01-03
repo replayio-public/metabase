@@ -1,2 +1,2 @@
 export * from "./selectors";
-export * from "./selectors-typed";
+export * from "./selectors_typed";

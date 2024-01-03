@@ -16,7 +16,6 @@ import { PLUGIN_FEATURE_LEVEL_PERMISSIONS } from "metabase/plugins";
 import {
   TableCellContent,
   TableCellSpinner,
-  AddSampleDatabaseLink,
 } from "../../containers/DatabaseListApp.styled";
 
 const query = {
@@ -151,11 +150,12 @@ export default class DatabaseList extends Component {
                     {t`Restoring the sample database...`}
                   </span>
                 ) : (
-                  <AddSampleDatabaseLink
+                  <a
+                    className="text-light text-brand-hover no-decoration"
                     onClick={() => this.props.addSampleDatabase(query)}
                   >
                     {t`Bring the sample database back`}
-                  </AddSampleDatabaseLink>
+                  </a>
                 )}
               </span>
             </div>

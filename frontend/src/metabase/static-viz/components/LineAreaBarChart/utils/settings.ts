@@ -1,7 +1,7 @@
 import { assocIn } from "icepick";
-import type { ChartSettings, Series } from "../../XYChart/types";
+import { ChartSettings, Series } from "../../XYChart/types";
 import { getX } from "../../XYChart/utils";
-import type { Size } from "../types";
+import { Size } from "../types";
 
 const DEFAULT_SIZE = {
   width: 540,

@@ -2,27 +2,17 @@
   (:require
    [metabase.models.interface :as mi]
    [metabase.util.i18n :refer [tru]]
-   [methodical.core :as methodical]
+   [toucan.models :as models]
    [toucan2.core :as t2]))
 
-(def CollectionPermissionGraphRevision
-  "Used to be the toucan1 model name defined using [[toucan.models/defmodel]], now it's a reference to the toucan2 model name.
-  We'll keep this till we replace all these symbols in our codebase."
-  :model/CollectionPermissionGraphRevision)
+(models/defmodel CollectionPermissionGraphRevision :collection_permission_graph_revision)
 
-(methodical/defmethod t2/table-name :model/CollectionPermissionGraphRevision [_model] :collection_permission_graph_revision)
-
-(doto :model/CollectionPermissionGraphRevision
-  (derive :metabase/model)
-  (derive :hook/created-at-timestamped?))
-
-(t2/deftransforms :model/CollectionPermissionGraphRevision
-  {:before mi/transform-json
-   :after  mi/transform-json})
-
-(t2/define-before-update :model/CollectionPermissionGraphRevision
-  [_]
-  (throw (Exception. (tru "You cannot update a CollectionPermissionGraphRevision!"))))
+(mi/define-methods
+ CollectionPermissionGraphRevision
+ {:types      (constantly {:before :json
+                           :after  :json})
+  :properties (constantly {::mi/created-at-timestamped? true})
+  :pre-update (fn [& _] (throw (Exception. (tru "You cannot update a CollectionPermissionGraphRevision!"))))})
 
 (defn latest-id
   "Return the ID of the newest `CollectionPermissionGraphRevision`, or zero if none have been made yet.

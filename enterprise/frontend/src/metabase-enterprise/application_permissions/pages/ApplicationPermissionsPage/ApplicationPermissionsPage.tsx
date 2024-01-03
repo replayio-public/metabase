@@ -1,5 +1,5 @@
 import _ from "underscore";
-import type { Route } from "react-router";
+import { Route } from "react-router";
 import { useCallback, useEffect } from "react";
 import { connect } from "react-redux";
 
@@ -17,8 +17,7 @@ import {
   saveApplicationPermissions,
   updateApplicationPermission,
 } from "metabase-enterprise/application_permissions/reducer";
-import type { ApplicationPermissionsState } from "metabase-enterprise/application_permissions/types/state";
-import { ApplicationPermissionsHelp } from "metabase/admin/permissions/components/ApplicationPermissionsHelp";
+import { ApplicationPermissionsState } from "metabase-enterprise/application_permissions/types/state";
 
 const mapDispatchToProps = {
   initialize: initializeApplicationPermissions,
@@ -69,7 +68,6 @@ const ApplicationPermissionsPage = ({
       tab="application"
       isDirty={isDirty}
       route={route}
-      helpContent={<ApplicationPermissionsHelp />}
       onSave={savePermissions}
       onLoad={() => initialize()}
     >

@@ -1,6 +1,6 @@
 import slugg from "slugg";
 
-import type { Bookmark } from "metabase-types/api";
+import { Bookmark } from "metabase-types/api";
 
 import { appendSlug } from "./utils";
 

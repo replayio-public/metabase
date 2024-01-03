@@ -15,7 +15,7 @@ Delete all Alert and DashboardSubscription subscriptions for a User (i.e., so th
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+*  **`id`**
 
 ---
 

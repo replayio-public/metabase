@@ -1,4 +1,4 @@
-import type { UnrestrictedLinkEntity } from "metabase-types/api";
+import { UnrestrictedLinkEntity } from "metabase-types/api";
 import type { IconName } from "metabase/core/components/Icon";
 
 type WrappedEntity = {

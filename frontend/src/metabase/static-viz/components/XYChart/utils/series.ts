@@ -1,5 +1,5 @@
 import _ from "underscore";
-import type {
+import {
   Series,
   SeriesDatum,
   XAxisType,

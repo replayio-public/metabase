@@ -1,11 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type {
+import ControlledPopoverWithTrigger, {
   ControlledPopoverWithTriggerProps,
   RenderTrigger,
   PopoverWithTriggerContent,
 } from "./ControlledPopoverWithTrigger";
-import ControlledPopoverWithTrigger from "./ControlledPopoverWithTrigger";
 
 console.error = jest.fn();
 

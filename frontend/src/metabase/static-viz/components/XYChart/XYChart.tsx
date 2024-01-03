@@ -1,5 +1,4 @@
-import type { TextProps } from "@visx/text";
-import { Text } from "@visx/text";
+import { Text, TextProps } from "@visx/text";
 import { AxisBottom, AxisLeft, AxisRight } from "@visx/axis";
 import { GridRows } from "@visx/grid";
 import { Group } from "@visx/group";
@@ -30,7 +29,7 @@ import {
   fixTimeseriesTicksExceedXTickCount,
 } from "metabase/static-viz/components/XYChart/utils";
 import { GoalLine } from "metabase/static-viz/components/XYChart/GoalLine";
-import { measureTextWidth } from "metabase/static-viz/lib/text";
+import { measureText } from "metabase/static-viz/lib/text";
 
 import type {
   Series,
@@ -103,10 +102,7 @@ export const XYChart = ({
     width,
     height,
   );
-  const VALUE_CHAR_SIZE = measureTextWidth(
-    "0",
-    style.value?.fontSize as number,
-  );
+  const VALUE_CHAR_SIZE = measureText("0", style.value?.fontSize as number);
   const valuesLeftOffset = getValuesLeftOffset(
     settings,
     series,

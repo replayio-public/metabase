@@ -8,17 +8,19 @@
    [metabase.config :as config]
    [metabase.integrations.slack :as slack]
    [metabase.util.i18n :refer [tru]]
-   [metabase.util.malli.schema :as ms]))
+   [metabase.util.schema :as su]
+   [schema.core :as s]))
 
-(api/defendpoint PUT "/settings"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema PUT "/settings"
   "Update Slack related settings. You must be a superuser to do this. Also updates the slack-cache.
   There are 3 cases where we alter the slack channel/user cache:
   1. falsy token           -> clear
   2. invalid token         -> clear
   3. truthy, valid token   -> refresh "
   [:as {{slack-app-token :slack-app-token, slack-files-channel :slack-files-channel} :body}]
-  {slack-app-token     [:maybe ms/NonBlankString]
-   slack-files-channel [:maybe ms/NonBlankString]}
+  {slack-app-token     (s/maybe su/NonBlankString)
+   slack-files-channel (s/maybe su/NonBlankString)}
   (validation/check-has-application-permission :setting)
   (try
     (when (and slack-app-token
@@ -52,7 +54,8 @@
 (def ^:private slack-manifest
   (delay (slurp (io/resource "slack-manifest.yaml"))))
 
-(api/defendpoint GET "/manifest"
+#_{:clj-kondo/ignore [:deprecated-var]}
+(api/defendpoint-schema GET "/manifest"
   "Returns the YAML manifest file that should be used to bootstrap new Slack apps"
   []
   (validation/check-has-application-permission :setting)

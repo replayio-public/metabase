@@ -2,10 +2,7 @@ import { t } from "ttag";
 import { push } from "react-router-redux";
 import { assocIn } from "icepick";
 
-import {
-  PLUGIN_DATA_PERMISSIONS,
-  PLUGIN_ADVANCED_PERMISSIONS,
-} from "metabase/plugins";
+import { PLUGIN_DATA_PERMISSIONS } from "metabase/plugins";
 import {
   createAction,
   createThunkAction,
@@ -74,12 +71,7 @@ export const LIMIT_DATABASE_PERMISSION =
   "metabase/admin/permissions/LIMIT_DATABASE_PERMISSION";
 export const limitDatabasePermission = createThunkAction(
   LIMIT_DATABASE_PERMISSION,
-  (groupId, entityId, accessPermissionValue) => dispatch => {
-    const newValue =
-      PLUGIN_ADVANCED_PERMISSIONS.getDatabaseLimitedAccessPermission(
-        accessPermissionValue,
-      );
-
+  (groupId, entityId, newValue) => dispatch => {
     if (newValue) {
       dispatch(
         updateDataPermission({
@@ -95,7 +87,7 @@ export const limitDatabasePermission = createThunkAction(
   },
 );
 
-export const UPDATE_DATA_PERMISSION =
+const UPDATE_DATA_PERMISSION =
   "metabase/admin/permissions/UPDATE_DATA_PERMISSION";
 export const updateDataPermission = createThunkAction(
   UPDATE_DATA_PERMISSION,
@@ -106,7 +98,6 @@ export const updateDataPermission = createThunkAction(
           Tables.actions.fetchList({
             dbId: entityId.databaseId,
             include_hidden: true,
-            remove_inactive: true,
           }),
         );
       }
@@ -145,21 +136,10 @@ export const saveDataPermissions = createThunkAction(
     const { dataPermissions, dataPermissionsRevision } =
       getState().admin.permissions;
 
-    const extraData =
-      PLUGIN_DATA_PERMISSIONS.permissionsPayloadExtraSelectors.reduce(
-        (data, selector) => {
-          return {
-            ...data,
-            ...selector(getState()),
-          };
-        },
-        {},
-      );
-
     const permissionsGraph = {
       groups: dataPermissions,
       revision: dataPermissionsRevision,
-      ...extraData,
+      ...PLUGIN_DATA_PERMISSIONS.getPermissionsPayloadExtraData(getState()),
     };
 
     return await PermissionsApi.updateGraph(permissionsGraph);
@@ -251,11 +231,7 @@ const dataPermissions = handleActions(
         }
 
         if (permissionInfo.type === "native") {
-          const updateFn =
-            PLUGIN_DATA_PERMISSIONS.updateNativePermission ??
-            updateNativePermission;
-
-          return updateFn(
+          return updateNativePermission(
             state,
             groupId,
             entityId,
@@ -389,19 +365,6 @@ const collectionPermissionsRevision = handleActions(
   null,
 );
 
-export const TOGGLE_HELP_REFERENCE =
-  "metabase/admin/permissions/TOGGLE_HELP_REFERENCE";
-export const toggleHelpReference = createAction(TOGGLE_HELP_REFERENCE);
-
-export const isHelpReferenceOpen = handleActions(
-  {
-    [toggleHelpReference]: {
-      next: state => !state,
-    },
-  },
-  false,
-);
-
 export default combineReducers({
   saveError,
   dataPermissions,
@@ -410,5 +373,4 @@ export default combineReducers({
   collectionPermissions,
   originalCollectionPermissions,
   collectionPermissionsRevision,
-  isHelpReferenceOpen,
 });

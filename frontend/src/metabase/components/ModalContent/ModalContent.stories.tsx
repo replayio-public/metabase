@@ -1,7 +1,8 @@
 import type { ComponentStory } from "@storybook/react";
 import { action } from "@storybook/addon-actions";
 import Modal from "metabase/components/Modal";
-import ModalContent, { ModalContentActionIcon } from "./index";
+import { ActionIcon } from "./ModalContent.styled";
+import ModalContent from "./ModalContent";
 
 export default {
   title: "Components/ModalContent",
@@ -47,7 +48,7 @@ WithHeaderActions.args = {
   ...args,
   headerActions: (
     <>
-      <ModalContentActionIcon name="pencil" onClick={action("Action1")} />
+      <ActionIcon name="pencil" onClick={action("Action1")} />
     </>
   ),
 };

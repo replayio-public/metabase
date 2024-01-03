@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import PropTypes from "prop-types";
 import * as TippyReact from "@tippyjs/react";
-import type * as tippy from "tippy.js";
+import * as tippy from "tippy.js";
 import cx from "classnames";
 import { merge } from "icepick";
 
@@ -11,8 +11,7 @@ import { isCypressActive } from "metabase/env";
 import useSequencedContentCloseHandler from "metabase/hooks/use-sequenced-content-close-handler";
 
 import { DEFAULT_Z_INDEX } from "./constants";
-import type { SizeToFitOptions } from "./SizeToFitModifier";
-import { sizeToFitModifierFn } from "./SizeToFitModifier";
+import { sizeToFitModifierFn, SizeToFitOptions } from "./SizeToFitModifier";
 
 const TippyComponent = TippyReact.default;
 type TippyProps = TippyReact.TippyProps;
@@ -64,9 +63,6 @@ function getPopperOptions({
   );
 }
 
-/**
- * @deprecated prefer Popover from "metabase/ui" instead
- */
 function TippyPopover({
   className,
   disableContentSandbox,

@@ -1,10 +1,6 @@
 /* eslint-disable react/display-name, react/prop-types */
 import { Component } from "react";
-import {
-  createMockCard,
-  createMockDatabase,
-  createMockTable,
-} from "metabase-types/api/mocks";
+import { createMockDatabase, createMockTable } from "metabase-types/api/mocks";
 
 import {
   ORDERS_ID,
@@ -17,11 +13,9 @@ import {
   createSampleDatabase,
 } from "metabase-types/api/mocks/presets";
 import { createMockMetadata } from "__support__/metadata";
-import { setupCardEndpoints } from "__support__/server-mocks/card";
 import { renderWithProviders, screen } from "__support__/ui";
 import * as Urls from "metabase/lib/urls";
 import Question from "metabase-lib/Question";
-import * as ML_Urls from "metabase-lib/urls";
 import QuestionDataSource from "./QuestionDataSource";
 
 const MULTI_SCHEMA_DB_ID = 2;
@@ -278,11 +272,8 @@ class ErrorBoundary extends Component {
     return this.props.children;
   }
 }
-const SOURCE_CARD = createMockCard({ id: SOURCE_QUESTION_ID });
 
 function setup({ question, subHead = false, isObjectDetail = false } = {}) {
-  setupCardEndpoints(SOURCE_CARD);
-
   const onError = jest.fn();
   renderWithProviders(
     <ErrorBoundary onError={onError}>
@@ -441,7 +432,7 @@ describe("QuestionDataSource", () => {
           );
           expect(node.closest("a")).toHaveAttribute(
             "href",
-            ML_Urls.getUrl(question.table().newQuestion()),
+            question.table().newQuestion().getUrl(),
           );
         });
 
@@ -452,7 +443,7 @@ describe("QuestionDataSource", () => {
           );
           expect(node.closest("a")).toHaveAttribute(
             "href",
-            ML_Urls.getUrl(question.table().newQuestion()),
+            question.table().newQuestion().getUrl(),
           );
         });
       });
@@ -497,12 +488,12 @@ describe("QuestionDataSource", () => {
           expect(orders).toBeInTheDocument();
           expect(orders.closest("a")).toHaveAttribute(
             "href",
-            ML_Urls.getUrl(getAdHocOrdersQuestion()),
+            getAdHocOrdersQuestion().getUrl(),
           );
           expect(products).toBeInTheDocument();
           expect(products.closest("a")).toHaveAttribute(
             "href",
-            ML_Urls.getUrl(getAdHocProductsQuestion()),
+            getAdHocProductsQuestion().getUrl(),
           );
         });
       });
@@ -525,17 +516,17 @@ describe("QuestionDataSource", () => {
           expect(orders).toBeInTheDocument();
           expect(orders.closest("a")).toHaveAttribute(
             "href",
-            ML_Urls.getUrl(getAdHocOrdersQuestion()),
+            getAdHocOrdersQuestion().getUrl(),
           );
           expect(products).toBeInTheDocument();
           expect(products.closest("a")).toHaveAttribute(
             "href",
-            ML_Urls.getUrl(getAdHocProductsQuestion()),
+            getAdHocProductsQuestion().getUrl(),
           );
           expect(people).toBeInTheDocument();
           expect(people.closest("a")).toHaveAttribute(
             "href",
-            ML_Urls.getUrl(getAdHocPeopleQuestion()),
+            getAdHocPeopleQuestion().getUrl(),
           );
         });
       });

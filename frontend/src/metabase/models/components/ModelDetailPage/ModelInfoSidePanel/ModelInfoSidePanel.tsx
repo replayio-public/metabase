@@ -2,7 +2,6 @@ import { t } from "ttag";
 
 import type { Card } from "metabase-types/api";
 import type Question from "metabase-lib/Question";
-import * as ML_Urls from "metabase-lib/urls";
 import type Table from "metabase-lib/metadata/Table";
 
 import ModelRelationships from "./ModelRelationships";
@@ -48,8 +47,8 @@ function ModelInfoSidePanel({ model, mainTable, onChangeDescription }: Props) {
       )}
       {modelCard.creator && (
         <ModelInfoSection>
-          <ModelInfoTitle>{t`Created by`}</ModelInfoTitle>
-          <ModelInfoText aria-label={t`Created by`}>
+          <ModelInfoTitle>{t`Contact`}</ModelInfoTitle>
+          <ModelInfoText aria-label={t`Contact`}>
             {modelCard.creator.common_name}
           </ModelInfoText>
         </ModelInfoSection>
@@ -58,7 +57,7 @@ function ModelInfoSidePanel({ model, mainTable, onChangeDescription }: Props) {
         <ModelInfoSection>
           <ModelInfoTitle>{t`Backing table`}</ModelInfoTitle>
           <ModelInfoLink
-            to={ML_Urls.getUrl(mainTable.newQuestion(), { clean: false })}
+            to={mainTable.newQuestion().getUrl({ clean: false })}
             aria-label={t`Backing table`}
           >
             {mainTable.displayName()}

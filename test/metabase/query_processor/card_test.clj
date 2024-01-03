@@ -1,7 +1,6 @@
 (ns metabase.query-processor.card-test
   "There are more e2e tests in [[metabase.api.card-test]]."
   (:require
-   [cheshire.core :as json]
    [clojure.test :refer :all]
    [metabase.api.common :as api]
    [metabase.models :refer [Card Dashboard Database]]
@@ -11,6 +10,7 @@
    [metabase.query-processor.card :as qp.card]
    [metabase.test :as mt]
    [metabase.util :as u]
+   [schema.core :as s]
    [toucan2.tools.with-temp :as t2.with-temp]))
 
 (defn run-query-for-card
@@ -22,7 +22,7 @@
     (qp.card/run-query-for-card-async
      card-id :api
      :run (fn [query info]
-            (qp/process-query (assoc query :async? false, :info info))))))
+            (qp/process-query (assoc query :async? false) info)))))
 
 (deftest query-cache-ttl-hierarchy-test
   (mt/discard-setting-changes [enable-query-caching]
@@ -34,25 +34,24 @@
           (t2.with-temp/with-temp [Card card]
             ;; the magic multiplier should be ttl-ratio times avg execution time
             (is (= (* 2 4) (:cache-ttl (#'qp.card/query-for-card card {} {} {}))))))))
-    ;; corresponding EE tests in metabase-enterprise.advanced-config.caching-test
-    (testing "card ttl only, does not take effect on OSS so nil result"
-      (mt/with-temp [Card card {:cache_ttl 1337}]
-        (is (nil? (:cache-ttl (#'qp.card/query-for-card card {} {} {}))))))
-    (testing "dash ttl only, does not take effect on OSS so nil result"
-      (mt/with-temp [Database db {}
-                     Dashboard dash {:cache_ttl 1338}
-                     Card card {:database_id (u/the-id db)}]
-        (is (nil? (:cache-ttl (#'qp.card/query-for-card card {} {} {} {:dashboard-id (u/the-id dash)}))))))
+    (testing "card ttl only"
+      (mt/with-temp* [Card [card {:cache_ttl 1337}]]
+        (is (= (* 3600 1337) (:cache-ttl (#'qp.card/query-for-card card {} {} {}))))))
+    (testing "multiple ttl, dash wins"
+      (mt/with-temp* [Database [db {:cache_ttl 1337}]
+                      Dashboard [dash {:cache_ttl 1338}]
+                      Card [card {:database_id (u/the-id db)}]]
+        (is (= (* 3600 1338) (:cache-ttl (#'qp.card/query-for-card card {} {} {} {:dashboard-id (u/the-id dash)}))))))
     (testing "multiple ttl, db ttl does not take effect on OSS so nil result"
       ;; corresponding EE test in metabase-enterprise.advanced-config.caching-test
-      (mt/with-temp [Database db {:cache_ttl 1337}
-                     Dashboard dash {}
-                     Card card {:database_id (u/the-id db)}]
+      (mt/with-temp* [Database [db {:cache_ttl 1337}]
+                      Dashboard [dash]
+                      Card [card {:database_id (u/the-id db)}]]
         (is (= nil (:cache-ttl (#'qp.card/query-for-card card {} {} {} {:dashboard-id (u/the-id dash)}))))))
     (testing "no ttl, nil result"
-      (mt/with-temp [Database db {}
-                     Dashboard dash {}
-                     Card card {:database_id (u/the-id db)}]
+      (mt/with-temp* [Database [db]
+                      Dashboard [dash]
+                      Card [card {:database_id (u/the-id db)}]]
         (is (= nil (:cache-ttl (#'qp.card/query-for-card card {} {} {} {:dashboard-id (u/the-id dash)}))))))))
 
 (defn- field-filter-query []
@@ -125,14 +124,15 @@
                                                          :type  :date/single
                                                          :value "2016-01-01"}])))
       (testing "As an API request"
-        (is (=? {:message            #"Invalid parameter: Card [\d,]+ does not have a template tag named \"fake\".+"
-                 :invalid-parameter  {:id "_FAKE_", :name "fake", :type "date/single", :value "2016-01-01"}
-                 :allowed-parameters ["date"]}
-                (mt/user-http-request :rasta :post (format "card/%d/query" card-id)
-                                      {:parameters [{:id    "_FAKE_"
-                                                     :name  "fake"
-                                                     :type  :date/single
-                                                     :value "2016-01-01"}]})))))
+        (is (schema= {:message            #"Invalid parameter: Card [\d,]+ does not have a template tag named \"fake\".+"
+                      :invalid-parameter  (s/eq {:id "_FAKE_", :name "fake", :type "date/single", :value "2016-01-01"})
+                      :allowed-parameters (s/eq ["date"])
+                      s/Keyword           s/Any}
+                     (mt/user-http-request :rasta :post (format "card/%d/query" card-id)
+                                           {:parameters [{:id    "_FAKE_"
+                                                          :name  "fake"
+                                                          :type  :date/single
+                                                          :value "2016-01-01"}]})))))
 
     (testing "Should disallow parameters with types not allowed for the widget type"
       (letfn [(validate [param-type]
@@ -164,14 +164,3 @@
                                                                 :name  "date"
                                                                 :type  :date/single
                                                                 :value "2016-01-01"}]})))))))
-
-(deftest bad-viz-settings-should-still-work-test
-  (testing "We should still be able to run a query that has Card bad viz settings referencing a column not in the query (#34950)"
-    (t2.with-temp/with-temp [:model/Card {card-id :id} {:dataset_query          (mt/mbql-query venues
-                                                                                  {:aggregation [[:count]]})
-                                                        :visualization_settings {:column_settings {(json/generate-string
-                                                                                                    [:ref [:field Integer/MAX_VALUE {:base-type :type/DateTime, :temporal-unit :month}]])
-                                                                                                   {:date_abbreviate true
-                                                                                                    :some_other_key [:ref [:field Integer/MAX_VALUE {:base-type :type/DateTime, :temporal-unit :month}]]}}}}]
-      (is (= [[100]]
-             (mt/rows (run-query-for-card card-id)))))))

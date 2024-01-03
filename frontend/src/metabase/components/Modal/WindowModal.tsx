@@ -1,17 +1,15 @@
-import type { CSSProperties } from "react";
-import { Component } from "react";
+import { Component, CSSProperties } from "react";
 import { CSSTransition, TransitionGroup } from "react-transition-group";
 import cx from "classnames";
-
-import type {
+import {
+  getModalContent,
   ModalSize,
+  modalSizes,
   BaseModalProps,
 } from "metabase/components/Modal/utils";
-import { getModalContent, modalSizes } from "metabase/components/Modal/utils";
 
 import SandboxedPortal from "metabase/components/SandboxedPortal";
 import { MaybeOnClickOutsideWrapper } from "metabase/components/Modal/MaybeOnClickOutsideWrapper";
-import { FocusTrap } from "metabase/ui";
 
 export type WindowModalProps = BaseModalProps & {
   isOpen?: boolean;
@@ -19,9 +17,6 @@ export type WindowModalProps = BaseModalProps & {
   fullPageModal?: boolean;
   formModal?: boolean;
   style?: CSSProperties;
-  "data-testid"?: string;
-  zIndex?: number;
-  trapFocus?: boolean;
 } & {
   [size in ModalSize]?: boolean;
 };
@@ -33,7 +28,6 @@ export class WindowModal extends Component<WindowModalProps> {
     className: "Modal",
     backdropClassName: "Modal-backdrop",
     enableTransition: true,
-    trapFocus: true,
   };
 
   constructor(props: WindowModalProps) {
@@ -41,10 +35,6 @@ export class WindowModal extends Component<WindowModalProps> {
 
     this._modalElement = document.createElement("div");
     this._modalElement.className = "ModalContainer";
-
-    if (props.zIndex != null) {
-      this._modalElement.style.zIndex = String(props.zIndex);
-    }
     document.body.appendChild(this._modalElement);
   }
 
@@ -59,6 +49,7 @@ export class WindowModal extends Component<WindowModalProps> {
       this.props.onClose();
     }
   };
+
   _modalComponent() {
     const className = cx(
       this.props.className,
@@ -72,20 +63,18 @@ export class WindowModal extends Component<WindowModalProps> {
         handleDismissal={this.handleDismissal}
         closeOnClickOutside={this.props.closeOnClickOutside}
       >
-        <FocusTrap active={this.props.trapFocus}>
-          <div
-            className={cx(className, "relative bg-white rounded")}
-            role="dialog"
-          >
-            {getModalContent({
-              ...this.props,
-              fullPageModal: false,
-              // if there is a form then its a form modal, or if there's a form
-              // modal prop use that
-              formModal: !!this.props.form || this.props.formModal,
-            })}
-          </div>
-        </FocusTrap>
+        <div
+          className={cx(className, "relative bg-white rounded")}
+          role="dialog"
+        >
+          {getModalContent({
+            ...this.props,
+            fullPageModal: false,
+            // if there is a form then its a form modal, or if there's a form
+            // modal prop use that
+            formModal: !!this.props.form || this.props.formModal,
+          })}
+        </div>
       </MaybeOnClickOutsideWrapper>
     );
   }
@@ -97,7 +86,6 @@ export class WindowModal extends Component<WindowModalProps> {
       isOpen,
       style,
       enableTransition,
-      "data-testid": dataTestId,
     } = this.props;
     const backdropClassnames =
       "flex justify-center align-center fixed top left bottom right";
@@ -125,7 +113,6 @@ export class WindowModal extends Component<WindowModalProps> {
               <div
                 className={cx(backdropClassName, backdropClassnames)}
                 style={style}
-                data-testid={dataTestId}
               >
                 {this._modalComponent()}
               </div>

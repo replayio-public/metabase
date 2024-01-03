@@ -45,7 +45,7 @@ export function openNativeEditor({
  */
 export function runNativeQuery({ wait = true } = {}) {
   cy.intercept("POST", "api/dataset").as("dataset");
-  cy.findByTestId("native-query-editor-container").icon("play").click();
+  cy.get(".NativeQueryEditor .Icon-play").click();
 
   if (wait) {
     cy.wait("@dataset");
@@ -163,22 +163,13 @@ export function visitDashboard(dashboard_id, { params = {} } = {}) {
     url: `/api/dashboard/${dashboard_id}`,
     // That's why we have to ignore failures
     failOnStatusCode: false,
-  }).then(({ status, body: { dashcards, tabs } }) => {
+  }).then(({ status, body: { ordered_cards } }) => {
     const dashboardAlias = "getDashboard" + dashboard_id;
 
     cy.intercept("GET", `/api/dashboard/${dashboard_id}`).as(dashboardAlias);
 
     const canViewDashboard = hasAccess(status);
-
-    let validQuestions = dashboardHasQuestions(dashcards);
-
-    // if dashboard has tabs, only expect cards on the first tab
-    if (tabs?.length > 0) {
-      const firstTab = tabs[0];
-      validQuestions = validQuestions.filter(
-        card => card.dashboard_tab_id === firstTab.id,
-      );
-    }
+    const validQuestions = dashboardHasQuestions(ordered_cards);
 
     if (canViewDashboard && validQuestions) {
       // If dashboard has valid questions (GUI or native),
@@ -260,9 +251,7 @@ export function saveQuestion(
   cy.findByText("Save").click();
 
   modal().within(() => {
-    if (name) {
-      cy.findByLabelText("Name").clear().type(name);
-    }
+    cy.findByLabelText("Name").clear().type(name);
     cy.button("Save").click();
   });
 
@@ -275,16 +264,6 @@ export function saveQuestion(
   modal().within(() => {
     cy.button("Not now").click();
   });
-}
-
-export function saveSavedQuestion() {
-  cy.intercept("PUT", "/api/card/**").as("updateQuestion");
-  cy.findByText("Save").click();
-
-  modal().within(() => {
-    cy.button("Save").click();
-  });
-  cy.wait("@updateQuestion");
 }
 
 export function visitPublicQuestion(id) {

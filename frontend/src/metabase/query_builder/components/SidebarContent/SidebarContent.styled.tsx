@@ -10,7 +10,6 @@ export const SidebarContentRoot = styled.div`
 
 export const SidebarContentMain = styled.div`
   overflow-y: auto;
-  height: 100%;
 `;
 
 export const FooterButton = styled(ViewButton)`

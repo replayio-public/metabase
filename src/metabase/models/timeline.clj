@@ -1,12 +1,14 @@
 (ns metabase.models.timeline
   (:require
-   [java-time.api :as t]
-   [metabase.models.collection.root :as collection.root]
+   [java-time :as t]
+   [metabase.models.collection :as collection]
    [metabase.models.permissions :as perms]
    [metabase.models.serialization :as serdes]
    [metabase.models.timeline-event :as timeline-event]
    [metabase.util.date-2 :as u.date]
    [methodical.core :as methodical]
+   [schema.core :as s]
+   [toucan.hydrate :refer [hydrate]]
    [toucan2.core :as t2]))
 
 (def Timeline
@@ -22,27 +24,44 @@
   (derive :hook/timestamped?)
   (derive :hook/entity-id))
 
-;;;; transforms
+;;;; schemas
 
-(t2/define-after-select :model/Timeline
-  [timeline]
-  ;; We used to have a "balloons" icon but we removed it.
-  ;; Use the default icon instead. (metabase#34586, metabase#35129)
-  (update timeline :icon (fn [icon]
-                           (if (= icon "balloons") timeline-event/default-icon icon))))
+(def icons
+  "Valid Timeline and TimelineEvent icons"
+  ["star" "balloons" "mail" "warning" "bell" "cloud"])
+
+(def Icons
+  "Timeline and TimelineEvent icon string Schema"
+  (apply s/enum icons))
+
+(def DefaultIcon
+  "Timeline default icon"
+  "star")
 
 ;;;; functions
+
+(defn- root-collection
+  []
+  (-> (collection/root-collection-with-ui-details nil)
+      (hydrate :can_write)))
+
+(defn hydrate-root-collection
+  "Hydrate `:collection` on [[Timelines]] when the id is `nil`."
+  [{:keys [collection_id] :as timeline}]
+  (if (nil? collection_id)
+    (assoc timeline :collection (root-collection))
+    timeline))
 
 (defn timelines-for-collection
   "Load timelines based on `collection-id` passed in (nil means the root collection). Hydrates the events on each
   timeline at `:events` on the timeline."
   [collection-id {:keys [:timeline/events? :timeline/archived?] :as options}]
-  (cond-> (t2/hydrate (t2/select Timeline
+  (cond-> (hydrate (t2/select Timeline
                               :collection_id collection-id
                               :archived (boolean archived?))
                    :creator
                    [:collection :can_write])
-    (nil? collection-id) (->> (map collection.root/hydrate-root-collection))
+    (nil? collection-id) (->> (map hydrate-root-collection))
     events? (timeline-event/include-events options)))
 
 (defmethod serdes/hash-fields :model/Timeline

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import _ from "underscore";
 
-import type { CreateQueryActionParams } from "metabase/entities/actions";
+import _ from "underscore";
+import { CreateQueryActionParams } from "metabase/entities/actions";
 
 import type {
   Card,
@@ -20,8 +20,7 @@ import { getTemplateTagParametersFromCard } from "metabase-lib/parameters/utils/
 
 import { getDefaultFormSettings } from "../../../../utils";
 
-import type { ActionContextType } from "../ActionContext";
-import { ActionContext } from "../ActionContext";
+import { ActionContext, ActionContextType } from "../ActionContext";
 import type { ActionContextProviderProps, EditorBodyProps } from "../types";
 
 import {
@@ -73,9 +72,7 @@ function convertActionToQuestionCard(
     result_metadata: [],
     cache_ttl: null,
     last_query_start: null,
-    average_query_time: null,
     archived: false,
-    enable_embedding: false,
   };
 }
 
@@ -104,7 +101,7 @@ function convertQuestionToAction(
     id: question.id(),
     name: question.displayName() as string,
     description: question.description(),
-    dataset_query: cleanQuestion.datasetQuery() as NativeDatasetQuery,
+    dataset_query: question.datasetQuery() as NativeDatasetQuery,
     database_id: question.databaseId() as DatabaseId,
     parameters: parameters as WritebackParameter[],
     visualization_settings: formSettings,
@@ -126,19 +123,15 @@ function QueryActionContextProvider({
   databaseId,
   children,
 }: QueryActionContextProviderProps) {
-  const [initialQuestion, setInitialQuestion] = useState(
+  const [question, setQuestion] = useState(
     resolveQuestion(initialAction, { metadata, databaseId }),
   );
-  const initialFormSettings = useMemo(
-    () => getDefaultFormSettings(initialAction?.visualization_settings),
-    [initialAction?.visualization_settings],
-  );
-
-  const [question, setQuestion] = useState(initialQuestion);
 
   const query = useMemo(() => question.query() as NativeQuery, [question]);
 
-  const [formSettings, setFormSettings] = useState(initialFormSettings);
+  const [formSettings, setFormSettings] = useState(
+    getDefaultFormSettings(initialAction?.visualization_settings),
+  );
 
   const action = useMemo(() => {
     const action = convertQuestionToAction(question, formSettings);
@@ -153,12 +146,7 @@ function QueryActionContextProvider({
   const canSave = !query.isEmpty();
 
   useEffect(() => {
-    const newQuestion = resolveQuestion(initialAction, {
-      metadata,
-      databaseId,
-    });
-    setInitialQuestion(newQuestion);
-    setQuestion(newQuestion);
+    setQuestion(resolveQuestion(initialAction, { metadata, databaseId }));
     // we do not want to update this any time
     // the props or metadata change, only if action id changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -199,10 +187,8 @@ function QueryActionContextProvider({
   );
 
   const isDirty = useMemo(() => {
-    const isQuestionDirty = question.isDirtyComparedTo(initialQuestion);
-    const areFormSettingsDirty = !_.isEqual(formSettings, initialFormSettings);
-    return isQuestionDirty || areFormSettingsDirty;
-  }, [question, initialQuestion, formSettings, initialFormSettings]);
+    return canSave && !_.isEqual(action, initialAction);
+  }, [action, canSave, initialAction]);
 
   const value = useMemo(
     (): ActionContextType => ({

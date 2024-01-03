@@ -1,7 +1,6 @@
 (ns metabase.query-processor.middleware.resolve-fields
   "Middleware that resolves the Fields referenced by a query."
   (:require
-   [metabase.lib.metadata :as lib.metadata]
    [metabase.mbql.util :as mbql.u]
    [metabase.query-processor.error-type :as qp.error-type]
    [metabase.query-processor.store :as qp.store]
@@ -10,13 +9,8 @@
 
 (defn- resolve-fields-with-ids!
   [field-ids]
-  (qp.store/bulk-metadata :metadata/column field-ids)
-  (when-let [parent-ids (not-empty
-                         (into []
-                               (comp (map (fn [field-id]
-                                            (:parent-id (lib.metadata/field (qp.store/metadata-provider) field-id))))
-                                     (filter some?))
-                               field-ids))]
+  (qp.store/fetch-and-store-fields! field-ids)
+  (when-let [parent-ids (seq (filter some? (map (comp :parent_id qp.store/field) field-ids)))]
     (recur parent-ids)))
 
 (defn resolve-fields

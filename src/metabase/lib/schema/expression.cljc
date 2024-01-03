@@ -6,7 +6,8 @@
    [metabase.shared.util.i18n :as i18n]
    [metabase.types]
    [metabase.util.malli :as mu]
-   [metabase.util.malli.registry :as mr]))
+   [metabase.util.malli.registry :as mr])
+  #?(:cljs (:require-macros [metabase.lib.schema.expression])))
 
 (comment metabase.types/keep-me)
 
@@ -56,7 +57,7 @@
 
 (defmethod type-of-method :default
   [expr]
-  (throw (ex-info (i18n/tru "{0}: Don''t know how to determine the type of {1}" `type-of (pr-str expr))
+  (throw (ex-info (i18n/tru "Don''t know how to determine the type of {0}" (pr-str expr))
                   {:expr expr})))
 
 ;;; for MBQL clauses whose type is the same as the type of the first arg. Also used
@@ -131,26 +132,15 @@
 
 (def orderable-types
   "Set of base types that are orderable."
-  #{:type/Text :type/Number :type/Temporal :type/Boolean})
+  #{:type/Text :type/Number :type/Temporal})
 
 (mr/def ::orderable
   (expression-schema orderable-types
                      "an expression that can be compared with :> or :<"))
 
 (def equality-comparable-types
-  "Set of base types that can be compared with equality."
-  ;; TODO: Adding :type/* here was necessary to prevent type errors for queries where a field's type in the DB could not
-  ;; be determined better than :type/*. See #36841, where a MySQL enum field gets `:base-type :type/*`, and this check
-  ;; would fail on `[:= {} [:field ...] "enum-str"]` without `:type/*` here.
-  ;; This typing of each input should be replaced with an alternative scheme that checks that it's plausible to compare
-  ;; all the args to an `:=` clause. Eg. comparing `:type/*` and `:type/String` is cool. Comparing `:type/IPAddress` to
-  ;; `:type/Boolean` should fail; we can prove it's the wrong thing to do.
-   #{:type/Boolean :type/Text :type/Number :type/Temporal :type/IPAddress :type/MongoBSONID :type/Array :type/*})
-
-(mr/def ::emptyable
-  [:or
-   [:ref ::string]
-   (expression-schema :type/MongoBSONID "expression returning a BSONID")])
+  "Set of base types that can be campared with equality."
+   #{:type/Boolean :type/Text :type/Number :type/Temporal})
 
 (mr/def ::equality-comparable
   [:maybe

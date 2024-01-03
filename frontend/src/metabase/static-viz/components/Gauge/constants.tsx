@@ -1,3 +1,5 @@
+export const GAUGE_CHART_TYPE = "gauge";
+
 // Font
 export const BASE_FONT_SIZE = 56;
 export const SEGMENT_LABEL_FONT_SIZE = BASE_FONT_SIZE * 0.3;

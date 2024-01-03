@@ -1,10 +1,9 @@
 import styled from "@emotion/styled";
 
-import Card from "metabase/components/Card";
+import { color } from "metabase/lib/colors";
 import { Icon } from "metabase/core/components/Icon";
 import Link from "metabase/core/components/Link";
-import { MarkdownPreview } from "metabase/core/components/MarkdownPreview";
-import { color } from "metabase/lib/colors";
+import Card from "metabase/components/Card";
 
 export const ItemCard = styled(Card)``;
 
@@ -38,8 +37,11 @@ export const Title = styled.div`
   overflow: hidden;
 `;
 
-export const Description = styled(MarkdownPreview)`
+export const Description = styled.div`
   color: ${color("text-medium")};
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
 `;
 
 export const Body = styled.div`

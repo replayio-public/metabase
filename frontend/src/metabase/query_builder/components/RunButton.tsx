@@ -1,5 +1,4 @@
-import type { Ref } from "react";
-import { forwardRef } from "react";
+import { forwardRef, Ref } from "react";
 import { t } from "ttag";
 import cx from "classnames";
 import Button from "metabase/core/components/Button";

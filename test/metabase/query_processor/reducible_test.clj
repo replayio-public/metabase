@@ -27,7 +27,7 @@
      (printf "ROW %d -> %s\n" (inc row-count) (pr-str row))
      (inc row-count))))
 
-(deftest ^:parallel print-rows-test
+(deftest print-rows-test
   (testing "An example of using a reducing function that prints rows as they come in."
     (let [qp-result (atom nil)
           output    (str/split-lines
@@ -36,8 +36,7 @@
                                           {:database (mt/id)
                                            :type     :query
                                            :query    {:source-table (mt/id :venues), :limit 3}}
-                                          print-rows-rff
-                                          nil))))]
+                                          {:rff print-rows-rff}))))]
       (is (= 3
              @qp-result))
       (is (= ["ROW 1 -> [1 \"Red Medicine\" 4 10.0646 -165.374 3]"
@@ -45,25 +44,23 @@
               "ROW 3 -> [3 \"The Apple Pan\" 11 34.0406 -118.428 2]"]
              output)))))
 
-(defn print-rows-to-writer-rff-and-context [filename]
+(defn print-rows-to-writer-context [filename]
   (letfn [(reducef* [rff context metadata reducible-rows]
             (with-open [w (io/writer filename)]
               (binding [*out* w]
                 (context.default/default-reducef rff context metadata reducible-rows))))]
-    {:rff     print-rows-rff
-     :context {:reducef reducef*}}))
+    {:reducef reducef*
+     :rff     print-rows-rff}))
 
-(deftest ^:parallel write-rows-to-file-test
-  (mt/with-temp-file [filename]
+(deftest write-rows-to-file-test
+  (mt/with-temp-file [filename "out.txt"]
     (try
-      (let [{:keys [rff context]} (print-rows-to-writer-rff-and-context filename)]
-        (is (= 3
-               (qp/process-query
-                {:database (mt/id)
-                 :type     :query
-                 :query    {:source-table (mt/id :venues), :limit 3}}
-                rff
-                context))))
+      (is (= 3
+             (qp/process-query
+              {:database (mt/id)
+               :type     :query
+               :query    {:source-table (mt/id :venues), :limit 3}}
+              (print-rows-to-writer-context filename))))
       (is (= ["ROW 1 -> [1 \"Red Medicine\" 4 10.0646 -165.374 3]"
               "ROW 2 -> [2 \"Stout Burgers & Beers\" 11 34.0996 -118.329 2]"
               "ROW 3 -> [3 \"The Apple Pan\" 11 34.0406 -118.428 2]"]
@@ -82,19 +79,18 @@
       ([acc row]
        (update-in acc [:data :rows] conj (zipmap ks row))))))
 
-(deftest ^:parallel maps-test
+(deftest maps-test
   (testing "Example using an alternative reducing function that returns rows as a sequence of maps."
     (is (= [{:ID 1, :CATEGORY_ID 4,  :LATITUDE 10.0646, :LONGITUDE -165.374, :NAME "Red Medicine",          :PRICE 3}
             {:ID 2, :CATEGORY_ID 11, :LATITUDE 34.0996, :LONGITUDE -118.329, :NAME "Stout Burgers & Beers", :PRICE 2}]
            (mt/rows
-            (qp/process-query
-             {:database (mt/id)
-              :type     :query
-              :query    {:source-table (mt/id :venues), :limit 2, :order-by [[:asc (mt/id :venues :id)]]}}
-             maps-rff
-             nil))))))
+             (qp/process-query
+              {:database (mt/id)
+               :type     :query
+               :query    {:source-table (mt/id :venues), :limit 2, :order-by [[:asc (mt/id :venues :id)]]}}
+              {:rff maps-rff}))))))
 
-(deftest ^:parallel cancelation-test
+(deftest cancelation-test
   (testing "Example of canceling a query early before results are returned."
     (letfn [(process-query [canceled-chan timeout]
               ((qp.reducible/async-qp (fn [query rff {:keys [canceled-chan reducef], :as context}]
@@ -133,7 +129,7 @@
                    (throw result)
                    result)))))))))
 
-(deftest ^:parallel exceptions-test
+(deftest exceptions-test
   (testing "Test a query that throws an Exception."
     (is (thrown?
          Throwable
@@ -151,18 +147,18 @@
           {:reducef (fn [& _]
                       (throw (Exception. "Cannot open file")))})))))
 
-(deftest ^:parallel custom-qp-test
+(deftest custom-qp-test
   (testing "Rows don't actually have to be reducible. And you can build your own QP with your own middleware."
     (is (= {:data {:cols [{:name "n"}]
                    :rows [{:n 1} {:n 2} {:n 3} {:n 4} {:n 5}]}}
            ((qp.reducible/sync-qp (qp.reducible/async-qp qp.reducible/identity-qp))
             {}
-            maps-rff
             {:executef (fn [_ _ _ respond]
                          (respond {:cols [{:name "n"}]}
-                                  [[1] [2] [3] [4] [5]]))})))))
+                                  [[1] [2] [3] [4] [5]]))
+             :rff      maps-rff})))))
 
-(deftest ^:parallel row-type-agnostic-test
+(deftest row-type-agnostic-test
   (let [api-qp-middleware-options (delay (-> (mt/user-http-request :rasta :post 202 "dataset" (mt/mbql-query users {:limit 1}))
                                              :json_query
                                              :middleware))]

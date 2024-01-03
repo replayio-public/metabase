@@ -278,7 +278,7 @@ function getXAccessor(
   }
 }
 
-function exhaustiveCheck(_param: never): never {
+function exhaustiveCheck(param: never): never {
   throw new Error("Should not reach here");
 }
 

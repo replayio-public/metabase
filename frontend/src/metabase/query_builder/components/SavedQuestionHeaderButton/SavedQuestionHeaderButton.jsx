@@ -1,6 +1,6 @@
 import { t } from "ttag";
 import PropTypes from "prop-types";
-import { CollectionIcon } from "./CollectionIcon";
+import { PLUGIN_MODERATION } from "metabase/plugins";
 import { HeaderRoot, HeaderTitle } from "./SavedQuestionHeaderButton.styled";
 
 SavedQuestionHeaderButton.propTypes = {
@@ -19,11 +19,7 @@ function SavedQuestionHeaderButton({ question, onSave }) {
         onChange={onSave}
         data-testid="saved-question-header-title"
       />
-
-      <CollectionIcon
-        collection={question?._card?.collection}
-        question={question}
-      />
+      <PLUGIN_MODERATION.QuestionModerationIcon question={question} />
     </HeaderRoot>
   );
 }

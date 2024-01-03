@@ -32,7 +32,6 @@
     (create-artifacts-for-locale! locale)))
 
 (defn create-all-artifacts!
-  "Create backend and frontend i18n artifacts."
   ([]
    (create-all-artifacts! nil))
 
