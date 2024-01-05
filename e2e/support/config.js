@@ -35,6 +35,8 @@ const createBundler = require("@bahmutov/cypress-esbuild-preprocessor");
 const defaultConfig = {
   // This is the functionality of the old cypress-plugins.js file
   setupNodeEvents(on, config) {
+    console.log(`>>> setupNodeEvents`)
+
     if (runWithDeploySentinel) {
       console.log(">>ds enabled 1");
       // Cypress analytics and the alternative to Cypress dashboard
@@ -44,7 +46,7 @@ const defaultConfig = {
         config,
       );
     }
-
+0();
     // `on` is used to hook into various events Cypress emits
     // `config` is the resolved Cypress config
     /********************************************************************
@@ -107,8 +109,17 @@ const defaultConfig = {
 
     require("@cypress/grep/src/plugin")(config);
 
+    console.log(`>>> runWithReplay`, {runWithReplay})
     if (runWithReplay) {
-      replay.default(on, config);
+      const convertStringToInt = (string) => string.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+      replay.default(on, config, {
+        upload: true,
+        apiKey: process.env.REPLAY_API_KEY,
+        filter: r => {
+          console.log('>>> recording', r)
+          return r.metadata.test?.result === "failed" || convertStringToInt(r.metadata.run.id) % 10 === 1
+        },
+      });
     }
 
     return config;
