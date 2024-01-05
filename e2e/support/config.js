@@ -107,6 +107,7 @@ const defaultConfig = {
 
     require("@cypress/grep/src/plugin")(config);
 
+    console.log(`>>> runWithReplay`, {runWithReplay})
     if (runWithReplay) {
       const convertStringToInt = (string) => string.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
       replay.default(on, config, {
