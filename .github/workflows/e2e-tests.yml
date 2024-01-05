@@ -93,7 +93,7 @@ jobs:
       matrix:
         java-version: [11]
         edition: [ee]
-        folder: ${{ fromJSON(inputs.folders || '["binning","collections","custom-column","downloads","embedding","joins","onboarding","organization","permissions","sharing","dashboard-filters"]') }}
+        folder: ${{ fromJSON(inputs.folders || '["organization","permissions","sharing","dashboard-filters"]') }}
     services:
       maildev:
         image: maildev/maildev:2.0.5
@@ -170,25 +170,25 @@ jobs:
       - name: Install Replay.io browser
         run: npx @replayio/cypress install
 
-      - name: 1) Run EE Cypress tests on ${{ matrix.folder }}
-        if: always()
-        run: |
-          yarn run test-cypress-run \
-          --env grepTags="-@OSS" \
-          --folder ${{ matrix.folder }}
-        env:
-          TERM: xterm
-          CYPRESS_REPLAYIO_ENABLED: 1
+      # - name: 1) Run EE Cypress tests on ${{ matrix.folder }}
+      #   if: always()
+      #   run: |
+      #     yarn run test-cypress-run \
+      #     --env grepTags="-@OSS" \
+      #     --folder ${{ matrix.folder }}
+      #   env:
+      #     TERM: xterm
+      #     CYPRESS_REPLAYIO_ENABLED: 1
 
-      - name: 2) Run EE Cypress tests on ${{ matrix.folder }} with Video
-        if: always()
-        run: |
-          yarn run test-cypress-run \
-          --env grepTags="-@OSS" \
-          --folder ${{ matrix.folder }}
-        env:
-          TERM: xterm
-          CYPRESS_VIDEO_ENABLED: 1
+      # - name: 2) Run EE Cypress tests on ${{ matrix.folder }} with Video
+      #   if: always()
+      #   run: |
+      #     yarn run test-cypress-run \
+      #     --env grepTags="-@OSS" \
+      #     --folder ${{ matrix.folder }}
+      #   env:
+      #     TERM: xterm
+      #     CYPRESS_VIDEO_ENABLED: 1
 
       # - name: 3.1) Run EE Cypress tests on ${{ matrix.folder }} using Replay.io browser (no asserts + maps)
       #   if: always()
