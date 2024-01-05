@@ -35,6 +35,8 @@ const createBundler = require("@bahmutov/cypress-esbuild-preprocessor");
 const defaultConfig = {
   // This is the functionality of the old cypress-plugins.js file
   setupNodeEvents(on, config) {
+    console.log(`>>> setupNodeEvents`)
+
     if (runWithDeploySentinel) {
       console.log(">>ds enabled 1");
       // Cypress analytics and the alternative to Cypress dashboard

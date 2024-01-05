@@ -12,6 +12,7 @@ const getSourceFolder = folder => {
 };
 
 const runCypress = async (baseUrl, exitFunction) => {
+  console.log('>>> runCypress')
   const defaultConfig = {
     browser: "chrome",
     configFile: "e2e/support/cypress.config.js",
