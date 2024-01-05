@@ -108,7 +108,15 @@ const defaultConfig = {
     require("@cypress/grep/src/plugin")(config);
 
     if (runWithReplay) {
-      replay.default(on, config);
+      replay.default(on, config, {
+        upload: true,
+        apiKey: process.env.REPLAY_API_KEY,
+        filter: r => {
+          console.log('>>> recording', r)
+          return r.metadata.test?.result === "failed"
+            || r.metadata.run.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 10 === 1
+        },
+      });
     }
 
     return config;
