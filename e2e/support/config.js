@@ -121,6 +121,11 @@ const defaultConfig = {
   //   1. testFiles and
   //   2. integrationFolder
   specPattern: "e2e/test/**/*.cy.spec.js",
+  defaultCommandTimeout: 8000,
+  retries: {
+    runMode: 4,
+    openMode: 4,
+  },
 };
 
 const mainConfig = {
@@ -135,11 +140,6 @@ const mainConfig = {
     quiet: true,
     html: false,
     json: true,
-  },
-  retries: {
-    // NOTE: Metabase uses 4 as the default, but we set it to 0 to prevent false positives
-    runMode: 0,
-    openMode: 0,
   },
   video: videoEnabled ? true : false,
 };

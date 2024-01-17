@@ -223,6 +223,13 @@ jobs:
           RECORD_REPLAY_METADATA_FILE: /tmp/replay-metadata.json
           RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ needs.test-run-id.outputs.testRunId }}
 
+      - name: Upload mochawesome reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: e2e-tests-${{ matrix.folder }}${{ matrix.context }}-${{ matrix.edition }}-report
+          path: ./cypress/reports/mochareports
+
       # - name: 4) Run EE Cypress tests on ${{ matrix.folder }} with DeploySentinel
       #   if: always()
       #   run: |
