@@ -81,6 +81,10 @@ const BUILDKITE_TRIGGERED_FROM_BUILD_ID = requireEnv(
 const RUN_ID = `${BUILDKITE_TRIGGERED_FROM_BUILD_PIPELINE_SLUG}/${BUILDKITE_TRIGGERED_FROM_BUILD_NUMBER}`;
 const BUILD_ID = fetchBuildId();
 
+function isHTTP2xx(status_code) {
+  return status_code >= 200 && status_code < 300;
+}
+
 const githubHeaders = {
   Authorization: `Bearer ${GITHUB_AUTH_SECRET}`,
   "X-GitHub-Api-Version": "2022-11-28",
@@ -96,7 +100,9 @@ async function githubGetJSON(url) {
     method: "GET",
     headers: githubJSONHeaders,
   });
-  console.log(`githubGetJSON status: ${resp.status}`);
+  if (!isHTTP2xx(resp.status)) {
+    throw new Error(`Github API request failed with status ${resp.status}`);
+  }
   return await resp.json();
 }
 
@@ -105,7 +111,9 @@ async function githubAPIDownload(url, filename) {
     method: "GET",
     headers: githubHeaders,
   });
-  console.log(`githubAPIDownload status: ${resp.status}`);
+  if (!isHTTP2xx(resp.status)) {
+    throw new Error(`Github API request failed with status ${resp.status}`);
+  }
   const fileStream = fs.createWriteStream(filename, { flags: 'wx'});
   await new Promise((resolve, reject) => pipeline(
     [resp.body, fileStream],
@@ -128,7 +136,9 @@ async function githubAPIPost(url, body) {
     headers: githubJSONHeaders,
     body,
   });
-  console.log(`githubAPIPost status: ${resp.status}`);
+  if (!isHTTP2xx(resp.status)) {
+    throw new Error(`Github API request failed with status ${resp.status}`);
+  }
   return resp;
 }
 
@@ -173,14 +183,14 @@ async function fetchRunArtifact(artifact_id, filename) {
   }
 }
 
-function annotate(message, style = "info") {
+function annotate(context, message, style = "info") {
   if (DRY_RUN) {
     console.log(`DRY RUN: annotation:\n${message}`);
   } else {
     spawnChecked("buildkite-agent", [
       "annotate",
       "--context",
-      "tests",
+      context,
       "--style",
       style,
       message,
@@ -203,7 +213,12 @@ async function startWorkflowRun() {
   );
 
   if (!DRY_RUN) {
-    await githubAPIPost(WORKFLOW_DISPATCH_START_RUN_URL(), JSON.stringify(body));
+    try {
+      await githubAPIPost(WORKFLOW_DISPATCH_START_RUN_URL(), JSON.stringify(body));
+    } catch {
+      // TODO: we should retry this on error
+      die("Failed to start workflow run");
+    }
   }
 }
 
@@ -223,7 +238,15 @@ async function waitForRunCompletion(expectedRunName) {
     );
     await sleep(SLEEP_SEC_PER_ITER * 1000);
 
-    const runs_json = await fetchRunsJSON();
+    let runs_json;
+    try {
+      runs_json = await fetchRunsJSON();
+    } catch (e) {
+      console.log(`Failed to fetch runs JSON: ${e}`);
+      // don't exit here since retrying is so easy - we'll just try again after SLEEP_SEC_PER_ITER.
+      continue;
+    }
+
     const run_json = runs_json.workflow_runs.find(
       run => run.name === expectedRunName,
     );
@@ -241,7 +264,7 @@ async function waitForRunCompletion(expectedRunName) {
     if (!url_annotation_done) {
       url_annotation_done = true;
       console.log(`Github workflow run url: ${run_url}`);
-      annotate(run_url);
+      annotate("run_url", run_url);
     }
 
     if (run_status === "completed") {
@@ -264,7 +287,13 @@ async function waitForRunCompletion(expectedRunName) {
 
 async function fetchReportAndGatherFailures(report_name, artifact) {
   const zip_file = `${report_name}.zip`;
-  await fetchRunArtifact(artifact.id, zip_file);
+
+  try {
+    await fetchRunArtifact(artifact.id, zip_file);
+  } catch (e) {
+    // TODO: we should probably retry this on http error
+    die(`Failed to fetch artifact ${artifact.id}: ${e}`);
+  }
 
   const files = fs.readdirSync(".");
   console.log("files after downloading artifact: " + files.join(" "));
@@ -317,31 +346,27 @@ function formatFailures(job_name, failures) {
 }
 
 async function main() {
-  try {
-    await startWorkflowRun();
-  } catch (e) {
-    die(`Failed to start workflow run: ${e}`);
-  }
+  await startWorkflowRun();
 
   const expectedRunName = `E2E Tests (aggregate) - run id ${RUN_ID}`;
   console.log(`Expected workflow run name: ${expectedRunName}`);
 
-  let success;
   let run_id;
   let status;
 
   try {
     [status, run_id] = await waitForRunCompletion(expectedRunName);
-    if (status === "timeout") {
-      die("Timed out waiting for workflow run completion");
-    }
-
-    if (status === "success") {
-      console.log("workflow succeeded.  nothing more to do here.");
-      process.exit(0);
-    }
   } catch (e) {
     die(`Failed to wait for workflow run completion: ${e}`);
+  }
+
+  if (status === "timeout") {
+    die("Timed out waiting for workflow run completion");
+  }
+
+  if (status === "success") {
+    console.log("workflow succeeded.  nothing more to do here.");
+    process.exit(0);
   }
 
   console.log(
@@ -349,7 +374,13 @@ async function main() {
   );
 
   // fetch the jobs list so we can tell which ones failed
-  const jobs_json = await fetchRunJobsJSON(run_id);
+  let jobs_json;
+  try {
+    jobs_json = await fetchRunJobsJSON(run_id);
+  } catch (e) {
+    // TODO: we should probably retry this on http error
+    die(`Failed to fetch jobs JSON: ${e}`);
+  }
   const failed_test_jobs = jobs_json.jobs.filter(job => {
     if (job.status !== "completed" || job.conclusion !== "failure") {
       console.log(`Job ${job.name} was not a failed job, skipping... ${job.status}, ${job.conclusion}`)
@@ -362,6 +393,7 @@ async function main() {
     // now we make sure that 3.2 failed
     return job.steps.some(step => {
       if (
+        // TODO: add a pattern to the command line for the test we're looking for?
         !step.name.startsWith("3.2) Run EE Cypress tests on")
         || !step.name.includes("using Replay.io browser")
       ) {
@@ -377,7 +409,13 @@ async function main() {
     );
   }
 
-  const artifacts_json = await fetchRunArtifactsJSON(run_id);
+  let artifacts_json;
+  try {
+    artifacts_json = await fetchRunArtifactsJSON(run_id);
+  } catch (e) {
+    // TODO: we should probably retry this on http error
+    die(`Failed to fetch artifacts JSON: ${e}`);
+  }
 
   for (const job of failed_test_jobs) {
     // find the artifact that corresponds to this job's name
@@ -387,7 +425,7 @@ async function main() {
     );
     const failures = await fetchReportAndGatherFailures(report_name, report_artifact);
 
-    annotate(formatFailures(job.name, failures), "error");
+    annotate("reports", formatFailures(job.name, failures), "error");
   }
 
   process.exit(-1);
