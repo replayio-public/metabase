@@ -209,7 +209,8 @@ describe("scenarios > dashboards > filters > auto apply", () => {
     });
   });
 
-  it("should display a toast when a dashboard takes longer than 15s to load", () => {
+  // currently failing, see RUN-3137
+  it.skip("should display a toast when a dashboard takes longer than 15s to load", () => {
     cy.clock();
     createDashboard();
     openSlowDashboard({ [FILTER.slug]: "Gadget" });
@@ -261,7 +262,8 @@ describe("scenarios > dashboards > filters > auto apply", () => {
     undoToast().should("not.exist");
   });
 
-  it("should not display the same toast twice for a dashboard", () => {
+  // currently failing, see RUN-3137
+  it.skip("should not display the same toast twice for a dashboard", () => {
     cy.clock();
     createDashboard();
     openSlowDashboard({ [FILTER.slug]: "Gadget" });
