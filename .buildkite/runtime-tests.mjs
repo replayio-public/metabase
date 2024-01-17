@@ -425,7 +425,7 @@ async function main() {
     );
     const failures = await fetchReportAndGatherFailures(report_name, report_artifact);
 
-    annotate("reports", formatFailures(job.name, failures), "error");
+    annotate(report_name, formatFailures(job.name, failures), "error");
   }
 
   process.exit(-1);
