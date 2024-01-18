@@ -1,7 +1,7 @@
 steps:
   - label: "Run Metabase tests (Linux) (x86_64)"
     key: "metabase-tests-linux_x86_64"
-    command: "./.buildkite/runtime-tests.sh"
+    command: "node --experimental-fetch ./.buildkite/runtime-tests.mjs"
     agents:
       - "deploy=true"
     plugins:

@@ -53,7 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: 9b1a5c2d5899f1abe1ac70b799fca98edfdd8a0a
+          ref: toshok/green-tests
       - name: Prepare front-end environment
         uses: ./.github/actions/prepare-frontend
       - name: Prepare back-end environment
@@ -144,7 +144,7 @@ jobs:
           echo "RECORD_REPLAY_VERBOSE=1" >> "$GITHUB_ENV"
       - uses: actions/checkout@v3
         with:
-          ref: 9b1a5c2d5899f1abe1ac70b799fca98edfdd8a0a
+          ref: toshok/green-tests
       - name: Prepare front-end environment
         uses: ./.github/actions/prepare-frontend
       - name: Prepare JDK ${{ matrix.java-version }}
@@ -222,6 +222,13 @@ jobs:
           RECORD_REPLAY_DISABLE_SOURCEMAP_COLLECTION: 1
           RECORD_REPLAY_METADATA_FILE: /tmp/replay-metadata.json
           RECORD_REPLAY_METADATA_TEST_RUN_ID: ${{ needs.test-run-id.outputs.testRunId }}
+
+      - name: Upload mochawesome reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: e2e-tests-${{ matrix.folder }}${{ matrix.context }}-${{ matrix.edition }}-report
+          path: ./cypress/reports/mochareports
 
       # - name: 4) Run EE Cypress tests on ${{ matrix.folder }} with DeploySentinel
       #   if: always()
