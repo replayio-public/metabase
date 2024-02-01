@@ -6,3 +6,5 @@ updates:
       interval: "daily"
     allow:
       - dependency-name: "@replayio/*"
+    reviewers:
+      - "toshok"
