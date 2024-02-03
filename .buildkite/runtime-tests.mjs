@@ -345,6 +345,13 @@ function formatFailures(job_name, failures) {
   return `## ${job_name} failures\n${failuresBlob}`;
 }
 
+function formatFailureMissingReport(job_name) {
+  return (
+    "## ${job_name} failed without a report\n" +
+    "This likely means the recorder crashed for all tests, so there were no report to upload."
+  )
+}
+
 async function main() {
   await startWorkflowRun();
 
@@ -423,9 +430,13 @@ async function main() {
     const report_artifact = artifacts_json.artifacts.find(
       artifact => artifact.name === report_name,
     );
-    const failures = await fetchReportAndGatherFailures(report_name, report_artifact);
 
-    annotate(report_name, formatFailures(job.name, failures), "error");
+    if (report_artifact) {
+      const failures = await fetchReportAndGatherFailures(report_name, report_artifact);
+      annotate(report_name, formatFailures(job.name, failures), "error");
+    } else {
+      annotate(report_name, formatFailureMissingReport(job.name), "error");
+    }
   }
 
   process.exit(-1);
