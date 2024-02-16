@@ -347,7 +347,7 @@ function formatFailures(job_name, failures) {
 
 function formatFailureMissingReport(job_name) {
   return (
-    "## ${job_name} failed without a report\n" +
+    `## ${job_name} failed without a report\n` +
     "This likely means the recorder crashed for all tests, so there were no report to upload."
   )
 }
