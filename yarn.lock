@@ -2350,12 +2350,12 @@
     uuid "^8.3.2"
     ws "^8.14.2"
 
-"@replayio/replay@^0.21.1":
-  version "0.21.1"
-  resolved "https://registry.yarnpkg.com/@replayio/replay/-/replay-0.21.1.tgz#ed8bc1f3f4a7ea31056f9785b9b8ec02f8230949"
-  integrity sha512-b5n8oSExpurBePNueCBrFhtQafG8OM+ZuHItUsReQwRY4SyntOnBBlKzcc1Ecb2Vn+VuPw28PU+/BzFzYJVwUQ==
+"@replayio/replay@^0.21.1", "@replayio/replay@^0.21.3":
+  version "0.21.3"
+  resolved "https://registry.yarnpkg.com/@replayio/replay/-/replay-0.21.3.tgz#4789fb23b4a75dd30fd2eca21c21d90171baf81e"
+  integrity sha512-9SzacedDsRO2+gKhGgz8y5/tezSx2BhK40C2GNzl9SFugC7bTO7yngZNXMwvTljPjaVITDsZD+waSLrzFghuKQ==
   dependencies:
-    "@replayio/sourcemap-upload" "^1.1.1"
+    "@replayio/sourcemap-upload" "^1.1.2"
     "@types/semver" "^7.5.6"
     commander "^7.2.0"
     debug "^4.3.4"
@@ -2369,10 +2369,10 @@
     text-table "^0.2.0"
     ws "^7.5.0"
 
-"@replayio/sourcemap-upload@^1.1.1":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@replayio/sourcemap-upload/-/sourcemap-upload-1.1.1.tgz#2e6e5c9a5b5037bb2e2d21b2751411e5188eb486"
-  integrity sha512-XcJmyi2lxVUv/OuCC4GS7SFDrwViObw5czLy2pz7i2AAHFdFQJxTSqnNnw00m7ocUBdgcn/P0DzKHeRvTgPx4w==
+"@replayio/sourcemap-upload@^1.1.2":
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@replayio/sourcemap-upload/-/sourcemap-upload-1.1.2.tgz#9b70c1020f667da1d0f8f87548d4fc2349f764b2"
+  integrity sha512-ZBUqmychLWXvcQNGuAHnyto9FjlSwmk65yoTMcsbK0CTW784r6ZGFPcoLiyf8veHHX56/nxYr8iyWYwT7/zraQ==
   dependencies:
     commander "^7.2.0"
     debug "^4.3.1"
