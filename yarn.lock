@@ -2369,6 +2369,25 @@
     text-table "^0.2.0"
     ws "^7.5.0"
 
+"@replayio/replay@^0.21.4":
+  version "0.21.4"
+  resolved "https://registry.yarnpkg.com/@replayio/replay/-/replay-0.21.4.tgz#802b41f349497982ea2b736ebc101eb97e10be0e"
+  integrity sha512-EmxoD8SuZu9UN6MRk5jsrmcRWErhQExj8zUJ4ijEapBNBmhk9g+XFfpYPbFyj+MABdGJZpymVphlLRuevo8P3w==
+  dependencies:
+    "@replayio/sourcemap-upload" "^1.1.2"
+    "@types/semver" "^7.5.6"
+    commander "^7.2.0"
+    debug "^4.3.4"
+    is-uuid "^1.0.2"
+    jsonata "^1.8.6"
+    node-fetch "^2.6.8"
+    p-map "^4.0.0"
+    query-registry "^2.6.0"
+    semver "^7.5.4"
+    superstruct "^0.15.4"
+    text-table "^0.2.0"
+    ws "^7.5.0"
+
 "@replayio/sourcemap-upload@^1.1.1":
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/@replayio/sourcemap-upload/-/sourcemap-upload-1.1.1.tgz#2e6e5c9a5b5037bb2e2d21b2751411e5188eb486"
@@ -2380,12 +2399,23 @@
     node-fetch "^2.6.1"
     string.prototype.matchall "^4.0.5"
 
-"@replayio/test-utils@^1.3.13":
-  version "1.3.13"
-  resolved "https://registry.yarnpkg.com/@replayio/test-utils/-/test-utils-1.3.13.tgz#6e4a0d81dea168ecb95080ab6f969ce8bdbae3eb"
-  integrity sha512-i3Pvy9Vt3iUsvPEklCk4acg+APoLSZKYEbXc6qKHSUiFwtS9/fpD1EzHUig5qX+lbLQEfSdLPPPZaKwnBGe+Kg==
+"@replayio/sourcemap-upload@^1.1.2":
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@replayio/sourcemap-upload/-/sourcemap-upload-1.1.2.tgz#9b70c1020f667da1d0f8f87548d4fc2349f764b2"
+  integrity sha512-ZBUqmychLWXvcQNGuAHnyto9FjlSwmk65yoTMcsbK0CTW784r6ZGFPcoLiyf8veHHX56/nxYr8iyWYwT7/zraQ==
   dependencies:
-    "@replayio/replay" "^0.21.1"
+    commander "^7.2.0"
+    debug "^4.3.1"
+    glob "^7.1.6"
+    node-fetch "^2.6.1"
+    string.prototype.matchall "^4.0.5"
+
+"@replayio/test-utils@^1.3.13":
+  version "1.3.16"
+  resolved "https://registry.yarnpkg.com/@replayio/test-utils/-/test-utils-1.3.16.tgz#c3e9011ac1ddf48f071ae7dcefb989af1ca07672"
+  integrity sha512-pt+eH21t8+X76cPXDXK7xJi6lzLHvzw0H7E8H4fRWSChbqxL0M57epQL4OpckjQYO9pYHbbj1kt10ihcJ+poUg==
+  dependencies:
+    "@replayio/replay" "^0.21.4"
     debug "^4.3.4"
     node-fetch "^2.6.7"
     sha-1 "^1.0.0"
