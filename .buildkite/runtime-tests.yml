@@ -25,7 +25,7 @@ steps:
             BUILDEVENT_BUILDKITE_API_TOKEN: buildkite-api-token-honeycomb-build-events
       - replayio/buildevents#adb8a05: ~
       - "ssh://git@github.com/replayio/fly-buildkite-plugin.git#v0.77":
-          image: "registry.fly.io/buildkite-backend-e2e-tests:v14"
+          image: "registry.fly.io/buildkite-backend-e2e-tests:v15"
           organization: "replay"
           cpus: 1
           memory: 2048
