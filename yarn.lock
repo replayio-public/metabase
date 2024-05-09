@@ -2350,25 +2350,6 @@
     uuid "^8.3.2"
     ws "^8.14.2"
 
-"@replayio/replay@^0.21.1":
-  version "0.21.1"
-  resolved "https://registry.yarnpkg.com/@replayio/replay/-/replay-0.21.1.tgz#ed8bc1f3f4a7ea31056f9785b9b8ec02f8230949"
-  integrity sha512-b5n8oSExpurBePNueCBrFhtQafG8OM+ZuHItUsReQwRY4SyntOnBBlKzcc1Ecb2Vn+VuPw28PU+/BzFzYJVwUQ==
-  dependencies:
-    "@replayio/sourcemap-upload" "^1.1.1"
-    "@types/semver" "^7.5.6"
-    commander "^7.2.0"
-    debug "^4.3.4"
-    is-uuid "^1.0.2"
-    jsonata "^1.8.6"
-    node-fetch "^2.6.8"
-    p-map "^4.0.0"
-    query-registry "^2.6.0"
-    semver "^7.5.4"
-    superstruct "^0.15.4"
-    text-table "^0.2.0"
-    ws "^7.5.0"
-
 "@replayio/replay@^0.22.4":
   version "0.22.4"
   resolved "https://registry.yarnpkg.com/@replayio/replay/-/replay-0.22.4.tgz#ee970618e1033f2f24b941a08aa90a8e545c984e"
@@ -2388,17 +2369,6 @@
     superstruct "^0.15.4"
     text-table "^0.2.0"
     ws "^7.5.0"
-
-"@replayio/sourcemap-upload@^1.1.1":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@replayio/sourcemap-upload/-/sourcemap-upload-1.1.1.tgz#2e6e5c9a5b5037bb2e2d21b2751411e5188eb486"
-  integrity sha512-XcJmyi2lxVUv/OuCC4GS7SFDrwViObw5czLy2pz7i2AAHFdFQJxTSqnNnw00m7ocUBdgcn/P0DzKHeRvTgPx4w==
-  dependencies:
-    commander "^7.2.0"
-    debug "^4.3.1"
-    glob "^7.1.6"
-    node-fetch "^2.6.1"
-    string.prototype.matchall "^4.0.5"
 
 "@replayio/sourcemap-upload@^2.0.3":
   version "2.0.3"
