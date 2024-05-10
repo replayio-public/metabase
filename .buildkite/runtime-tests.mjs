@@ -215,9 +215,9 @@ async function startWorkflowRun() {
   if (!DRY_RUN) {
     try {
       await githubAPIPost(WORKFLOW_DISPATCH_START_RUN_URL(), JSON.stringify(body));
-    } catch {
+    } catch (e) {
       // TODO: we should retry this on error
-      die("Failed to start workflow run");
+      die(`Failed to start workflow run: ${e}`);
     }
   }
 }
